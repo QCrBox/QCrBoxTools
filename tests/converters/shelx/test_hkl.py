@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import re
-from qcrboxtools.converters.shelx.hkl import cif2hkl
+from qcrboxtools.converters.shelx.hkl import cif2hkl4
 
 
 
@@ -59,7 +59,7 @@ def test_cif_2_shelx_hkl(cif_path, tmp_path):
     # create converted hkl from cif into temporary file
     out_hkl_path = tmp_path / "test.hkl"
     # read file the same way
-    cif2hkl(cif_path, out_hkl_path, 4)
+    cif2hkl4(cif_path, 0, out_hkl_path)
     hkl_test, i_test, esd_test, number_test = read_hkl_as_np(out_hkl_path, True)
     # compare whether identical
     assert hkl_ref.shape[0] == hkl_test.shape[0], "Not the same number of reflections"

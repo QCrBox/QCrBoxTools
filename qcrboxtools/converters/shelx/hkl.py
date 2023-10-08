@@ -1,39 +1,64 @@
-import re
+"""
+This module provides utilities for the conversion of CIF data to the SHELX HKL format
+"""
+
 import numpy as np
 from iotbx import cif
 
-def format_floats(val):
+def format_floats(val: float) -> str:
+    """
+    Format a floating-point number to a specific string format.
+
+    Parameters:
+    - val (float): The floating-point number to be formatted.
+
+    Returns:
+    - str: The formatted string representation of the input float.
+    """
     if val < 0:
         return f'{val: .8f}'[:8]
     else:
         return f' {val:.8f}'[:8]
 
-def cifdata_str_or_index(model, dataset):
+def cifdata_str_or_index(model: dict, dataset: [int, str]) -> cif.model.block:
+    """
+    Retrieve CIF dataset block from the model based on an index or string identifier.
+
+    Parameters:
+    - model (dict): The CIF model containing datasets.
+    - dataset (int or str): Index or string identifier for the desired dataset.
+
+    Returns:
+    - dict: The selected CIF dataset.
+    """
     if isinstance(dataset, int):
         keys = list(model.keys())
         dataset = keys[dataset]
     return model[dataset]
 
-def cif2hkl4(cif_path, cif_dataset, hkl_path):
+def cif2hkl4(cif_path: str, cif_dataset: [int, str], hkl_path: str) -> None:
+    """
+    Convert CIF data to the HKL format and save to the specified file path.
 
-    #TODO support mixed Olex/SHELX cifs
+    Parameters:
+    - cif_path (str): Path to the input CIF file.
+    - cif_dataset (int or str): Index or string identifier for the desired CIF dataset.
+    - hkl_path (str): Path where the converted HKL data should be saved.
+
+    Returns:
+    - None
+    """
     with open(cif_path, 'r', encoding='UTF-8') as fo:
         cif_content = fo.read()
 
-    # is shelx cif
-    search_shelx = re.findall(r'_shelx_hkl_file\n;(.*?);', cif_content, flags=re.DOTALL)
-    if len(search_shelx) > 0:
-        if isinstance(cif_dataset, int):
-            hkl_content = search_shelx[cif_dataset]
-        else:
-            data_strings = re.findall(r'data_(.*?)\n', cif_content)
-            hkl_content = search_shelx[data_strings.index(cif_dataset)]
-    else:
-        cif_data = cifdata_str_or_index(
-            cif.reader(input_string=cif_content).model(),
-            cif_dataset
-        )
+    cif_data = cifdata_str_or_index(
+        cif.reader(input_string=cif_content).model(),
+        cif_dataset
+    )
 
+    if '_shelx_hkl_file' in cif_data:
+        hkl_content = cif_data['_shelx_hkl_file']
+    else:
         if '_diffrn_refln_scale_group_code' in cif_data:
             use_entries = [
                 np.array(cif_data['_diffrn_refln_index_h'], dtype=np.int64),
@@ -54,7 +79,5 @@ def cif2hkl4(cif_path, cif_dataset, hkl_path):
             ]
             line_format = '{:4d}{:4d}{:4d}{}{}'
         hkl_content = '\n'.join(line_format.format(*entryset) for entryset in zip(*use_entries))
-    # is cif using the entries
-    #print(hkl_content)
     with open(hkl_path, 'w', encoding='ASCII') as fo:
         fo.write(hkl_content)

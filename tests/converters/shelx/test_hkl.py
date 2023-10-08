@@ -1,18 +1,26 @@
-import pytest
-import numpy as np
 import re
-from qcrboxtools.converters.shelx.hkl import cif2hkl4
 
+import numpy as np
+import pytest
+
+from qcrboxtools.converters.shelx.hkl import cif2hkl4
 
 
 def valid_hkl_line(line):
     return re.search(r'[^\d\s\.\-]', line) is None and len(line.strip()) > 0
 
 def read_hkl_line(line):
-    return [int(line[0:4]), int(line[4:8]),int(line[8:12]), float(line[12:20]), float(line[20:28]), int(line[28:])]
+    return [
+        int(line[0:4]),
+        int(line[4:8]),
+        int(line[8:12]),
+        float(line[12:20]),
+        float(line[20:28]),
+        int(line[28:])
+    ]
 
 def read_hkl_as_np(hkl_path, sort=False):
-    with open(hkl_path) as fo:
+    with open(hkl_path, encoding='ASCII') as fo:
         hkl_lines = [read_hkl_line(line) for line in fo.readlines() if valid_hkl_line(line)]
     pivot = list(zip(*hkl_lines))
     if len(pivot) == 5:
@@ -55,17 +63,15 @@ def test_cif_2_shelx_hkl(cif_path, tmp_path):
     target_path = 'tests/converters/shelx/target.hkl'
     # convert into numpy arrays hkl, intensity, esd
     # sort arrays by h, k, l
-    hkl_ref, i_ref, esd_ref, number_ref = read_hkl_as_np(target_path, True)
+    hkl_ref, i_ref, esd_ref, _ = read_hkl_as_np(target_path, True)
     # create converted hkl from cif into temporary file
     out_hkl_path = tmp_path / "test.hkl"
     # read file the same way
     cif2hkl4(cif_path, 0, out_hkl_path)
-    hkl_test, i_test, esd_test, number_test = read_hkl_as_np(out_hkl_path, True)
+    hkl_test, i_test, esd_test, _ = read_hkl_as_np(out_hkl_path, True)
     # compare whether identical
     assert hkl_ref.shape[0] == hkl_test.shape[0], "Not the same number of reflections"
 
     assert np.all(hkl_ref == hkl_test), "miller indicees not the same"
-    assert np.all(np.abs(i_ref - i_test) < 0.01), f"intensities not the same"
+    assert np.all(np.abs(i_ref - i_test) < 0.01), "intensities not the same"
     assert np.all(np.abs(esd_ref - esd_test) < 0.01), "esds not the same"
-
-

@@ -2,11 +2,6 @@ import re
 import numpy as np
 from iotbx import cif
 
-test_dev = """   7  -4  -5 2038.13 563.062   3
-   7  -5   0 13213.3 1168.96   3
-   7  -5  -1 2415.45 563.194   3
-"""
-
 def format_floats(val):
     if val < 0:
         return f'{val: .8f}'[:8]
@@ -20,13 +15,19 @@ def cifdata_str_or_index(model, dataset):
     return model[dataset]
 
 def cif2hkl4(cif_path, cif_dataset, hkl_path):
+
+    #TODO support mixed Olex/SHELX cifs
     with open(cif_path, 'r', encoding='UTF-8') as fo:
         cif_content = fo.read()
 
     # is shelx cif
-    search_shelx = re.search(r'_shelx_hkl_file\n;(.*?);', cif_content, flags=re.DOTALL)
-    if search_shelx is not None:
-        hkl_content = search_shelx.group(1)
+    search_shelx = re.findall(r'_shelx_hkl_file\n;(.*?);', cif_content, flags=re.DOTALL)
+    if len(search_shelx) > 0:
+        if isinstance(cif_dataset, int):
+            hkl_content = search_shelx[cif_dataset]
+        else:
+            data_strings = re.findall(r'data_(.*?)\n', cif_content)
+            hkl_content = search_shelx[data_strings.index(cif_dataset)]
     else:
         cif_data = cifdata_str_or_index(
             cif.reader(input_string=cif_content).model(),

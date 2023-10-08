@@ -40,6 +40,8 @@ def read_hkl_as_np(hkl_path, sort=False):
         esd_i = esd_i[sort_mask].copy()
         if number is not None:
             number = number[sort_mask].copy()
+    esd_i *= 10000.0 / i.max()
+    i *= 10000.0 / i.max()
     return hkl, i, esd_i, number
 
 
@@ -63,7 +65,7 @@ def test_cif_2_shelx_hkl(cif_path, tmp_path):
     assert hkl_ref.shape[0] == hkl_test.shape[0], "Not the same number of reflections"
 
     assert np.all(hkl_ref == hkl_test), "miller indicees not the same"
-    assert np.all(np.abs(i_ref - i_test) < 0.01), "intensities not the same"
+    assert np.all(np.abs(i_ref - i_test) < 0.01), f"intensities not the same"
     assert np.all(np.abs(esd_ref - esd_test) < 0.01), "esds not the same"
 
 

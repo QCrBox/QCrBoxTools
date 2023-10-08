@@ -6,7 +6,7 @@ from qcrboxtools.converters.shelx.hkl import cif2hkl
 
 
 def valid_hkl_line(line):
-    return re.match(r'[^\d\w\.\-]', line) is not None and len(line.strip()) > 0
+    return re.search(r'[^\d\s\.\-]', line) is None and len(line.strip()) > 0
 
 def read_hkl_line(line):
     return [int(line[0:4]), int(line[4:8]),int(line[8:12]), float(line[12:20]), float(line[20:28]), int(line[28:])]

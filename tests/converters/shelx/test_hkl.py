@@ -5,19 +5,27 @@ import pytest
 
 from qcrboxtools.converters.shelx.hkl import cif2hkl4
 
-
 def valid_hkl_line(line):
     return re.search(r'[^\d\s\.\-]', line) is None and len(line.strip()) > 0
 
 def read_hkl_line(line):
-    return [
-        int(line[0:4]),
-        int(line[4:8]),
-        int(line[8:12]),
-        float(line[12:20]),
-        float(line[20:28]),
-        int(line[28:])
-    ]
+    if len(line) > 28:
+        return [
+            int(line[0:4]),
+            int(line[4:8]),
+            int(line[8:12]),
+            float(line[12:20]),
+            float(line[20:28]),
+            int(line[28:])
+        ]
+    else:
+        return [
+            int(line[0:4]),
+            int(line[4:8]),
+            int(line[8:12]),
+            float(line[12:20]),
+            float(line[20:28])
+        ]
 
 def read_hkl_as_np(hkl_path, sort=False):
     with open(hkl_path, encoding='ASCII') as fo:
@@ -48,8 +56,8 @@ def read_hkl_as_np(hkl_path, sort=False):
         esd_i = esd_i[sort_mask].copy()
         if number is not None:
             number = number[sort_mask].copy()
-    esd_i *= 10000.0 / i.max()
-    i *= 10000.0 / i.max()
+    esd_i *= 99999.0 / i.max()
+    i *= 99999.0 / i.max()
     return hkl, i, esd_i, number
 
 

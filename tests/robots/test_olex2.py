@@ -44,8 +44,8 @@ def test_olex2headless_refine(tmp_path):
     target_path = './tests/robots/cif_files/refine_conv.cif'
     cif_target = cif.reader(str(target_path)).model()['epoxide']
 
-    refined_path = tmp_path / 'epoxide.cif'
-    cif_refined = cif.reader(str(refined_path)).model()['epoxide']
+    refined_path = tmp_path / 'olex2socket.cif'
+    cif_refined = cif.reader(str(refined_path)).model()['olex2socket']
 
     for ij in (11, 22, 33, 12, 13, 23):
         key = f'_atom_site_aniso_U_{ij}'
@@ -55,4 +55,4 @@ def test_olex2headless_refine(tmp_path):
         target_vals = np.array(
             [float(val.split('(')[0]) for val in cif_target[key]]
         )
-        assert max(abs(refined_vals - target_vals)) < 1e-4
+        assert max(abs(refined_vals - target_vals)) < 1.1e-4

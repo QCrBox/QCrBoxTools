@@ -9,7 +9,7 @@ def test_cmd_with_python():
     else:
         executable = 'python'
     cmd_rob = CmdAppRobot(call_args=[executable])
-    stdout, stderr = cmd_rob._send_input('print("mytest123")')
+    stdout, _ = cmd_rob._send_input('print("mytest123")')
     assert stdout == 'mytest123\n'
 
 

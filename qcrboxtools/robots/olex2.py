@@ -63,8 +63,17 @@ class Olex2Socket(SocketRobot):
         - path (str): The path to the structure file.
         """
         self._structure_path = pathlib.Path(path)
-        cmd = f'reap {path}'
-        _ = self.send_command(cmd)
+        return_value = self._send_input(f'run:startup\nuser {self._structure_path.parents[0]}')
+        time.sleep(0.5)
+        return_value2 = self._send_input(f'run:startup\nreap {self._structure_path}')
+        time.sleep(0.5)
+
+        load_cmds = [
+            f'file {self._structure_path.parents[0] / "olex2socket.ins"}',
+            f'export {self._structure_path.parents[0] / "olex2socket.hkl"}',
+            f'reap {self._structure_path.parents[0] / "olex2socket.ins"}'
+        ]
+        out = self.send_command('\n'.join(load_cmds))
 
 
     def check_connection(self):
@@ -91,12 +100,16 @@ class Olex2Socket(SocketRobot):
         task_id = next(self._task_id_counter)
         _ = self._send_input(f'run:{task_id}\nlog:task_{task_id}.log\n{input_str}')
         timeout_counter = 10000
-        while 'finished' not in self._send_input(f'status:{task_id}'):
+        return_msg = ' '
+        while 'finished' not in return_msg:
+            return_msg = self._send_input(f'status:{task_id}')
             time.sleep(0.1)
             timeout_counter -= 1
             if timeout_counter < 0:
                 warnings.warn('TimeOut limit for job reached. Continuing')
                 break
+            if 'failed' in return_msg:
+                raise RuntimeError(f'The command {input_str} raised an error during running in olex.')
 
         log_path = self.structure_path.parents[0] / f'task_{task_id}.log'
         try:
@@ -107,7 +120,7 @@ class Olex2Socket(SocketRobot):
         except FileNotFoundError:
             return None
 
-    def refine(self):
+    def refine(self, n_cycles=20, refine_starts=5):
         """
         Refines a loaded structure and writes a cif file with the refined structure.
 
@@ -115,12 +128,9 @@ class Olex2Socket(SocketRobot):
         - str: The output log of the refinement process.
         """
         cmds = [
-            'export',
-            'refine',
             'DelIns ACTA',
-            'AddIns ACTA',
-            'refine'
-        ]
+            'AddIns ACTA'
+        ] + [f'refine {n_cycles}'] * refine_starts
         return self.send_command('\n'.join(cmds))
 
     def _shutdown_server(self):

@@ -1,3 +1,8 @@
+"""
+This module provides functionality for interacting with the Olex2 refinement program
+in server mode via sockets.
+"""
+
 import os
 import pathlib
 import time
@@ -7,10 +12,34 @@ import warnings
 from .basesocket import SocketRobot
 
 class Olex2Socket(SocketRobot):
-    _structure_path = None
-    task_id_counter = count(1)
+    """
+    A specialized socket client for Olex2, which provides functionalities like
+    loading and refining a structure, as well as sending general commands to the
+    Olex2 server.
 
-    def __init__(self, olex_server='localhost', port=8899, structure_path=None):
+    Attributes:
+    - structure_path (pathlib.Path): The path to the structure file.
+    """
+    _structure_path = None
+    _task_id_counter = count()
+
+    def __init__(
+        self,
+        olex_server: str = 'localhost',
+        port: int = 8899,
+        structure_path: str = None
+    ):
+        """
+        Initializes the Olex2Socket with server details and an optional structure path.
+
+        Args:
+        - olex_server (str): The Olex2 server's address. Defaults to the
+          environment variable $OLEX2SERVER or if that is unavailable: 'localhost'.
+        - port (int): The port number on which the Olex2 server is listening. Defaults to
+          the environment variable $OLEX2PORT or if that is unavailable: 8899.
+        - structure_path (str): The path to the structure file. If provided, will be set
+          for the instance, otherwise needs to be set later for refinement.
+        """
         if olex_server == 'localhost' and 'OLEX2SERVER' in os.environ:
             olex_server = os.environ['OLEX2SERVER']
         if port == 8899 and 'OLEX2PORT' in os.environ:
@@ -22,32 +51,45 @@ class Olex2Socket(SocketRobot):
 
     @property
     def structure_path(self):
+        """Returns the path of the structure file."""
         return self._structure_path
 
     @structure_path.setter
-    def structure_path(self, path):
+    def structure_path(self, path: str):
+        """
+        Sets the path of the structure file loads the structure with the path into Olex2.
+
+        Args:
+        - path (str): The path to the structure file.
+        """
         self._structure_path = pathlib.Path(path)
         cmd = f'reap {path}'
-        output = self.send_command(cmd)
+        _ = self.send_command(cmd)
 
 
     def check_connection(self):
+        """
+        Checks the connection status with the Olex2 server.
+
+        Returns:
+        - bool: True if the server is ready, False otherwise.
+        """
         answer = self._send_input('status')
         return answer.strip() == 'ready'
 
-    def refine(self):
-        cmds = [
-            'export',
-            'refine',
-            'DelIns ACTA',
-            'AddIns ACTA',
-            'refine'
-        ]
-        return self.send_command('\n'.join(cmds))
+    def send_command(self, input_str: str) -> str:
+        """
+        Sends a command string to the Olex2 server and waits for its completion.
 
-    def send_command(self, input_str: str):
-        task_id = next(self.task_id_counter)
-        return_val = self._send_input(f'run:{task_id}\nlog:task_{task_id}.log\n{input_str}')
+        Args:
+        - input_str (str): The command string to send.
+
+        Returns:
+        - str: The output log of the command process, or None if the log file is not found.
+        """
+
+        task_id = next(self._task_id_counter)
+        _ = self._send_input(f'run:{task_id}\nlog:task_{task_id}.log\n{input_str}')
         timeout_counter = 10000
         while 'finished' not in self._send_input(f'status:{task_id}'):
             time.sleep(0.1)
@@ -65,5 +107,22 @@ class Olex2Socket(SocketRobot):
         except FileNotFoundError:
             return None
 
+    def refine(self):
+        """
+        Refines a loaded structure and writes a cif file with the refined structure.
+
+        Returns:
+        - str: The output log of the refinement process.
+        """
+        cmds = [
+            'export',
+            'refine',
+            'DelIns ACTA',
+            'AddIns ACTA',
+            'refine'
+        ]
+        return self.send_command('\n'.join(cmds))
+
     def _shutdown_server(self):
+        """Sends a 'stop' command to shut down the Olex2 server."""
         self._send_input('stop')

@@ -1,7 +1,6 @@
 import subprocess
 from pathlib import Path
 from typing import List
-import time
 class CmdAppRobot:
     _popen = None
     def __init__(self, call_args:List[str], cwd: Path = '.', env=None):
@@ -25,5 +24,3 @@ class CmdAppRobot:
 
     def _send_input(self, input_str:str):
         return self._popen.communicate(input_str + '\n')
-
-

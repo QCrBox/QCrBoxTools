@@ -44,8 +44,7 @@ def test_olex2_refine(tmp_path):
     target_path = './tests/robots/cif_files/refine_conv_nonHaniso.cif'
     cif_target = cif.reader(str(target_path)).model()['epoxide']
 
-    refined_path = tmp_path / 'olex2socket.cif'
-    cif_refined = cif.reader(str(refined_path)).model()['olex2socket']
+    cif_refined = cif.reader(str(work_path)).model()['work']
 
     for ij in (11, 22, 33, 12, 13, 23):
         key = f'_atom_site_aniso_U_{ij}'
@@ -73,8 +72,7 @@ def test_olex2_refine_tsc(tmp_path):
     target_path = './tests/robots/cif_files/refine_conv_allaniso.cif'
     cif_target = cif.reader(str(target_path)).model()['epoxide']
 
-    refined_path = tmp_path / 'olex2socket.cif'
-    cif_refined = cif.reader(str(refined_path)).model()['olex2socket']
+    cif_refined = cif.reader(str(work_path)).model()['work']
 
     for ij in (11, 22, 33, 12, 13, 23):
         key = f'_atom_site_aniso_U_{ij}'

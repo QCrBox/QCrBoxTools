@@ -64,10 +64,11 @@ class Olex2Socket(SocketRobot):
         Args:
         - path (str): The path to the structure file.
         """
-        self._structure_path = pathlib.Path(path)
+        path = pathlib.Path(path)
+        self._structure_path = path
         startup_commands = [
-            f'user {self._structure_path.parents[0]}',
-            f'reap {self._structure_path}'
+            f'user {path.parents[0]}',
+            f'reap {path}'
         ]
 
         cmd_list = '\n'.join(startup_commands)
@@ -77,9 +78,9 @@ class Olex2Socket(SocketRobot):
         self.wait_for_completion(2000, 'startup', cmd)
 
         load_cmds = [
-            f'file {self._structure_path.parents[0] / "olex2socket.ins"}',
-            f'export {self._structure_path.parents[0] / "olex2socket.hkl"}',
-            f'reap {self._structure_path.parents[0] / "olex2socket.ins"}'
+            f'file {path.with_suffix(".ins")}',
+            f'export {path.with_suffix(".hkl")}',
+            f'reap {path.with_suffix(".ins")}'
         ]
         self.send_command('\n'.join(load_cmds))
 
@@ -188,6 +189,7 @@ class Olex2Socket(SocketRobot):
         if self.structure_path is None:
             raise ValueError('No structure loaded to refine. The structure_path attribute needs to be set before refinement')
         cmds = [
+            "spy.set_refinement_program(olex2.refine, G-N)",
             'DelIns ACTA',
             'AddIns ACTA'
         ] + [f'refine {n_cycles}'] * refine_starts

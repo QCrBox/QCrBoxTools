@@ -24,9 +24,9 @@ def test_olex2server():
     )
     assert olex2.check_connection(), message
 
-def test_olex2headless_refine(tmp_path):
+def test_olex2_refine(tmp_path):
     """
-    Tests the headless refinement functionality of `Olex2Socket`. The function simulates a
+    Tests the refinement functionality of `Olex2Socket`. The function simulates a
     refinement process by copying a non-converged CIF file to a temporary working path, and
     then triggering refinement using the `Olex2Socket` class. The test ensures that the refined
     values match the target values within a specified tolerance.
@@ -35,13 +35,42 @@ def test_olex2headless_refine(tmp_path):
     - tmp_path: A fixture provided by pytest for temporary directories.
     """
     work_path = os.path.join(tmp_path, 'work.cif')
-    shutil.copy('./tests/robots/cif_files/refine_nonconv.cif', work_path)
+    shutil.copy('./tests/robots/cif_files/refine_nonconv_nonHaniso.cif', work_path)
 
     olex2 = Olex2Socket()
     olex2.structure_path = work_path
     _ = olex2.refine()
 
-    target_path = './tests/robots/cif_files/refine_conv.cif'
+    target_path = './tests/robots/cif_files/refine_conv_nonHaniso.cif'
+    cif_target = cif.reader(str(target_path)).model()['epoxide']
+
+    refined_path = tmp_path / 'olex2socket.cif'
+    cif_refined = cif.reader(str(refined_path)).model()['olex2socket']
+
+    for ij in (11, 22, 33, 12, 13, 23):
+        key = f'_atom_site_aniso_U_{ij}'
+        refined_vals = np.array(
+            [float(val.split('(')[0]) for val in cif_refined[key]]
+        )
+        target_vals = np.array(
+            [float(val.split('(')[0]) for val in cif_target[key]]
+        )
+        assert max(abs(refined_vals - target_vals)) < 1.1e-4
+
+def test_olex2_refine_tsc(tmp_path):
+    work_path = os.path.join(tmp_path, 'work.cif')
+    shutil.copy('./tests/robots/cif_files/refine_nonconv_allaniso.cif', work_path)
+
+    tsc_path = os.path.join(tmp_path, 'work.tscb')
+    shutil.copy('./tests/robots/cif_files/refine_allaniso.tscb', tsc_path)
+
+    olex2 = Olex2Socket()
+    olex2.structure_path = work_path
+
+    olex2.tsc_path = tsc_path
+    _ = olex2.refine()
+
+    target_path = './tests/robots/cif_files/refine_conv_allaniso.cif'
     cif_target = cif.reader(str(target_path)).model()['epoxide']
 
     refined_path = tmp_path / 'olex2socket.cif'

@@ -7,6 +7,7 @@ import os
 import pathlib
 import time
 from itertools import count
+from typing import Any
 import warnings
 
 from .basesocket import SocketRobot
@@ -21,6 +22,7 @@ class Olex2Socket(SocketRobot):
     - structure_path (pathlib.Path): The path to the structure file.
     """
     _structure_path = None
+    _tsc_path = None
     _task_id_counter = count()
 
     def __init__(
@@ -63,18 +65,54 @@ class Olex2Socket(SocketRobot):
         - path (str): The path to the structure file.
         """
         self._structure_path = pathlib.Path(path)
-        return_value = self._send_input(f'run:startup\nuser {self._structure_path.parents[0]}')
-        time.sleep(0.5)
-        return_value2 = self._send_input(f'run:startup\nreap {self._structure_path}')
-        time.sleep(0.5)
+        startup_commands = [
+            f'user {self._structure_path.parents[0]}',
+            f'reap {self._structure_path}'
+        ]
+
+        cmd_list = '\n'.join(startup_commands)
+        cmd = f'run:startup\n{cmd_list}'
+        self._send_input(cmd)
+
+        self.wait_for_completion(2000, 'startup', cmd)
 
         load_cmds = [
             f'file {self._structure_path.parents[0] / "olex2socket.ins"}',
             f'export {self._structure_path.parents[0] / "olex2socket.hkl"}',
             f'reap {self._structure_path.parents[0] / "olex2socket.ins"}'
         ]
-        out = self.send_command('\n'.join(load_cmds))
+        self.send_command('\n'.join(load_cmds))
 
+    @property
+    def tsc_path(self):
+        """Returns the path of the currently selected tsc(b) file."""
+        return self._tsc_path
+
+    @tsc_path.setter
+    def tsc_path(self, path):
+        """
+        Sets the path of the tsc(b), if not None, activate aspherical refinement.
+
+        Args:
+        - path (str): The path to the tsc(b) file.
+        """
+        if path is not None:
+            path = pathlib.Path(path)
+            cmds = [
+                "spy.SetParam('snum.NoSpherA2.use_aspherical', True)",
+                "spy.SetParam('snum.NoSpherA2.Calculate', False)",
+                "spy.SetParam('snum.NoSpherA2.source', 'tsc_file')",
+                f"spy.SetParam('snum.NoSpherA2.file', {path})"
+            ]
+            self.send_command('\n'.join(cmds))
+        else:
+            cmds = [
+                "spy.SetParam('snum.NoSpherA2.use_aspherical', False)",
+                "spy.SetParam('snum.NoSpherA2.Calculate', False)",
+                "spy.SetParam('snum.NoSpherA2.file', None)"
+            ]
+            self.send_command('\n'.join(cmds))
+        self._tsc_path = path
 
     def check_connection(self):
         """
@@ -100,6 +138,33 @@ class Olex2Socket(SocketRobot):
         task_id = next(self._task_id_counter)
         _ = self._send_input(f'run:{task_id}\nlog:task_{task_id}.log\n{input_str}')
         timeout_counter = 10000
+        self.wait_for_completion(timeout_counter, task_id, input_str)
+
+        log_path = self.structure_path.parents[0] / f'task_{task_id}.log'
+        try:
+            with open(log_path, 'r', encoding='UTF-8') as fo:
+                output = fo.read()
+            return output
+        except FileNotFoundError:
+            return None
+
+    def wait_for_completion(self, timeout_counter: int, task_id: Any, input_str: str):
+        """
+        Waits for a specific task to complete on the Olex2 server.
+
+        This method will repeatedly check the status of a task on the Olex2 server every 100 ms
+        until it is finished. It provides timeout functionality to prevent infinite waiting
+        and will also raise an error if the task fails on the server.
+
+        Args:
+        - timeout_counter (int): The maximum number of times to check the status before timing out.
+        - task_id (Any): The unique identifier of the task to check.
+        - input_str (str): The original command sent to the server. This is used in the error
+          message if the task fails.
+
+        Raises:
+        - RuntimeError: If the task fails during execution on the Olex2 server.
+        """
         return_msg = ' '
         while 'finished' not in return_msg:
             return_msg = self._send_input(f'status:{task_id}')
@@ -109,16 +174,9 @@ class Olex2Socket(SocketRobot):
                 warnings.warn('TimeOut limit for job reached. Continuing')
                 break
             if 'failed' in return_msg:
-                raise RuntimeError(f'The command {input_str} raised an error during running in olex.')
-
-        log_path = self.structure_path.parents[0] / f'task_{task_id}.log'
-        try:
-            with open(log_path, 'r', encoding='UTF-8') as fo:
-                output = fo.read()
-
-            return output
-        except FileNotFoundError:
-            return None
+                raise RuntimeError(
+                    f'The command {input_str} raised an error during running in olex.'
+                )
 
     def refine(self, n_cycles=20, refine_starts=5):
         """
@@ -127,6 +185,8 @@ class Olex2Socket(SocketRobot):
         Returns:
         - str: The output log of the refinement process.
         """
+        if self.structure_path is None:
+            raise ValueError('No structure loaded to refine. The structure_path attribute needs to be set before refinement')
         cmds = [
             'DelIns ACTA',
             'AddIns ACTA'

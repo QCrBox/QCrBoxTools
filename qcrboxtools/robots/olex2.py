@@ -187,7 +187,10 @@ class Olex2Socket(SocketRobot):
         - str: The output log of the refinement process.
         """
         if self.structure_path is None:
-            raise ValueError('No structure loaded to refine. The structure_path attribute needs to be set before refinement')
+            raise ValueError(
+                'No structure loaded to refine. The structure_path attribute needs to be'
+                + ' set before refinement.'
+            )
         cmds = [
             "spy.set_refinement_program(olex2.refine, G-N)",
             'DelIns ACTA',

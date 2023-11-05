@@ -5,6 +5,8 @@ This module provides utilities for the conversion of CIF data to the SHELX HKL f
 import numpy as np
 from iotbx import cif
 
+from ...util.cif import cifdata_str_or_index
+
 def format_floats(val: float) -> str:
     """
     Format a floating-point number to a specific string format.
@@ -19,22 +21,6 @@ def format_floats(val: float) -> str:
         return f'{val: .8f}'[:8]
     else:
         return f' {val:.8f}'[:8]
-
-def cifdata_str_or_index(model: dict, dataset: [int, str]) -> cif.model.block:
-    """
-    Retrieve CIF dataset block from the model based on an index or string identifier.
-
-    Parameters:
-    - model (dict): The CIF model containing datasets.
-    - dataset (int or str): Index or string identifier for the desired dataset.
-
-    Returns:
-    - dict: The selected CIF dataset.
-    """
-    if isinstance(dataset, int):
-        keys = list(model.keys())
-        dataset = keys[dataset]
-    return model[dataset]
 
 def cif2hkl4(cif_path: str, cif_dataset: [int, str], hkl_path: str) -> None:
     """

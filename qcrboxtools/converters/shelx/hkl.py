@@ -37,7 +37,7 @@ def cif2hkl4(cif_path: str, cif_dataset: [int, str], hkl_path: str) -> None:
     with open(cif_path, 'r', encoding='UTF-8') as fo:
         cif_content = fo.read()
 
-    cif_data = cifdata_str_or_index(
+    cif_data, _ = cifdata_str_or_index(
         cif.reader(input_string=cif_content).model(),
         cif_dataset
     )

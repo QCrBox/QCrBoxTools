@@ -43,7 +43,7 @@ def cifdata_str_or_index(model: dict, dataset: [int, str]) -> cif.model.block:
     if isinstance(dataset, int):
         keys = list(model.keys())
         dataset = keys[dataset]
-    return model[dataset]
+    return model[dataset], dataset
 
 def split_esd_single(input_string: str) -> Tuple[float, float]:
     """
@@ -145,7 +145,15 @@ def replace_structure_from_cif(
 
     new_cif_obj = cif_obj.copy()
 
-    new_block = cif_obj[cif_dataset].copy()
+    new_block, cif_dataset = cifdata_str_or_index(
+        cif_obj,
+        cif_dataset
+    )
+
+    structure_cif_block, structure_cif_dataset = cifdata_str_or_index(
+        structure_cif_obj,
+        structure_cif_dataset
+    )
 
     conditions = (
         del_atom_site_condition,
@@ -166,7 +174,6 @@ def replace_structure_from_cif(
         if any(condition(key) for condition in conditions):
             del new_block[key]
 
-    structure_cif_block = structure_cif_obj[structure_cif_dataset]
     copy_loops = ('_atom_site', '_atom_site_aniso')
 
     for loop_key in copy_loops:

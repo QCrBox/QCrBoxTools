@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "QCrBoxTools"
+authors = [
+  { name="Paul Niklas Ruth", email="paul.n.ruth@durham.ac.uk" },
+]
+description = "Provide crystallographic functionality needed in QCrBox. This is file conversion, execution of programs and other common functionality. Is not itself dependent on QCrBox."
+version = "0.0.1"
+readme = "README.md"
+requires-python = ">=3.9"
+License-File = "LICENSE"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Topic :: Scientific/Engineering :: Chemistry",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
+dependencies = [
+  "numpy>=1.26.2",
+  "cctbx>=2020.8"
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Niolon/QCrBoxTools"
+"Bug Tracker" = "https://github.com/Niolon/QCrBoxTools/issues"
+[tool]

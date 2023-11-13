@@ -192,7 +192,7 @@ class Olex2Socket(SocketRobot):
                 + ' set before refinement.'
             )
         cmds = [
-            "spy.set_refinement_program(olex2.refine, G-N)",
+            "spy.set_refinement_program(olex2.refine, Gauss-Newton)",
             'DelIns ACTA',
             'AddIns ACTA'
         ] + [f'refine {n_cycles}'] * refine_starts

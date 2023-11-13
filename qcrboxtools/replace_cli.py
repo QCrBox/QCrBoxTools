@@ -46,7 +46,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        'output_cif_path',
+        '--output_cif_path',
         help="Path to where the combined output cif will be written (default: cif_path)",
         default=None
     )
@@ -58,10 +58,20 @@ if __name__ == '__main__':
     else:
         output_cif_path = args.output_cif_path
 
+    try:
+        cif_dataset = int(args.cif_dataset)
+    except:
+        cif_dataset = args.cif_dataset
+
+    try:
+        structure_cif_dataset = int(args.structure_cif_dataset)
+    except:
+        structure_cif_dataset = args.structure_cif_dataset
+
     replace_structure_from_cif(
         args.cif_path,
-        args.cif_dataset,
+        cif_dataset,
         args.structure_cif_path,
-        args.structure_cif_dataset,
+        structure_cif_dataset,
         output_cif_path
     )

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "QCrBoxTools"
+name = "qcrboxtools"
 authors = [
   { name="Paul Niklas Ruth", email="paul.n.ruth@durham.ac.uk" },
 ]
@@ -30,4 +30,4 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/Niolon/QCrBoxTools"
 "Bug Tracker" = "https://github.com/Niolon/QCrBoxTools/issues"
-[tool]
+

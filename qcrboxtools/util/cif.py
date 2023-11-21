@@ -55,6 +55,8 @@ def split_esd_single(input_string: str) -> Tuple[float, float]:
     Returns:
     - Tuple[float, float]: The value and its associated esd.
     """
+    input_string = str(input_string)
+
     if not is_num_esd(input_string):
         raise ValueError(f'{input_string} is not a valid string to split into value(esd)')
     esd_pattern = r'([^\.]+)\.?(.*?)\(([\d\.]+)\)'

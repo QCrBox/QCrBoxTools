@@ -138,3 +138,33 @@ def position_difference(
 
     return return_dict
 
+def anisotropic_adp_difference(
+    cif1_path: Path,
+    cif1_dataset: Union[int, str],
+    cif2_path: Path,
+    cif2_dataset: Union[int, str]
+):
+    block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
+    block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
+
+    uij_esds1 = [split_esds(block1[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_esds2 = [split_esds(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+
+    uij1 = np.stack([val[0] for val in uij_esds1], axis=1)
+    uij1_esd = np.stack([val[1] for val in uij_esds1], axis=1)
+
+    uij2 = np.stack([val[0] for val in uij_esds2], axis=1)
+    uij2_esd = np.stack([val[1] for val in uij_esds2], axis=1)
+
+    abs_diff = np.abs(uij1 - uij2)
+    esds_diff = (uij1_esd**2 + uij2_esd**2)**0.5
+
+    return_dict = {
+        'max abs uij': np.max(abs_diff),
+        'mean abs uij': np.mean(abs_diff),
+        'max uij/esd': np.max(abs_diff / esds_diff),
+        'mean uij/esd': np.mean(abs_diff / esds_diff)
+    }
+
+    return return_dict
+

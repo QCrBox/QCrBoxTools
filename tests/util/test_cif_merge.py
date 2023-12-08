@@ -3,7 +3,7 @@ Test module for `qcrboxtools.util.cif`.
 
 This module contains unit tests for the various utility functions related to
 crystallographic information file (CIF) manipulation found in `qcrboxtools.util.cif`.
-It tests functionality like extracting estimated standard deviations (ESDs) from
+It tests functionality like extracting estimated standard uncertainties (sus) from
 formatted strings and manipulating CIF data structure.
 """
 
@@ -17,11 +17,14 @@ import pytest
 from qcrboxtools.util.cif import (
     read_cif_safe,
     replace_structure_from_cif,
-    split_esd_single,
-    split_esds
+    split_su_single,
+    split_sus,
+    check_centring_equal,
+    InConsistentCentringError,
+    NoCentringFoundError
 )
 
-@pytest.mark.parametrize('string, test_value, test_esd', [
+@pytest.mark.parametrize('string, test_value, test_su', [
     ('100(1)', 100.0, 1),
     ('-100(20)', -100.0, 20.0),
     ('0.021(2)', 0.021, 0.002),
@@ -29,17 +32,17 @@ from qcrboxtools.util.cif import (
     ('2.1(1.3)', 2.1, 1.3),
     ('0.648461', 0.648461, np.nan)
 ])
-def test_split_esd_single(string: str, test_value: float, test_esd: float):
-    """Test the `split_esd_single` function with various formatted strings."""
-    val, esd = split_esd_single(string)
+def test_split_su_single(string: str, test_value: float, test_su: float):
+    """Test the `split_su_single` function with various formatted strings."""
+    val, su = split_su_single(string)
     assert val == pytest.approx(test_value)
-    if np.isnan(esd) or np.isnan(test_esd):
-        assert np.isnan(esd) and np.isnan(test_esd)
+    if np.isnan(su) or np.isnan(test_su):
+        assert np.isnan(su) and np.isnan(test_su)
     else:
-        assert esd == pytest.approx(test_esd)
+        assert su == pytest.approx(test_su)
 
-def test_split_esds():
-    """Test the `split_esds` function."""
+def test_split_sus():
+    """Test the `split_sus` function."""
     strings = [
         '0.03527(13)',
         '0.02546(10)',
@@ -58,11 +61,11 @@ def test_split_esds():
         (-0.00352, 0.00008)
     ]
 
-    values, esds = split_esds(strings)
+    values, sus = split_sus(strings)
 
-    for value, esd, (check_value, check_esd) in zip(values, esds, solutions):
+    for value, su, (check_value, check_su) in zip(values, sus, solutions):
         assert value == pytest.approx(check_value)
-        assert esd == pytest.approx(check_esd)
+        assert su == pytest.approx(check_su)
 
 
 @pytest.fixture(scope="module", name='cif_with_replacement', params=[
@@ -88,7 +91,7 @@ def fixture_cif_with_replacement(
     if request.param:
         command = [
             'python', '-m', 'qcrboxtools.replace_cli', str(to_cif_path), str(to_cif_dataset),
-             str(from_cif_path), str(from_cif_dataset), str(combined_cif_path)
+             str(from_cif_path), str(from_cif_dataset), '--output_cif_path', str(combined_cif_path)
         ]
         subprocess.call(command)
     else:
@@ -119,11 +122,11 @@ def test_cif_atom_site_copied(cif_with_replacement: Tuple[dict, dict, dict]):
         assert key not in combined_cif.keys()
 
     for key in from_keys:
-        #combined vals should no longer have esds -> are only valid at convergence
+        #combined vals should no longer have sus -> are only valid at convergence
         assert not any('(' in val for val in combined_cif[key])
         from_vals = from_cif[key]
         if any('(' in val for val in from_vals):
-            from_vals, _ = split_esds(from_vals)
+            from_vals, _ = split_sus(from_vals)
             combined_vals = np.array([float(val) for val in combined_cif[key]])
             assert np.max(np.abs(from_vals - combined_vals)) < 1e-6
         else:
@@ -245,6 +248,53 @@ def test_keep_cif_entries():
 def test_delete_cif_entries():
     raise NotImplementedError()
 
+def test_check_transformation_matrix():
+    pass
+
+@pytest.mark.parametrize(
+    "block1,block2,expected",
+    [
+        [{'_space_group_name_H-M_alt': 'P n m a'}, {'_space_group_name_H-M_alt': 'P n m a'}, True],
+        [{'_space_group_name_H-M_alt': 'P n m a'}, {'_space_group_name_H-M_alt': 'C c c m'}, False],
+        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': '-P 2yac'}, True],
+        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': 'P -2y'}, True],
+        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': 'C -2y'}, False],
+        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': '-C 2y'}, False],
+        [
+            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': '-P 2yac'},
+            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': 'P 2yac'}, True
+        ]
+    ]
+)
+def test_lattice_centring_equal(block1, block2, expected):
+    assert check_centring_equal(block1, block2) == expected
+
+    # check deprecated convention
+    renames = (
+        ('_space_group_name_H-M_alt', '_symmetry_space_group_name_H-M'),
+        ('_space_group_name_Hall', '_symmetry_space_group_name_Hall')
+    )
+    for block in (block1, block2):
+        for start_name, end_name in renames:
+            if start_name in block:
+                block[end_name] = block.pop(start_name)
+    assert check_centring_equal(block1, block2) == expected
 
 
+@pytest.mark.parametrize(
+    "block1,block2,expected_error",
+    [
+        [{'_space_group_name_H-M_alt': 'P n m a'}, {}, NoCentringFoundError],
+        [{}, {'_space_group_name_H-M_alt': 'P n m a'}, NoCentringFoundError],
+        [
+            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': '-P 2yac'},
+            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': 'C 2yac'}, InConsistentCentringError
+        ]
+    ]
+)
+def test_lattice_centring_equal_errors(block1, block2, expected_error):
+    with pytest.raises(expected_error):
+        check_centring_equal(block1, block2)
 
+def test_crystal_system_equal(block1, block2, expected):
+    pass

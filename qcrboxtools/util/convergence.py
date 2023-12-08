@@ -18,7 +18,7 @@ Functions:
 from pathlib import Path
 from typing import Union, Dict, List, Any, Tuple
 import numpy as np
-from .cif import read_cif_safe, cifdata_str_or_index, split_esds, split_esd_single
+from .cif import read_cif_safe, cifdata_str_or_index, split_sus, split_su_single
 
 def cell_dict2atom_sites_dict(
     cell_dict: Dict[str, Union[float, np.ndarray]]
@@ -43,12 +43,12 @@ def cell_dict2atom_sites_dict(
         a string description of the transformation axes) and '_atom_sites_Cartn_tran_matrix'
         (with value being a 3x3 numpy array representing the transformation matrix).
     """
-    a = split_esd_single(cell_dict['_cell_length_a'])[0]
-    b = split_esd_single(cell_dict['_cell_length_b'])[0]
-    c = split_esd_single(cell_dict['_cell_length_c'])[0]
-    alpha = split_esd_single(cell_dict['_cell_angle_alpha'])[0] / 180.0 * np.pi
-    beta = split_esd_single(cell_dict['_cell_angle_beta'])[0] / 180.0 * np.pi
-    gamma = split_esd_single(cell_dict['_cell_angle_gamma'])[0] / 180.0 * np.pi
+    a = split_su_single(cell_dict['_cell_length_a'])[0]
+    b = split_su_single(cell_dict['_cell_length_b'])[0]
+    c = split_su_single(cell_dict['_cell_length_c'])[0]
+    alpha = split_susingle(cell_dict['_cell_angle_alpha'])[0] / 180.0 * np.pi
+    beta = split_su_single(cell_dict['_cell_angle_beta'])[0] / 180.0 * np.pi
+    gamma = split_su_single(cell_dict['_cell_angle_gamma'])[0] / 180.0 * np.pi
     matrix = np.array(
         [
             [
@@ -144,24 +144,24 @@ def position_difference(
     -------
     Dict[str, float]
         A dictionary containing metrics such as 'max abs position', 'mean abs position',
-        'max position/esd', and 'mean position/esd', reflecting the differences in atomic
+        'max position/su', and 'mean position/su', reflecting the differences in atomic
         positions between the two datasets.
     """
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    positions_esds1 = [split_esds(block1[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    positions_sus1 = [split_sus(block1[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac1 = {
-        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_esds1)
+        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus1)
     }
-    frac1 = np.stack([val[0] for val in positions_esds1], axis=1)
-    frac1_esd = np.stack([val[1] for val in positions_esds1], axis=1)
-    positions_esds2 = [split_esds(block2[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    frac1 = np.stack([val[0] for val in positions_sus1], axis=1)
+    frac1_su = np.stack([val[1] for val in positions_sus1], axis=1)
+    positions_sus2 = [split_sus(block2[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac2 = {
-        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_esds2)
+        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus2)
     }
-    frac2 = np.stack([val[0] for val in positions_esds2], axis=1)
-    frac2_esd = np.stack([val[1] for val in positions_esds2], axis=1)
+    frac2 = np.stack([val[0] for val in positions_sus2], axis=1)
+    frac2_su = np.stack([val[1] for val in positions_sus2], axis=1)
 
     atom_site1, _ = add_cart_pos(atom_site_frac1, block1)
     atom_site2, _ = add_cart_pos(atom_site_frac2, block2)
@@ -181,13 +181,13 @@ def position_difference(
     distances = np.linalg.norm(cart1 - cart2, axis=-1)
 
     abs_diff = np.abs(frac1 - frac2)
-    esds_diff = (frac1_esd**2 + frac2_esd**2)**0.5
+    sus_diff = (frac1_su**2 + frac2_su**2)**0.5
 
     return_dict = {
         'max abs position': np.max(distances),
         'mean abs position': np.mean(distances),
-        'max position/esd': np.max(abs_diff / esds_diff),
-        'mean position/esd': np.mean(abs_diff / esds_diff)
+        'max position/su: np.max(abs_diff / sus_diff),
+        'mean position/su': np.mean(abs_diff / su_diff)
     }
 
     return return_dict
@@ -216,29 +216,29 @@ def anisotropic_adp_difference(
     Returns
     -------
     Dict[str, float]
-        A dictionary with metrics like 'max abs uij', 'mean abs uij', 'max uij/esd', and
-        'mean uij/esd', indicating the differences in ADPs between the datasets.
+        A dictionary with metrics like 'max abs uij', 'mean abs uij', 'max uij/su', and
+        'mean uij/su', indicating the differences in ADPs between the datasets.
     """
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    uij_esds1 = [split_esds(block1[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
-    uij_esds2 = [split_esds(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus1 = [split_sus(block1[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus2 = [split_su(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
 
-    uij1 = np.stack([val[0] for val in uij_esds1], axis=1)
-    uij1_esd = np.stack([val[1] for val in uij_esds1], axis=1)
+    uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
+    uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)
 
-    uij2 = np.stack([val[0] for val in uij_esds2], axis=1)
-    uij2_esd = np.stack([val[1] for val in uij_esds2], axis=1)
+    uij2 = np.stack([val[0] for val in uij_sus2], axis=1)
+    uij2_su = np.stack([val[1] for val in uij_sus2], axis=1)
 
     abs_diff = np.abs(uij1 - uij2)
-    esds_diff = (uij1_esd**2 + uij2_esd**2)**0.5
+    sus_diff = (uij1_su**2 + uij2_su**2)**0.5
 
     return_dict = {
         'max abs uij': np.max(abs_diff),
         'mean abs uij': np.mean(abs_diff),
-        'max uij/esd': np.max(abs_diff / esds_diff),
-        'mean uij/esd': np.mean(abs_diff / esds_diff)
+        'max uij/su': np.max(abs_diff / sus_diff),
+        'mean uij/su': np.mean(abs_diff / sus_diff)
     }
 
     return return_dict
@@ -272,13 +272,13 @@ def check_converged(
         Possible entries include:
         - 'max abs position': Maximum absolute position difference allowed in Angstrom.
         - 'mean abs position': Mean absolute position difference allowed in Angstrom.
-        - 'max position/esd': Maximum ratio of difference in position parameters to estimated
-           standard deviation (esd) allowed.
-        - 'mean position/esd': Mean ratio of difference in position parameters to esd allowed.
+        - 'max position/su': Maximum ratio of difference in position parameters to estimated
+           standard uncertainty (su allowed.
+        - 'mean position/su': Mean ratio of difference in position parameters to su allowed.
         - 'max abs uij': Maximum absolute difference in anisotropic ADPs allowed.
         - 'mean abs uij': Mean absolute difference in anisotropic ADPs allowed.
-        - 'max uij/esd': Maximum ratio of ADP difference to esd allowed.
-        - 'mean uij/esd': Mean ratio of ADP difference to esd allowed.
+        - 'max uij/su': Maximum ratio of ADP difference to su allowed.
+        - 'mean uij/su': Mean ratio of ADP difference to su allowed.
 
     Returns
     -------

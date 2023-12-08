@@ -22,6 +22,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
+
 dependencies = [
   "numpy>=1.26.2",
   "cctbx>=2020.8"
@@ -30,4 +31,3 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/Niolon/QCrBoxTools"
 "Bug Tracker" = "https://github.com/Niolon/QCrBoxTools/issues"
-

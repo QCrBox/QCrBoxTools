@@ -1,6 +1,6 @@
- 
+
 data_80K_P
- 
+
 _audit_creation_method            'SHELXL-2019/2'
 _shelx_SHELXL_version_number      '2019/2'
 _chemical_name_systematic         ?
@@ -8,7 +8,7 @@ _chemical_name_common             ?
 _chemical_melting_point           ?
 _chemical_formula_moiety          '2(C10 H15), Si'
 _chemical_formula_sum
- 'C20 H30 Si' 
+ 'C20 H30 Si'
 _chemical_formula_weight          298.53
 
 loop_
@@ -23,27 +23,27 @@ loop_
  'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
  'Si'  'Si'   0.0817   0.0704
  'International Tables Vol C Tables 4.2.6.8 and 6.1.1.4'
- 
+
 _space_group_crystal_system       monoclinic
 _space_group_IT_number            14
 _space_group_name_H-M_alt         'P 21/c'
 _space_group_name_Hall            '-P 2ybc'
- 
+
 _shelx_space_group_comment
 ;
-The symmetry employed for this shelxl refinement is uniquely defined
+The symmetry employed for this shelxl refinement is uniquely defined 
 by the following loop, which should always be used as a source of
 symmetry information in preference to the above space-group names.
 They are only intended as comments.
 ;
- 
+
 loop_
  _space_group_symop_operation_xyz
  'x, y, z'
  '-x, y+1/2, -z+1/2'
  '-x, -y, -z'
  'x, -y-1/2, z-1/2'
- 
+
 _cell_length_a                    30.885(3)
 _cell_length_b                    8.400(2)
 _cell_length_c                    22.997(2)
@@ -56,12 +56,12 @@ _cell_measurement_temperature     89(2)
 _cell_measurement_reflns_used     9716
 _cell_measurement_theta_min       2.523
 _cell_measurement_theta_max       27.461
- 
+
 _exptl_crystal_description        block
 _exptl_crystal_colour             colourless
 _exptl_crystal_density_meas       ?
 _exptl_crystal_density_method     ?
-_exptl_crystal_density_diffrn     1.055          
+_exptl_crystal_density_diffrn     1.055
 _exptl_crystal_F_000              1968
 _exptl_transmission_factor_min    ?
 _exptl_transmission_factor_max    ?
@@ -108,18 +108,18 @@ _reflns_threshold_expression      'I > 2\s(I)'
 _reflns_Friedel_coverage          0.000
 _reflns_Friedel_fraction_max      .
 _reflns_Friedel_fraction_full     .
- 
+
 _reflns_special_details
 ;
  Reflections were merged by SHELXL according to the crystal
  class for the calculation of statistics and refinement.
- 
+
  _reflns_Friedel_fraction is defined as the number of unique
  Friedel pairs measured divided by the number that would be
  possible theoretically, ignoring centric projections and
  systematic absences.
 ;
- 
+
 _computing_data_collection        'Bruker APEX2 v2012.2'
 _computing_cell_refinement        'Bruker SAINT V8.40A'
 _computing_data_reduction         'Bruker SAINT V8.40A'
@@ -150,7 +150,7 @@ _refine_ls_goodness_of_fit_ref    1.026
 _refine_ls_restrained_S_all       1.026
 _refine_ls_shift/su_max           0.002
 _refine_ls_shift/su_mean          0.000
- 
+
 loop_
  _atom_site_label
  _atom_site_type_symbol
@@ -160,7 +160,7 @@ loop_
  _atom_site_U_iso_or_equiv
  _atom_site_adp_type
  _atom_site_occupancy
- _atom_site_site_symmetry_order  
+ _atom_site_site_symmetry_order
  _atom_site_calc_flag
  _atom_site_refinement_flags_posn
  _atom_site_refinement_flags_adp
@@ -329,7 +329,7 @@ C60 C 0.92108(9) 0.4480(3) 0.97089(11) 0.0496(7) Uani 1 1 d . . . . .
 H60A H 0.902670 0.358854 0.977301 0.074 Uiso 1 1 calc R U . . .
 H60B H 0.900758 0.534668 0.949764 0.074 Uiso 1 1 calc R U . . .
 H60C H 0.941461 0.485835 1.010786 0.074 Uiso 1 1 calc R U . . .
- 
+
 loop_
  _atom_site_aniso_label
  _atom_site_aniso_U_11
@@ -401,7 +401,7 @@ C57 0.0329(11) 0.0452(14) 0.0629(16) 0.0208(12) 0.0147(11) -0.0031(10)
 C58 0.0278(9) 0.0241(9) 0.0358(10) -0.0009(8) 0.0118(8) 0.0079(8)
 C59 0.0350(11) 0.0409(12) 0.0416(12) 0.0061(10) 0.0188(10) -0.0006(9)
 C60 0.0450(13) 0.0679(17) 0.0315(11) -0.0175(11) 0.0067(10) 0.0293(12)
- 
+
 _geom_special_details
 ;
  All esds (except the esd in the dihedral angle between two l.s. planes)
@@ -411,7 +411,7 @@ _geom_special_details
  used when they are defined by crystal symmetry.  An approximate (isotropic)
  treatment of cell esds is used for estimating esds involving l.s. planes.
 ;
- 
+
 loop_
  _geom_bond_atom_site_label_1
  _geom_bond_atom_site_label_2
@@ -496,7 +496,7 @@ C53 C58 1.498(2) . ?
 C54 C55 1.412(3) . ?
 C54 C59 1.503(3) . ?
 C55 C60 1.501(3) . ?
- 
+
 loop_
  _geom_angle_atom_site_label_1
  _geom_angle_atom_site_label_2
@@ -694,7 +694,7 @@ C51 C55 C60 126.1(2) . . ?
 C54 C55 Si3 79.22(11) . . ?
 C51 C55 Si3 70.97(11) . . ?
 C60 C55 Si3 119.45(13) . . ?
- 
+
 _refine_diff_density_max    1.378
 _refine_diff_density_min   -0.362
 _refine_diff_density_rms    0.063
@@ -127698,23 +127698,23 @@ _shelx_hkl_checksum   73107
 # start Validation Reply Form
 _vrf_PLAT110_80K_P
 ;
-PROBLEM: ADDSYM Detects Potential Lattice Translation ...          ? Check 
+PROBLEM: ADDSYM Detects Potential Lattice Translation ...          ? Check
 RESPONSE: The structure has a phase transition from the given P2(1)/c to
-C2/c while the positions are close, they are not equivalent. Additionally 
+C2/c while the positions are close, they are not equivalent. Additionally
 the systematic absences of C2/c are not fulfilled at low temperature.
 ;
 _vrf_PLAT112_80K_P
 ;
-PROBLEM: ADDSYM Detects New (Pseudo) Symm. Elem         C        100 %Fit  
+PROBLEM: ADDSYM Detects New (Pseudo) Symm. Elem         C        100 %Fit
 RESPONSE: The structure has a phase transition from the given P2(1)/c to
-C2/c while the positions are close, they are not equivalent. Additionally 
+C2/c while the positions are close, they are not equivalent. Additionally
 the systematic absences of C2/c are not fulfilled at low temperature.
 ;
 _vrf_PLAT113_80K_P
 ;
-PROBLEM: ADDSYM Suggests Possible Pseudo/New  Space Group       C2/c Check 
+PROBLEM: ADDSYM Suggests Possible Pseudo/New  Space Group       C2/c Check
 RESPONSE: The structure has a phase transition from the given P2(1)/c to
-C2/c while the positions are close, they are not equivalent. Additionally 
+C2/c while the positions are close, they are not equivalent. Additionally
 the systematic absences of C2/c are not fulfilled at low temperature.
 ;
 # end Validation Reply Form

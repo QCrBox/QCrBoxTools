@@ -32,8 +32,8 @@ def uiso_matches_uaniso(atom_name, block):
         split_su_single(block['_cell_angle_beta'])[0],
         split_su_single(block['_cell_angle_gamma'])[0]
     )
-    np.isclose(uaniso, u_aniso_comp, atol=1e-3).all()
-
+    assert np.isclose(uaniso, u_aniso_comp, atol=1e-3).all()
+    assert block['_atom_site_adp_type'][uiso_index] == 'Uani'
 
 def test_cif_iso2aniso_byname(tmp_path):
     input_cif_path = Path('./tests/util/cif_files/iso2aniso.cif')

@@ -385,7 +385,7 @@ def cif_iso2aniso(
     if not overwrite:
         select_names = [name for name in select_names if name not in existing]
 
-    # calculate values
+    # calculate values and set adp type
     new_values = {}
     for name in select_names:
         uiso_index = atom_site_labels.index(name)
@@ -396,6 +396,7 @@ def cif_iso2aniso(
             split_su_single(block['_cell_angle_beta'])[0],
             split_su_single(block['_cell_angle_gamma'])[0]
         )
+        block['_atom_site_adp_type'][uiso_index] = 'Uani'
 
     # build up new atom_site_aniso arrays
     loop = block['_atom_site_aniso']

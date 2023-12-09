@@ -9,41 +9,57 @@ It includes functionalities such as:
 
 from pathlib import Path
 import re
-from typing import Dict, Union, Tuple, Any, Iterable
+from typing import Union, Tuple, Iterable, Optional, List
 
 from iotbx import cif
-from scitbx.array_family import flex
 import numpy as np
 
-class NoCentringFoundError(Exception): pass
-class InConsistentCentringError(Exception): pass
+class NoCentringFoundError(Exception):
+    """
+    Exception raised when no centring information is found in a CIF file.
+    """
+
+class InConsistentCentringError(Exception):
+    """
+    Exception raised for inconsistent centring information in CIF files.
+    """
 
 
 def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
     """
-    Reads the content of a CIF file with a Path from pathlib.
+    Read a CIF file and return its content as a CIF model.
+    Also works with Pathlib paths
 
-    Args:
-    - cif_path (Union[str, Path]): The path to the CIF file.
+    Parameters
+    ----------
+    cif_path : Union[str, Path]
+        The path to the CIF file.
 
-    Returns:
-    - Dict[str, Any]: The CIF model parsed from the file.
+    Returns
+    -------
+    cif.model.cif
+        The CIF model parsed from the file.
     """
     with open(cif_path, 'r', encoding='UTF-8') as fobj:
         cif_content = fobj.read()
 
     return cif.reader(input_string=cif_content).model()
 
-def cifdata_str_or_index(model: dict, dataset: [int, str]) -> cif.model.block:
+def cifdata_str_or_index(model: cif.model.cif, dataset: [int, str]) -> cif.model.block:
     """
-    Retrieve CIF dataset block from the model based on an index or string identifier.
+    Retrieve a CIF dataset block from the model using an index or identifier.
 
-    Parameters:
-    - model (dict): The CIF model containing datasets.
-    - dataset (int or str): Index or string identifier for the desired dataset.
+    Parameters
+    ----------
+    model : iotbx.cif.model.cif
+        The CIF model containing datasets.
+    dataset : Union[int, str]
+        Index or string identifier for the dataset.
 
-    Returns:
-    - dict: The selected CIF dataset.
+    Returns
+    -------
+    Tuple[cif.model.block, str]
+        The CIF dataset block and its identifier.
     """
     if isinstance(dataset, int):
         keys = list(model.keys())
@@ -52,13 +68,17 @@ def cifdata_str_or_index(model: dict, dataset: [int, str]) -> cif.model.block:
 
 def split_su_single(input_string: str) -> Tuple[float, float]:
     """
-    Extracts the value and estimated standard uncertainty (su) from a formatted string.
+    Extract the value and standard uncertainty from a CIF formatted string.
 
-    Args:
-    - input_string (str): The input string, expected to contain a numeric value and possibly an su.
+    Parameters
+    ----------
+    input_string : str
+        String containing a numeric value and possibly an SU.
 
-    Returns:
-    - Tuple[float, float]: The value and its associated su.
+    Returns
+    -------
+    Tuple[float, float]
+        The numeric value and its standard uncertainty.
     """
     input_string = str(input_string)
 
@@ -82,15 +102,17 @@ def split_su_single(input_string: str) -> Tuple[float, float]:
 
 def split_sus(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Extracts values and sus from a list of formatted strings.
+    Extract values and standard uncertainties from a list of formatted strings.
 
-    Args:
-    - input_strings (Iterable[str]): A list of input strings, each expected to
-      contain a numeric value and possibly an su.
+    Parameters
+    ----------
+    input_strings : Iterable[str]
+        A list of input strings, each containing a numeric value and possibly an SU.
 
-    Returns:
-    - Tuple[np.ndarray, np.ndarray]: The values and their associated sus in
-      two separate arrays.
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        Arrays of numeric values and their associated standard uncertainties.
     """
     values, sus = zip(*map(split_su_single, input_strings))
     return np.array(list(values)), np.array(list(sus))
@@ -122,8 +144,18 @@ def del_refine_file(key:str) -> bool:
 
 def is_num_su(string: str) -> bool:
     """
-    Check if character incompatible with numerical value with su
-    is present.
+    Check if a string is compatible with numerical values and standard uncertainties.
+
+    Parameters
+    ----------
+    string : str
+        The string to be checked.
+
+    Returns
+    -------
+    bool
+        True if the string only contains characters valid for numerical values
+        and standard uncertainties, False otherwise.
     """
     return re.search(r'[^\d\.\-\+\(\)]', string) is None
 
@@ -135,17 +167,24 @@ def replace_structure_from_cif(
     output_cif_path: Union[str, Path]
 ) -> None:
     """
-    Replaces the structural information of one dataset of one CIF file with the structural
-    information of a dataset of another CIF file.
+    Replace the structural information in a CIF file with that from another CIF file.
 
-    Args:
-    - cif_path (Union[str, Path]): Path to the original CIF file.
-    - cif_dataset (str): Dataset/block name in the original CIF to replace.
-    - structure_cif_path (Union[str, Path]): Path to the CIF file from which the structure block
-      will be copied.
-    - structure_cif_dataset (str): Dataset/block name in the CIF file from which the structure
-      block will be copied.
-    - output_cif_path (Union[str, Path]): Path where the resulting CIF will be saved.
+    Parameters
+    ----------
+    cif_path : Union[str, Path]
+        Path to the original CIF file.
+    cif_dataset : str
+        Dataset name in the original CIF to be replaced.
+    structure_cif_path : Union[str, Path]
+        Path to the CIF file with the replacement structure.
+    structure_cif_dataset : str
+        Dataset name in the replacement CIF file.
+    output_cif_path : Union[str, Path]
+        Path to save the modified CIF file.
+
+    Returns
+    -------
+    None
     """
     cif_obj = read_cif_safe(cif_path=cif_path)
     structure_cif_obj = read_cif_safe(cif_path=structure_cif_path)
@@ -214,7 +253,32 @@ def replace_structure_from_cif(
     with open(output_cif_path, 'w', encoding='UTF-8') as fobj:
         fobj.write(str(new_cif_obj))
 
-def check_centring_equal(block1, block2):
+def check_centring_equal(
+    block1: cif.model.block,
+    block2: cif.model.block
+) -> bool:
+    """
+    Check if the lattice centring is the same in two CIF blocks.
+
+    Parameters
+    ----------
+    block1 : cif.model.block
+        The first CIF block.
+    block2 : cif.model.block
+        The second CIF block.
+
+    Returns
+    -------
+    bool
+        True if lattice centring is the same, False otherwise.
+
+    Raises
+    ------
+    NoCentringFoundError
+        If no centring information is found in either block.
+    InConsistentCentringError
+        If centring information is inconsistent within a block.
+    """
     block1_centrings = []
     block2_centrings = []
 
@@ -241,18 +305,59 @@ def check_centring_equal(block1, block2):
         raise InConsistentCentringError('Centrings from entries do not agree for cif2')
     return block1_centrings[0] == block2_centrings[0]
 
-def check_crystal_system(block1, block2):
+def check_crystal_system(block1: cif.model.block, block2: cif.model.block) -> bool:
+    """
+    Check if two CIF blocks belong to the same crystal system.
+
+    Parameters
+    ----------
+    block1 : cif.model.block
+        The first CIF block.
+    block2 : cif.model.block
+        The second CIF block.
+
+    Returns
+    -------
+    bool
+        True if both blocks belong to the same crystal system, False otherwise.
+    """
     return block1['_space_group_crystal_system'] == block2['_space_group_crystal_system']
 
 def cif_iso2aniso(
-    input_cif_path,
-    cif_dataset,
-    output_cif_path,
-    select_names=None,
-    select_elements=None,
-    select_regexes=None,
-    overwrite=False
-):
+    input_cif_path: Union[str, Path],
+    cif_dataset: Union[str, int],
+    output_cif_path: Union[str, Path],
+    select_names: Optional[List[str]] = None,
+    select_elements: Optional[List[str]] = None,
+    select_regexes: Optional[List[re.Pattern]] = None,
+    overwrite: bool = False
+) -> None:
+    """
+    Convert isotropic displacement parameters to anisotropic in a CIF file. Atoms can be
+    selected by a list of names, elements or regexes by using the three keyword arguments.
+    Already anisotropic atoms are not replaced. This behaviour can be changed by overwrite.
+
+    Parameters
+    ----------
+    input_cif_path : Union[str, Path]
+        Path to the input CIF file.
+    cif_dataset : Union[str, int]
+        Dataset name in the CIF file if string or index of dataset in file if int
+    output_cif_path : Union[str, Path]
+        Path to save the modified CIF file.
+    select_names : Optional[List[str]], optional
+        Specific atom names to convert, by default None.
+    select_elements : Optional[List[str]], optional
+        Specific elements to convert, by default None.
+    select_regexes : Optional[List[re.Pattern]], optional
+        Python re regex patterns to match atom names for conversion, by default None.
+    overwrite : bool, optional
+        Overwrite existing anisotropic parameters if True, by default False.
+
+    Returns
+    -------
+    None
+    """
     cif_content = read_cif_safe(input_cif_path)
     block, block_name = cifdata_str_or_index(cif_content, cif_dataset)
     atom_site_labels = list(block['_atom_site_label'])
@@ -298,24 +403,43 @@ def cif_iso2aniso(
 
     for _ in range(len(new_aniso_labels) - loop.n_rows()):
         loop.add_row(['?'] * loop.n_columns())
-    #new_loop = {'_atom_site_aniso_label' : new_aniso_labels}
     loop.update_column('_atom_site_aniso_label', new_aniso_labels)
     for ij_index, ij in enumerate((11, 22, 33, 12, 13, 23)):
         aniso_key = f'_atom_site_aniso_U_{ij}'
-        #new_loop[aniso_key] = [
         loop.update_column(f'_atom_site_aniso_U_{ij}', [
-            f'{new_values[name][ij_index]:8.8f}' if name in select_names else block[aniso_key][existing.index(name)]
+            f'{new_values[name][ij_index]:8.8f}'
+            if name in select_names else block[aniso_key][existing.index(name)]
             for name in new_aniso_labels
         ])
 
-    #block.add_loop(new_loop)
 
     cif_content[block_name] = block
 
     with open(output_cif_path, 'w', encoding='UTF-8') as fobj:
         fobj.write(str(cif_content))
 
-def calculate_reciprocal_angles(alpha, beta, gamma):
+def calc_rec_angle_cosines(
+    alpha: float,
+    beta: float,
+    gamma: float
+) -> Tuple[float, float, float]:
+    """
+    Calculate the reciprocal angles from given crystal angles.
+
+    Parameters
+    ----------
+    alpha : float
+        The alpha angle of the crystal (in degrees).
+    beta : float
+        The beta angle of the crystal (in degrees).
+    gamma : float
+        The gamma angle of the crystal (in degrees).
+
+    Returns
+    -------
+    Tuple[float, float, float]
+        The cosine of the reciprocal angles alpha*, beta*, and gamma*.
+    """
     alpha_rad = np.radians(alpha)
     beta_rad = np.radians(beta)
     gamma_rad = np.radians(gamma)
@@ -329,14 +453,35 @@ def calculate_reciprocal_angles(alpha, beta, gamma):
 
     return cos_alpha_star, cos_beta_star, cos_gamma_star
 
-def single_value_iso2aniso(uiso, alpha, beta, gamma):
-    cos_alpha_star, cos_beta_star, cos_gamma_star = calculate_reciprocal_angles(alpha, beta, gamma)
+def single_value_iso2aniso(
+    uiso: float,
+    alpha: float,
+    beta: float,
+    gamma: float
+) -> Tuple[float, float, float, float, float, float]:
+    """
+    Convert a single isotropic U value to anisotropic U values.
+
+    Parameters
+    ----------
+    uiso : float
+        The isotropic U value.
+    alpha : float
+        The alpha angle of the crystal (in degrees).
+    beta : float
+        The beta angle of the crystal (in degrees).
+    gamma : float
+        The gamma angle of the crystal (in degrees).
+
+    Returns
+    -------
+    Tuple[float, float, float, float, float, float]
+        The anisotropic U values (U11, U22, U33, U12, U13, U23).
+    """
+    cos_alpha_star, cos_beta_star, cos_gamma_star = calc_rec_angle_cosines(alpha, beta, gamma)
 
     u12 = uiso * cos_gamma_star
     u13 = uiso * cos_beta_star
     u23 = uiso * cos_alpha_star
 
     return uiso, uiso, uiso, u12, u13, u23
-
-
-

@@ -46,7 +46,7 @@ def cell_dict2atom_sites_dict(
     a = split_su_single(cell_dict['_cell_length_a'])[0]
     b = split_su_single(cell_dict['_cell_length_b'])[0]
     c = split_su_single(cell_dict['_cell_length_c'])[0]
-    alpha = split_susingle(cell_dict['_cell_angle_alpha'])[0] / 180.0 * np.pi
+    alpha = split_su_single(cell_dict['_cell_angle_alpha'])[0] / 180.0 * np.pi
     beta = split_su_single(cell_dict['_cell_angle_beta'])[0] / 180.0 * np.pi
     gamma = split_su_single(cell_dict['_cell_angle_gamma'])[0] / 180.0 * np.pi
     matrix = np.array(
@@ -186,8 +186,8 @@ def position_difference(
     return_dict = {
         'max abs position': np.max(distances),
         'mean abs position': np.mean(distances),
-        'max position/su: np.max(abs_diff / sus_diff),
-        'mean position/su': np.mean(abs_diff / su_diff)
+        'max position/su': np.max(abs_diff / sus_diff),
+        'mean position/su': np.mean(abs_diff / sus_diff)
     }
 
     return return_dict
@@ -223,7 +223,7 @@ def anisotropic_adp_difference(
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
     uij_sus1 = [split_sus(block1[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
-    uij_sus2 = [split_su(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus2 = [split_sus(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
 
     uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
     uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)

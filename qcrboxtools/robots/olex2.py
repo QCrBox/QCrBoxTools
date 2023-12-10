@@ -67,8 +67,8 @@ class Olex2Socket(SocketRobot):
         path = pathlib.Path(path)
         self._structure_path = path
         startup_commands = [
-            f'user {path.parents[0]}',
-            f'reap {path}'
+            f'user {path.absolute().parents[0]}',
+            f'reap {path.absolute()}'
         ]
 
         cmd_list = '\n'.join(startup_commands)

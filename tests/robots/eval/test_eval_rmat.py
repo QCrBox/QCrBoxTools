@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from qcrboxtools.robots.eval import Rmat
+from qcrboxtools.robots.eval import RmatFile
 
 rmat_content = """
 # Created by peakref (version 1.4 2021091400) at 16-Nov-2023 13:49:55
@@ -69,28 +69,28 @@ cif_space_group_data = {
 }
 
 def test_extract_data():
-    rmat = Rmat(rmat_content)
+    rmat = RmatFile(rmat_content)
 
     # Check if all expected keys are present in the data
     expected_keys = ['RMAT', 'TMAT', 'CELL', 'SIGMACELL']
     for key in expected_keys:
-        assert key in rmat.data, f"Key '{key}' not found in extracted data"
+        assert key in rmat, f"Key '{key}' not found in extracted data"
 
     # Test RMAT values
-    assert np.allclose(rmat.data['RMAT'], expected_rmat), "RMAT values do not match expected values"
+    assert np.allclose(rmat['RMAT'], expected_rmat), "RMAT values do not match expected values"
 
     # Test TMAT values
-    assert np.allclose(rmat.data['TMAT'], expected_tmat), "TMAT values do not match expected values"
+    assert np.allclose(rmat['TMAT'], expected_tmat), "TMAT values do not match expected values"
 
     # Test CELL values
-    assert np.allclose(rmat.data['CELL'], expected_cell), "CELL values do not match expected values"
+    assert np.allclose(rmat['CELL'], expected_cell), "CELL values do not match expected values"
 
     # Test SIGMACELL values
-    assert np.allclose(rmat.data['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected values"
+    assert np.allclose(rmat['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected values"
 
 
 def test_to_cif_dict():
-    rmat = Rmat(rmat_content)
+    rmat = RmatFile(rmat_content)
     cif_dict = rmat.to_cif_dict()
 
     for key, expected_value in cif_rmat_data.items():
@@ -106,23 +106,23 @@ def test_from_cif_dict():
     # Merge all CIF dictionaries
     complete_cif_dict = {**cif_rmat_data, **cif_cell_data, **cif_sigmacell_data, **cif_space_group_data}
 
-    rmat = Rmat.from_cif_dict(complete_cif_dict)
+    rmat = RmatFile.from_cif_dict(complete_cif_dict)
 
     # Test RMAT values
-    assert np.allclose(rmat.data['RMAT'], expected_rmat), "RMAT values do not match expected CIF data"
+    assert np.allclose(rmat['RMAT'], expected_rmat), "RMAT values do not match expected CIF data"
 
     # Test CELL values
-    assert np.allclose(rmat.data['CELL'], expected_cell), "CELL values do not match expected CIF data"
+    assert np.allclose(rmat['CELL'], expected_cell), "CELL values do not match expected CIF data"
 
     # Test SIGMACELL values
-    assert np.allclose(rmat.data['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
+    assert np.allclose(rmat['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
 
 def test_to_rmat_file(tmp_path):
-    rmat = Rmat(rmat_content)
+    rmat = RmatFile(rmat_content)
 
     # Use pytest's tmp_path fixture to create a temporary file
     file_path = tmp_path / "test.rmat"
-    rmat.to_rmat_file(file_path)
+    rmat.to_file(file_path)
 
     # Read back the content from the file
     with open(file_path, 'r', encoding='UTF-8') as file:

@@ -69,7 +69,7 @@ cif_space_group_data = {
 }
 
 def test_extract_data():
-    rmat = RmatFile(rmat_content)
+    rmat = RmatFile('test.rmat', rmat_content)
 
     # Check if all expected keys are present in the data
     expected_keys = ['RMAT', 'TMAT', 'CELL', 'SIGMACELL']
@@ -90,7 +90,7 @@ def test_extract_data():
 
 
 def test_to_cif_dict():
-    rmat = RmatFile(rmat_content)
+    rmat = RmatFile('test.rmat', rmat_content)
     cif_dict = rmat.to_cif_dict()
 
     for key, expected_value in cif_rmat_data.items():
@@ -106,7 +106,7 @@ def test_from_cif_dict():
     # Merge all CIF dictionaries
     complete_cif_dict = {**cif_rmat_data, **cif_cell_data, **cif_sigmacell_data, **cif_space_group_data}
 
-    rmat = RmatFile.from_cif_dict(complete_cif_dict)
+    rmat = RmatFile.from_cif_dict('test.rmat', complete_cif_dict)
 
     # Test RMAT values
     assert np.allclose(rmat['RMAT'], expected_rmat), "RMAT values do not match expected CIF data"
@@ -118,14 +118,13 @@ def test_from_cif_dict():
     assert np.allclose(rmat['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
 
 def test_to_rmat_file(tmp_path):
-    rmat = RmatFile(rmat_content)
+    rmat = RmatFile('test.rmat', rmat_content)
 
     # Use pytest's tmp_path fixture to create a temporary file
-    file_path = tmp_path / "test.rmat"
-    rmat.to_file(file_path)
+    rmat.to_file(tmp_path)
 
     # Read back the content from the file
-    with open(file_path, 'r', encoding='UTF-8') as file:
+    with open(tmp_path / "test.rmat", 'r', encoding='UTF-8') as file:
         content = [line for line in file.readlines() if len(line.strip()) > 0]
 
     # Extract the expected content from the original rmat_content

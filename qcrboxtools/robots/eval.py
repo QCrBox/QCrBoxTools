@@ -1,6 +1,7 @@
 from itertools import product
 import re
 from typing import Union, List
+from pathlib import Path
 
 import numpy as np
 
@@ -42,13 +43,91 @@ def infer_and_cast(s: str) -> Union[float, int, bool, np.ndarray, str]:
     # If all else fails, return as string
     return s
 
-class TextFile:
-    pass
+class RelativePathFile:
+    def __init__(self, filename: str, content: str):
+        """
+        Initializes a new instance of the TextFile class.
 
-class CommandFile:
-    pass
+        Parameters
+        ----------
+        filename : str
+            The name of the text file.
+        text : str
+            The content of the text file as a string.
+        """
+        self.filename = filename
 
-class PicFile(dict):
+    @classmethod
+    def from_file(cls, file_path: str) -> 'TextFile':
+        """
+        Reads a text file from the given path and creates a TextFile instance.
+
+        Parameters
+        ----------
+        file_path : str
+            The path to the text file to be read.
+
+        Returns
+        -------
+        TextFile
+            An instance of TextFile initialized with the contents of the file.
+        """
+        path = Path(file_path)
+        with path.open('r', encoding='UTF-8') as fobj:
+            text = fobj.read()
+        return cls(path.name, text)
+
+    def to_file(self, directory: str = None):
+        """
+        Writes the TextFile content to a text file. If directory is None, writes to the current directory.
+
+        Parameters
+        ----------
+        directory : str, optional
+            The directory where the content should be written. If None, writes to the current directory.
+        """
+        file_path = Path(directory) / self.filename if directory else Path(self.filename)
+        with file_path.open('w', encoding='UTF-8') as fobj:
+            fobj.write(str(self))
+
+
+class TextFile(RelativePathFile):
+    """
+    A class representing a text file, with methods to read from and write to a text file.
+
+    Attributes
+    ----------
+    filename : str
+        The name of the text file.
+    text : str
+        The content of the text file as a string.
+
+    Methods
+    -------
+    from_file(file_path)
+        Reads a text file from the given path and creates a TextFile instance.
+    to_file(directory=None)
+        Writes the TextFile content to a text file in the specified directory or the current directory.
+    """
+    def __init__(self, filename: str, content: str):
+        """
+        Initializes a new instance of the TextFile class.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the text file.
+        text : str
+            The content of the text file as a string.
+        """
+        super().__init__(filename, content)
+        self.text = content
+
+    def __str__(self):
+        return self.text
+
+
+class PicFile(RelativePathFile, dict):
     """
     A class representing the content of a PIC file as a dictionary.
 
@@ -130,7 +209,7 @@ class PicFile(dict):
         'xyztohkl', 'zero', 'zoom', 'zoomfraction', 'zoompick', 'zoomtitle'
     ]
 
-    def __init__(self, content_str: str):
+    def __init__(self, filename, content_str: str,):
         """
         Initializes a new instance of the PicFile class.
 
@@ -139,7 +218,7 @@ class PicFile(dict):
         content_str : str
             A string representation of the contents of a PIC file.
         """
-        super().__init__()
+        super().__init__(filename=filename, content=content_str)
 
         line_contents = [
             line.strip().split() for line in content_str.split('\n') if not line.startswith('!')
@@ -224,42 +303,8 @@ class PicFile(dict):
             entry_str = str(entry)
         return f'{key} {entry_str}'
 
-    def to_file(self, file_path: str):
-        """
-        Writes the current state of the PIC file content to a specified file.
 
-        Parameters
-        ----------
-        file_path : str
-            The path to the file where the content should be written.
-        """
-        with open(file_path, 'w', encoding='UTF-8') as fobj:
-            fobj.write(str(self))
-
-    @classmethod
-    def from_file(cls, file_path: str) -> 'PicFile':
-        """
-        Creates a PicFile instance from the contents of a specified file.
-
-        This method reads the content of a PIC file from the given file path and
-        initializes a PicFile object with this content.
-
-        Parameters
-        ----------
-        file_path : str
-            The path to the PIC file to be read.
-
-        Returns
-        -------
-        PicFile
-            An instance of PicFile initialized with the contents of the file.
-        """
-        with open(file_path, 'r', encoding='UTF-8') as fobj:
-            content = fobj.read()
-        return cls(content)
-
-
-class VicFile(dict):
+class SettingsVicFile(RelativePathFile, dict):
     """
     A class representing the content of a VIC file as a dictionary.
 
@@ -270,26 +315,26 @@ class VicFile(dict):
     Methods
     -------
     __init__(content_str)
-        Constructs a VicFile object from a string.
+        Constructs a SettingsVicFile object from a string.
     __str__()
         Returns a formatted string representation of the VIC file content.
     from_file(file_path)
-        Creates a VicFile instance from the contents of a specified file.
+        Creates a SettingsVicFile instance from the contents of a specified file.
     to_file(file_path)
         Writes the VIC file content to a file.
     """
 
-    def __init__(self, content_str: str):
+    def __init__(self, filename: str, content: str):
         """
-        Initializes a new instance of the VicFile class.
+        Initializes a new instance of the SettingsVicFile class.
 
         Parameters
         ----------
-        content_str : str
+        content : str
             A string representation of the contents of a VIC file.
         """
-        super().__init__()
-        for line in content_str.split('\n'):
+        super().__init__(filename, content)
+        for line in content.split('\n'):
             if not line.startswith('!'):
                 parts = line.split()
                 if len(parts) > 1:
@@ -309,39 +354,8 @@ class VicFile(dict):
             for key, values in self.items()
         )
 
-    @classmethod
-    def from_file(cls, file_path: str) -> 'VicFile':
-        """
-        Creates a VicFile instance from the contents of a specified file.
 
-        Parameters
-        ----------
-        file_path : str
-            The path to the VIC file to be read.
-
-        Returns
-        -------
-        VicFile
-            An instance of VicFile initialized with the contents of the file.
-        """
-        with open(file_path, 'r', encoding='UTF-8') as fobj:
-            content = fobj.read()
-        return cls(content)
-
-    def to_file(self, file_path: str):
-        """
-        Writes the current state of the VIC file content to a specified file.
-
-        Parameters
-        ----------
-        file_path : str
-            The path to the file where the content should be written.
-        """
-        with open(file_path, 'w', encoding='UTF-8') as fobj:
-            fobj.write(str(self))
-
-
-class RmatFile(dict):
+class RmatFile(RelativePathFile, dict):
     """
     A class to handle RMAT file data extraction and manipulation.
 
@@ -368,10 +382,11 @@ class RmatFile(dict):
         Class method to create an instance from a CIF dictionary.
     """
 
-    def __init__(self, text: str = None):
+    def __init__(self, filename, content: str = None):
         """Initialize RmatData with text from an RMAT file."""
-        if text is not None:
-            self.extract_data(text)
+        super().__init__(filename, content)
+        if content is not None:
+            self.extract_data(content)
 
     @staticmethod
     def convert_to_numpy(array_str: str) -> np.ndarray:
@@ -478,37 +493,6 @@ class RmatFile(dict):
         ]
         return '\n'.join(output)
 
-    @classmethod
-    def from_file(cls, file_path: str) -> 'RmatFile':
-        """
-        Create an Rmat instance from a file.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the RMAT file.
-
-        Returns
-        -------
-        RmatData
-            An instance of RmatData.
-        """
-        with open(file_path, encoding='UTF-8') as fobj:
-            content = fobj.read()
-        return cls(text=content)
-
-    def to_file(self, file_path: str):
-        """
-        Write the RMAT data to a file.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the output file.
-        """
-        with open(file_path, 'w', encoding='UTF-8') as fobj:
-            fobj.write(str(self))
-
     def to_cif_dict(self) -> dict:
         """
         Convert RMAT data to CIF format dictionary.
@@ -570,7 +554,7 @@ class RmatFile(dict):
         return cif_dict
 
     @classmethod
-    def from_cif_dict(cls, cif_dict: dict) -> 'RmatFile':
+    def from_cif_dict(cls, filename: str, cif_dict: dict) -> 'RmatFile':
         """
         Create an Rmat instance from a CIF dictionary.
 
@@ -584,7 +568,7 @@ class RmatFile(dict):
         Rmat
             An instance of Rmat created from CIF dictionary data.
         """
-        new = cls()
+        new = cls(filename)
         new['RMAT'] = np.array(
             [
                 [cif_dict[f'_diffrn_orient_matrix.UB_{i}{j}'] for j in range(1,4)]
@@ -630,7 +614,7 @@ class EvalAppRobot:
         pass
 
 class EvalViewRobot:
-    def __init__(self, command_list, file_list):
+    def __init__(self, work_folder, command_list, file_list):
         self.command_list = command_list
         self.file_list = file_list
 

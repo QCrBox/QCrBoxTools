@@ -3,7 +3,7 @@ from textwrap import dedent
 import numpy as np
 import pytest
 
-from qcrboxtools.robots.eval import VicFile
+from qcrboxtools.robots.eval import SettingsVicFile
 
 beamstop_vic = dedent("""
     ! Created by view (version 1.4 2023091300) at 16-Nov-2023 13:39:41
@@ -34,8 +34,8 @@ detalign_vic = dedent("""
 """).strip()
 
 def test_parsing_file_content():
-    vic_file = VicFile(beamstop_vic)
-    assert isinstance(vic_file, VicFile)
+    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
+    assert isinstance(vic_file, SettingsVicFile)
     assert '!' not in vic_file
 
 @pytest.mark.parametrize("content, expected_data", [
@@ -60,24 +60,22 @@ def test_parsing_file_content():
     })
 ])
 def test_data_integrity(content, expected_data):
-    vic_file = VicFile(content)
+    vic_file = SettingsVicFile('test.vic', content)
     for key, value in expected_data.items():
         if isinstance(value, np.ndarray):
             assert np.array_equal(vic_file[key], value)
         else:
             assert vic_file[key] == value
 
-
 def test_data_modification():
-    vic_file = VicFile(beamstop_vic)
+    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
     vic_file['beamstopid'] = 'new_id'
     assert vic_file['beamstopid'] == 'new_id'
 
 def test_string_representation_and_file_writing(tmp_path):
-    vic_file = VicFile(beamstop_vic)
+    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
     expected_content = "\n".join(line for line in beamstop_vic.split("\n") if not line.startswith('!'))
-    file_path = tmp_path / "output.vic"
-    vic_file.to_file(file_path)
-    with open(file_path, 'r', encoding='UTF-8') as f:
+    vic_file.to_file(tmp_path)
+    with open(tmp_path / "beamstop.vic", 'r', encoding='UTF-8') as f:
         written_content = f.read()
     assert written_content.strip() == expected_content.strip()

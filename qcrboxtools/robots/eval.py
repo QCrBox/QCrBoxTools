@@ -1,7 +1,8 @@
 from itertools import product
 import re
-from typing import Union, List
+from typing import Union, List, Optional
 from pathlib import Path
+import subprocess
 
 import numpy as np
 
@@ -44,6 +45,27 @@ def infer_and_cast(s: str) -> Union[float, int, bool, np.ndarray, str]:
     return s
 
 class RelativePathFile:
+    """
+    A class representing a relative path file.
+
+    This class provides a basic framework for managing file-related operations
+    such as reading from and writing to files based on relative paths Only meant
+    as BaseClass for the other classes in this file.
+
+    Attributes
+    ----------
+    filename : str
+        The name of the file.
+
+    Methods
+    -------
+    __init__(self, filename: str, content: str)
+        Initializes a new instance of the RelativePathFile class.
+    from_file(cls, file_path: str) -> 'RelativePathFile'
+        Reads a file from the given path and creates a RelativePathFile instance.
+    to_file(self, directory: Optional[str] = None)
+        Writes the RelativePathFile content to a text file in the specified directory.
+    """
     def __init__(self, filename: str, content: str):
         """
         Initializes a new instance of the TextFile class.
@@ -52,39 +74,42 @@ class RelativePathFile:
         ----------
         filename : str
             The name of the text file.
-        text : str
-            The content of the text file as a string.
+        content : str
+            The content of the file as a string.
         """
         self.filename = filename
 
     @classmethod
-    def from_file(cls, file_path: str) -> 'TextFile':
+    def from_file(cls, file_path: str) -> 'RelativePathFile':
         """
-        Reads a text file from the given path and creates a TextFile instance.
+        Reads a file from the given path and creates a RelativePathFile instance.
 
         Parameters
         ----------
         file_path : str
-            The path to the text file to be read.
+            The path to the file to be read.
 
         Returns
         -------
-        TextFile
-            An instance of TextFile initialized with the contents of the file.
+        RelativePathFile
+            An instance of RelativePathFile initialized with the contents of the file.
         """
         path = Path(file_path)
         with path.open('r', encoding='UTF-8') as fobj:
             text = fobj.read()
         return cls(path.name, text)
 
-    def to_file(self, directory: str = None):
+    def to_file(self, directory: Optional[str] = None):
         """
-        Writes the TextFile content to a text file. If directory is None, writes to the current directory.
+        Writes the RelativePathFile content to a text file.
+
+        If the directory is None, writes to the current directory.
 
         Parameters
         ----------
-        directory : str, optional
-            The directory where the content should be written. If None, writes to the current directory.
+        directory : Optional[str], default None
+            The directory where the file should be written. If None, writes to the
+            current directory.
         """
         file_path = Path(directory) / self.filename if directory else Path(self.filename)
         with file_path.open('w', encoding='UTF-8') as fobj:
@@ -93,21 +118,22 @@ class RelativePathFile:
 
 class TextFile(RelativePathFile):
     """
-    A class representing a text file, with methods to read from and write to a text file.
+    A subclass of RelativePathFile representing a text file.
+
+    This class extends the RelativePathFile with specific methods and attributes
+    relevant to text file operations.
 
     Attributes
     ----------
-    filename : str
-        The name of the text file.
     text : str
         The content of the text file as a string.
 
     Methods
     -------
-    from_file(file_path)
-        Reads a text file from the given path and creates a TextFile instance.
-    to_file(directory=None)
-        Writes the TextFile content to a text file in the specified directory or the current directory.
+    __init__(self, filename: str, text: str)
+        Initializes a new instance of the TextFile class.
+    __str__(self) -> str
+        Returns a string representation of the TextFile content.
     """
     def __init__(self, filename: str, content: str):
         """
@@ -117,7 +143,7 @@ class TextFile(RelativePathFile):
         ----------
         filename : str
             The name of the text file.
-        text : str
+        content : str
             The content of the text file as a string.
         """
         super().__init__(filename, content)
@@ -209,6 +235,16 @@ class PicFile(RelativePathFile, dict):
         'xyztohkl', 'zero', 'zoom', 'zoomfraction', 'zoompick', 'zoomtitle'
     ]
 
+    _commands_with_X = [
+        'Sample{}', 'dur{}', 'exhor{}', 'exrot{}', 'exver{}', 'lambdahigh{}', 'lambdalow{}',
+        'lambdasigma{}', 'lambdatype{}', 'lambdavalue{}', 'lambdaweight{}', 'lambda{}', 'lamsig{}',
+        'lamwght{}', 'lattice{}', 'mosaicrotangle{}', 'mosaicrotaxis{}', 'mosaicweight{}',
+        'mosaic{}', 'mosrot{}', 'moswght{}', 'rmat{}', 'shextra{}', 'shhor{}', 'shiftrmat{}',
+        'shinitsector{}', 'shinit{}', 'shrot{}', 'shver{}'
+    ]
+
+    _eval15_commands += [cmd.format(number) for cmd, number in product(_commands_with_X, range(2, 10))]
+
     def __init__(self, filename, content_str: str,):
         """
         Initializes a new instance of the PicFile class.
@@ -225,6 +261,8 @@ class PicFile(RelativePathFile, dict):
         ]
         options = []
         for line in line_contents:
+            if len(line) == 0:
+                continue
             cmd = line[0]
             for item in line[1:]:
                 if item in self._eval15_commands:
@@ -357,33 +395,40 @@ class SettingsVicFile(RelativePathFile, dict):
 
 class RmatFile(RelativePathFile, dict):
     """
-    A class to handle RMAT file data extraction and manipulation.
+    A class for handling and manipulating RMAT file data.
 
-    Attributes
-    ----------
-    data : dict
-        Dictionary containing extracted data from RMAT file.
+    RmatFile extends RelativePathFile and utilizes dictionary functionality for
+    storing and managing RMAT file data. It offers specialized methods for reading,
+    processing, and writing RMAT file data in both RMAT and CIF (Crystallographic
+    Information File) formats.
 
     Methods
     -------
+    __init__(filename: str, content: Optional[str] = None)
+        Initializes an RmatFile object with the content of an RMAT file.
     convert_to_numpy(array_str: str) -> np.ndarray
         Converts a string representation of a matrix to a numpy array.
-    extract_data(text: str) -> dict
-        Extracts and processes data from RMAT file text.
+    extract_data(text: str)
+        Extracts and processes RMAT data from the provided text.
     value_as_string(key: str) -> str
-        Converts data values to a formatted string.
-    from_file(file_path: str) -> 'Rmat'
-        Class method to create an instance from a file.
-    to_file(file_path: str)
-        Writes the RMAT data to a file.
+        Converts RMAT data values to a formatted string representation.
     to_cif_dict() -> dict
         Converts RMAT data to a dictionary in CIF format.
-    from_cif_dict(cif_dict: dict) -> 'Rmat'
-        Class method to create an instance from a CIF dictionary.
+    from_cif_dict(filename: str, cif_dict: dict) -> 'RmatFile'
+        Creates an RmatFile instance from CIF dictionary data.
     """
 
-    def __init__(self, filename, content: str = None):
-        """Initialize RmatData with text from an RMAT file."""
+    def __init__(self, filename: str, content: Optional[str] = None):
+        """
+        Initializes an RmatFile object with the content of an RMAT file.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the RMAT file.
+        content : Optional[str], default None
+            The text content of the RMAT file. If None, the class will be initialized empty.
+        """
         super().__init__(filename, content)
         if content is not None:
             self.extract_data(content)
@@ -391,36 +436,31 @@ class RmatFile(RelativePathFile, dict):
     @staticmethod
     def convert_to_numpy(array_str: str) -> np.ndarray:
         """
-        Convert a string matrix to a numpy array.
+        Converts a string representation of a matrix to a numpy array.
 
         Parameters
         ----------
         array_str : str
-            String containing matrix data.
-        dimensions : int, optional
-            Dimension of the numpy array (default is 2).
+            A string containing matrix data, separated by whitespace and newlines.
 
         Returns
         -------
         np.ndarray
-            Numpy array representation of the string matrix.
+            A numpy array representation of the matrix.
         """
         lines = array_str.strip().split('\n')
         return np.squeeze(np.array([list(map(float, row.split())) for row in lines]))
 
-    def extract_data(self, text: str) -> dict:
+    def extract_data(self, text: str):
         """
-        Extract and process data from the RMAT text.
+        Extracts and processes RMAT data from a given string.
+
+        Updates the class's internal state (dictionary) with processed data.
 
         Parameters
         ----------
         text : str
-            String containing the RMAT file content.
-
-        Returns
-        -------
-        dict
-            Dictionary with extracted data.
+            A string containing the RMAT file content.
         """
         patterns = {
             'RMAT': r'RMAT ([ABCFIPR])\n(.*?\n.*?\n.*?)\n',
@@ -431,7 +471,6 @@ class RmatFile(RelativePathFile, dict):
             'QVEC': r'QVEC (.*?)\n',
             'QVECRADIUS': r'QVECRADIUS (.*?)\n',
             'QVC': r'QVC (.*?)\n',
-            # Add patterns for other entries here
         }
 
         second_entry = {'RMAT': 'CENTRING', 'TMAT': 'POINTGROUP'}
@@ -451,17 +490,17 @@ class RmatFile(RelativePathFile, dict):
 
     def value_as_string(self, key: str) -> str:
         """
-        Convert data value to a formatted string.
+        Converts a specific RMAT data value to a formatted string representation.
 
         Parameters
         ----------
         key : str
-            Key for the data item.
+            The key for the data item in the dictionary.
 
         Returns
         -------
         str
-            Formatted string representation of the data item.
+            A string representation of the data item associated with the given key.
         """
         value = self[key]
         if isinstance(value, np.ndarray) and value.ndim == 2:
@@ -480,7 +519,7 @@ class RmatFile(RelativePathFile, dict):
 
     def __str__(self) -> str:
         """
-        String representation of Rmat.
+        String representation of RmatFile.
 
         Returns
         -------
@@ -495,12 +534,12 @@ class RmatFile(RelativePathFile, dict):
 
     def to_cif_dict(self) -> dict:
         """
-        Convert RMAT data to CIF format dictionary.
+        Converts the RMAT data to a dictionary in CIF format.
 
         Returns
         -------
         dict
-            Dictionary with data in CIF format.
+            A dictionary containing the RMAT data in CIF format.
         """
         cif_dict = {
             '_diffrn_orient_matrix.UB_11': self['RMAT'][0][0],
@@ -556,17 +595,19 @@ class RmatFile(RelativePathFile, dict):
     @classmethod
     def from_cif_dict(cls, filename: str, cif_dict: dict) -> 'RmatFile':
         """
-        Create an Rmat instance from a CIF dictionary.
+        Creates an RmatFile instance from a CIF format dictionary.
 
         Parameters
         ----------
+        filename : str
+            The name for the RMAT file.
         cif_dict : dict
-            Dictionary in CIF format.
+            A dictionary containing CIF data.
 
         Returns
         -------
-        Rmat
-            An instance of Rmat created from CIF dictionary data.
+        RmatFile
+            An instance of RmatFile created from the CIF dictionary.
         """
         new = cls(filename)
         new['RMAT'] = np.array(
@@ -605,18 +646,126 @@ class RmatFile(RelativePathFile, dict):
         return new
 
 
-class EvalAppRobot:
-    def __init__(self, command_list, file_list):
-        self.command_list = command_list
+class Eval15AllRobot:
+    """
+    A class to automate the integration process using the 'eval15all' command.
+
+    This class is designed to handle the automation of data integration tasks
+    in a specified work folder using a list of input files.
+
+    Attributes
+    ----------
+    work_folder : Path
+        The directory where the integration process is to be executed.
+    file_list : List[PicFile]
+        A list of file objects to be processed.
+
+    Methods
+    -------
+    __init__(work_folder: Union[str, Path], file_list: List[PicFile])
+        Initializes an Eval15AllRobot with a work folder and a list of files.
+    integrate_shoes()
+        Executes the integration process using 'eval15all'.
+    """
+    def __init__(
+            self,
+            work_folder: Union[str, Path],
+            file_list: List[PicFile]
+        ):
+        """
+        Initializes the Eval15AllRobot with a specified work folder and a list of files.
+
+        Parameters
+        ----------
+        work_folder : Union[str, Path]
+            The directory where the integration process will be executed. The subdirectory
+            usually has the name of the used .rmat file, e.g. ic
+        file_list : List[PicFile]
+            A list of file objects that are to be included in the integration process.
+        """
+        self.work_folder = Path(work_folder)
         self.file_list = file_list
 
     def integrate_shoes(self):
-        pass
+        """
+        Executes the integration process using the 'eval15all' command.
+
+        This method writes the files in the file list to the work directory,
+        creates an initialization file for 'eval15all', and runs the integration process.
+        """
+        for file in self.file_list:
+            file.to_file(self.work_folder)
+
+        command_list = [f'@{file.filename}' for file in self.file_list]
+        command_list.append('markdefault')
+
+        init_file = self.work_folder / 'eval15.init'
+        with init_file.open('w', encoding='UTF-8') as fobj:
+            fobj.write('\n'.join(command_list))
+            fobj.write('\n')
+
+        with open(self.work_folder / 'eval15all_output.log', 'w', encoding='UTF-8') as fobj:
+            subprocess.call('eval15all', cwd=self.work_folder, stdout=fobj, stderr=fobj)
 
 class EvalViewRobot:
-    def __init__(self, work_folder, command_list, file_list):
-        self.command_list = command_list
+    """
+    A class to automate using the 'view' command.
+
+    This class is responsible for automating the process of preparing data
+    and executing the 'view' command in a specified work folder.
+
+    Attributes
+    ----------
+    work_folder : Path
+        The directory where the visualization process is to be executed.
+    file_list : List[Union[TextFile, PicFile, SettingsVicFile, RmatFile]]
+        A list of file objects to be processed.
+
+    Methods
+    -------
+    __init__(work_folder: Union[str, Path], file_list: List[Union[TextFile,
+        SettingsVicFile, RmatFile]])
+        Initializes an EvalViewRobot with a work folder and a list of files.
+    create_shoes()
+        Prepares and executes the visualization process using 'view'.
+    """
+    def __init__(
+            self,
+            work_folder: Union[str, Path],
+            file_list: List[Union[TextFile, PicFile, SettingsVicFile, RmatFile]]
+        ):
+        """
+        Initializes the EvalViewRobot with a specified work folder and a list of files.
+
+        Parameters
+        ----------
+        work_folder : Union[str, Path]
+            The directory where the process will be executed.
+        file_list : List[Union[TextFile, SettingsVicFile, RmatFile]]
+            A list of file objects that are to be included in the process.
+        """
         self.file_list = file_list
+        self.work_folder = Path(work_folder)
 
     def create_shoes(self):
+        """
+        Prepares and executes the creation of shoe files process using the 'view' command.
+
+        This method writes the files in the file list to the work directory,
+        creates an initialization file for 'view', and runs the visualization process.
+        """
         command_list = ['@datcol', 'exit']
+
+        for file in self.file_list:
+            file.to_file(self.work_folder)
+
+        init_file = self.work_folder / 'view.init'
+        with init_file.open('w', encoding='UTF-8') as fobj:
+            fobj.write('\n'.join(command_list))
+            fobj.write('\n')
+
+        with open(self.work_folder / 'view_output.log', 'w', encoding='UTF-8') as fobj:
+            subprocess.call('view', cwd=self.work_folder, stdout=fobj, stderr=fobj)
+
+class EvalAnyRobot:
+    pass

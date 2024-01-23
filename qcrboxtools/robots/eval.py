@@ -28,7 +28,7 @@ EvalAnyRobot
 
 Example
 -------
-A typical workflow using this module to automate Eval program tasks for
+A workflow using this module to automate Eval program tasks for
 crystallographic data processing. This does not include the modification of
 parameters at the moment. Therefore the presented workflow is more instructional
 than of actual use:
@@ -846,4 +846,137 @@ class EvalViewRobot:
             subprocess.call('view', cwd=self.work_folder, stdout=fobj, stderr=fobj)
 
 class EvalAnyRobot:
-    pass
+    """
+    A class designed to automate the creation of CIF (Crystallographic Information File)
+    files and dictionaries from data using Eval's 'any' command within a specified work folder.
+
+    This class manages the processes involved in creating the 'sad' file, reading data,
+    and generating CIF files and dictionaries.
+
+    Attributes
+    ----------
+    work_folder : Path
+        The directory where the 'any' command and related file operations will be executed.
+
+    Methods
+    -------
+    __init__(self, work_folder: Union[str, Path])
+        Initializes the EvalAnyRobot with a specified work folder.
+    create_abs(self)
+        Executes Eval's 'any' command to generate necessary data for CIF file creation.
+    create_cif_dict(self) -> Dict[str, List[Union[int, float]]]
+        Creates a CIF format dictionary by calling any and transforming
+    create_cif_file(self, file_path: Union[str, Path])
+        Generates a CIF file at the specified file path via any export
+    """
+
+
+    _abs_columns = (
+        # name, type, n_chars
+        ('_diffrn_refln.index_h', int, 4),
+        ('_diffrn_refln.index_k', int, 4),
+        ('_diffrn_refln.index_l', int, 4),
+        ('_diffrn_refln.intensity_net', float, 8),
+        ('_diffrn_refln.intensity_net_su', float, 8),
+        ('_diffrn_refln.class_code', int, 4),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_x', float, 8),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_y', float, 8),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_z', float, 8),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_x', float, 8),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_y', float, 8),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_z', float, 8),
+        ('_qcrbox.diffrn_refln.detector_px_x_obs', float, 7),
+        ('_qcrbox.diffrn_refln.detector_px_y_obs', float, 7),
+        ('_qcrbox.diffrn_refln.detector_frame_obs', float, 8),
+        ('_qcrbox.diffrn_refln.evalsad_mystery_val1', float, 7),
+        ('_qcrbox.diffrn_refln.evalsad_mystery_val2', int, 5)
+    )
+    def __init__(self, work_folder: Union[str, Path]):
+        """
+        Initializes the EvalAnyRobot with a specified work folder.
+
+        Parameters
+        ----------
+        work_folder : Union[str, Path]
+            The directory where the 'any' command and related file operations will be executed.
+        """
+        self.work_folder = work_folder
+
+    def create_abs(self):
+        """
+        Executes the 'any' command to generate data necessary for subsequent processing with
+        SADABS.
+        """
+        command_list = ['read final', 'sadabs', 'exit']
+        init_file = self.work_folder / 'any.init'
+        with init_file.open('w', encoding='UTF-8') as fobj:
+            fobj.write('\n'.join(command_list))
+            fobj.write('\n')
+
+        with open(self.work_folder / 'any_output.log', 'w', encoding='UTF-8') as fobj:
+            subprocess.call('any', cwd=self.work_folder, stdout=fobj, stderr=fobj)
+
+    def create_cif_dict(self):
+        """
+        Creates a CIF format dictionary by calling 'any' and reading the output.
+
+        Returns
+        -------
+        Dict[str, List[Union[int, float]]]
+            A dictionary with CIF format data where keys are column names and values are
+            lists of data.
+        """
+        self.create_abs()
+
+        sad_path = self.work_folder / 'shelx.sad'
+        with open(sad_path, encoding='UTF-8') as fobj:
+            content = fobj.read()
+
+        column_names, types, widthes = zip(*self._abs_columns)
+
+        ends = [sum(widthes[:index]) for index in range(len(widthes) + 1)]
+
+        cast_values = [
+            [
+                type(line[start:stop]) for start, stop, type in zip(ends[:-1], ends[1:], types)
+            ] for line in content.split('\n') if len(line) >= ends[-1]
+        ]
+
+        cif_dict = {
+            key: values for key, values in zip(column_names, zip(*cast_values))
+        }
+        return cif_dict
+
+    def create_cif_file(self, file_path: Union[str, Path]):
+        """
+        Generates a CIF file at the specified file path that contains the any output.
+
+        Parameters
+        ----------
+        file_path : Union[str, Path]
+            The file path where the CIF file will be written.
+        """
+        cif_dict = self.create_cif_dict()
+
+        # there are only int and float type entries so if not int -> float
+        format_strings = (
+            f'{{:{entry[2]}d}}' if entry[1] == int else f'{{:.{entry[2]}f}}'
+            for entry in self._abs_columns
+        )
+
+        line_format_string = ' '.join(format_strings)
+
+        file_lines = [
+            r'#\#CIF_2.0', '', 'data_eval_output', '', 'loop_'
+        ]
+
+        file_lines += list(cif_dict.keys())
+
+        file_lines += [
+            line_format_string.format(*line_entries) for line_entries in zip(*cif_dict.values())
+        ]
+
+        file_lines.append('')
+
+        with open(file_path, 'w', encoding='UTF-8') as fobj:
+            fobj.write('\n'.join(file_lines))

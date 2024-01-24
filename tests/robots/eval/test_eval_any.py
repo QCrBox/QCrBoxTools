@@ -18,8 +18,8 @@ mock_sad_content = """
    1   2  13 1211.48   55.96   1-0.81347 0.93044-0.20796 0.36412 0.54315-0.04109 307.32 151.79    2.62 -18.62 3793
 """[1:-1]
 
-@pytest.fixture
-def robot(tmp_path):
+@pytest.fixture(name='robot')
+def fixture_robot(tmp_path):
     return EvalAnyRobot(tmp_path)
 
 def test_init(robot, tmp_path):
@@ -31,8 +31,7 @@ def test_create_abs_with_monkeypatch(monkeypatch, robot):
 
     robot.create_abs()
 
-    # Check if the expected files are created
-    assert (robot.work_folder / 'any.init').exists()
+    # Check if the expected file is created
     assert (robot.work_folder / 'any_output.log').exists()
 
 def test_create_cif_dict(monkeypatch, robot, tmp_path):

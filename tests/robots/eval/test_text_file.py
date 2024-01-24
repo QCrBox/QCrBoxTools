@@ -1,9 +1,9 @@
-import pytest
 from pathlib import Path
+import pytest
 from qcrboxtools.robots.eval import TextFile
 
-@pytest.fixture
-def sample_file(tmp_path):
+@pytest.fixture(name='sample_file')
+def fixture_sample_file(tmp_path):
     sample_text = "This is a sample text."
     file = tmp_path / "sample.txt"
     file.write_text(sample_text, encoding='UTF-8')

@@ -4,6 +4,7 @@ from typing import Union, List, Optional, Tuple, Dict
 import os
 from pathlib import Path
 import subprocess
+import textwrap
 
 from .eval_files import PicFile, TextFile, SettingsVicFile, RmatFile
 
@@ -13,6 +14,7 @@ class EvalBaseRobot:
 
     This class provides foundational functionalities for derived classes to automate
     the execution of crystallography-related programs with specified command sequences.
+    Assures that a work_folder will always be a pathlib.Path even when set as string
 
     Attributes
     ----------
@@ -26,6 +28,8 @@ class EvalBaseRobot:
     _run_program_with_commands(self, program_name: str, command_list: List[str])
         Executes a specified program with a list of commands in the work folder.
     """
+    _work_folder = None
+
     def __init__(self, work_folder: Union[str, Path]):
         """
         Initializes the EvalBaseRobot with a specified work folder.
@@ -35,7 +39,7 @@ class EvalBaseRobot:
         work_folder : Union[str, Path]
             The directory where the automated processes are to be executed.
         """
-        self.work_folder = Path(work_folder)
+        self.work_folder = work_folder
 
     def _run_program_with_commands(self, program_name: str, command_list: List[str]):
         """
@@ -51,14 +55,29 @@ class EvalBaseRobot:
         command_list : List[str]
             A list of commands to be written to the program's initialization file.
         """
+
         init_file = self.work_folder / f'{program_name}.init'
-        with init_file.open('w', encoding='UTF-8') as fobj:
-            fobj.write('\n'.join(command_list))
-            fobj.write('\n')
+
+        init_existed = init_file.exists()
+        if init_existed:
+            old_init_file = init_file.read_text(encoding='UTF-8')
+        init_file.write_text('\n'.join(command_list) + '\n', encoding='UTF-8')
 
         with open(self.work_folder / f'{program_name}_output.log', 'w', encoding='UTF-8') as fobj:
             subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj)
 
+        if init_existed:
+            init_file.write_text(old_init_file, encoding='UTF-8')
+        else:
+            init_file.unlink()
+
+        @property
+        def work_folder(self):
+            return self._work_folder
+
+        @work_folder.setter
+        def work_folder(self, path):
+            self._work_folder = Path(path)
 
 class Eval15AllRobot(EvalBaseRobot):
     """
@@ -532,3 +551,114 @@ class EvalPeakrefRobot(EvalBaseRobot):
         cif_dict = self.rmat_file.to_cif_dict()
         cif_dict.update(self.cell_cif_from_log())
         return cif_dict
+
+class EvalScandbRobot(EvalBaseRobot):
+    """
+    A class designed to automate the operation of the Eval's 'scandb' program.
+
+    Attributes
+    ----------
+    work_folder : Path
+        The working directory where the 'scandb' command will be executed.
+    """
+
+    def run(self) -> None:
+        """
+        Executes the 'scandb' program in the specified working folder.
+
+        This method checks for the existence of a 'view.init' file in the working directory.
+        If such a file exists, it is temporarily removed before running 'scandb' to avoid
+        interference, and then restored after 'scandb' execution completes.
+        """
+        view_init_path = self.work_folder / 'view.init'
+        view_init_existed = view_init_path.exists()
+
+        # as scandb itself is a wrapper around view, a view.init might interfere
+        if view_init_existed:
+            view_init_content = view_init_path.read_text(encoding='UTF-8')
+            view_init_path.unlink()
+
+        self._run_program_with_commands('scandb', [])
+
+        if view_init_existed:
+            view_init_path.write_text(view_init_content, encoding='UTF-8')
+
+class EvalBuilddatcolRobot(EvalBaseRobot):
+    """
+    A class for automating the creation of data collection files using the 'builddatcol'
+    for subsequent processing with Eval's 'view'
+
+    Attributes
+    ----------
+    work_folder : Path
+        The working directory where the 'builddatcol' command will be executed.
+    """
+    def create_datcol_files(
+        self,
+        rmat_file: RmatFile,
+        minimum_res: float,
+        maximum_res: float,
+        box_size: float,
+        box_depth: float,
+        maximum_duration: int,
+        min_refln_in_box: int
+    ) -> None:
+        """
+        Creates the configuration file for 'builddatcol' and executes the command.
+
+        Parameters
+        ----------
+        rmat_file : Union[RmatFile, str]
+            The RmatFile object or path to an RMAT file used for data collection setup.
+        minimum_res : float
+            The minimum resolution for data processing in angstrom.
+        maximum_res : float
+            The maximum resolution for data processing in angstrom.
+        box_size : float
+            The size of the box for data collection in millimeters.
+        box_depth : float
+            The depth of the box for data collection in number of frames.
+        maximum_duration : int
+            The maximum duration see durationmax on:
+            http://www.crystal.chem.uu.nl/distr/eval/documentation/ccd/view/doc/view.html
+        min_refln_in_box : int
+            The minimum number of reflections in a box.
+
+        This method first ensures that 'scaninfo.txt' is present in the working directory,
+        creating it if necessary. It then generates a 'datcolsetup.vic' file with the
+        specified parameters and runs the 'builddatcol' command.
+        """
+        # builddatcol will not run without scaninfo.txt
+        scandb_path = self.work_folder / 'scaninfo.txt'
+        if not scandb_path.exists():
+            scandb = EvalScandbRobot(self.work_folder)
+            scandb.run()
+
+        datcolsetup = textwrap.dedent(f"""\
+            ! Created by builddatcol at 16-Nov-2023 13:50:14
+            ! Host DW-PF3E3G40 User niklas WD /home/niklas/messing_around/eval/Ylid_OD_Images/
+            ! abort on warnings
+            abort on
+            badpixel on
+            rmat {rmat_file.filename}
+            ! load scan specific rmat if it exists
+            \if file 'scan'.rmat rmat 'scan'.rmat
+            ! scandependent beamstop
+            &beamstop'scan'.vic
+            ! scandependent goniostat
+            &goniostat'scan'.vic
+            resomin {minimum_res}
+            resomax {maximum_res}
+            boxsizemm {box_size}
+            boxdepth {box_depth}
+            durationmax {maximum_duration}
+            boxrefl {min_refln_in_box}
+            ! display only
+            datcolboxes 1
+            output none
+        """)
+
+        datcolsetup_file = self.work_folder / 'datcolsetup.vic'
+        datcolsetup_file.write_text(datcolsetup)
+
+        self._run_program_with_commands('builddatcol', [''] * 10)

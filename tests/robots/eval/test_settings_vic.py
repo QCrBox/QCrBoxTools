@@ -5,7 +5,7 @@ import pytest
 
 from qcrboxtools.robots.eval import SettingsVicFile
 
-beamstop_vic = dedent("""
+beamstop_vic = dedent("""\
     ! Created by view (version 1.4 2023091300) at 16-Nov-2023 13:39:41
     ! Host DW-PF3E3G40 User niklas WD /home/niklas/messing_around/eval/Ylid_OD_Images/
     beamstopid oxford_e_81
@@ -16,9 +16,9 @@ beamstop_vic = dedent("""
     beamstopshift 0.0 0.0
     beamstopangle 0.0
     beamstopdistance 10.0
-""").strip()
+""")
 
-detalign_vic = dedent("""
+detalign_vic = dedent("""\
     ! Created by peakref (version 1.4 2021091400) at 16-Nov-2023 15:09:03
     ! Host DW-PF3E3G40 User niklas WD /home/niklas/messing_around/eval/Ylid_OD_Images/
     ! mmAng(3737,0.04442) rotpartial(632,0.12806) res=0.17248
@@ -31,7 +31,7 @@ detalign_vic = dedent("""
     DETROTX 0.569459
     DETROTY -0.099205
     DETROTZ -0.086215
-""").strip()
+""")
 
 def test_parsing_file_content():
     vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)

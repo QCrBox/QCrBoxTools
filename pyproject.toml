@@ -29,5 +29,5 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/Niolon/QCrBoxTools"
-"Bug Tracker" = "https://github.com/Niolon/QCrBoxTools/issues"
+"Homepage" = "https://github.com/QCrBox/QCrBoxTools"
+"Bug Tracker" = "https://github.com/QCrBox/QCrBoxTools/issues"

@@ -1,6 +1,7 @@
-import pytest
 import subprocess
-from pathlib import Path
+
+import pytest
+
 from qcrboxtools.robots.eval import EvalAnyRobot
 
 mock_sad_content = """
@@ -79,4 +80,4 @@ def test_create_cif_file(monkeypatch, robot, tmp_path):
 
     assert file_path.exists()
 
-    # TODO add more verification
+    #TODO add more verification

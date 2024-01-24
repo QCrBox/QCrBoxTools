@@ -3,5 +3,10 @@
         "tests"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+
+    "licenser.license": "MPLv2",
+    "licenser.useSingleLineStyle": true,
+    "licenser.projectName": "QCrBoxTools",
+    "licenser.author": "Paul Niklas Ruth"
 }

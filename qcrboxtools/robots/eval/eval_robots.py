@@ -685,20 +685,89 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
         self._run_program_with_commands('builddatcol', [''] * 10)
 
 class EvalBuildeval15Robot(EvalBaseRobot):
-    def __init__(self, work_folder, p4p_file=None):
+    """
+    A class for automating the configuration of the 'buildeval15' command.
+
+    Attributes
+    ----------
+    p4p_file : Optional[str]
+        The path to a '.p4p' file, if any, currently only skips entering a crystal
+        size if not None.
+
+    Methods
+    -------
+    __init__(self, work_folder: Union[str, Path], p4p_file: Optional[str] = None)
+        Initializes EvalBuildeval15Robot with a work folder and an optional '.p4p' file.
+    run(
+        self,
+        focus_type: Optional[str] = None,
+        polarisation_type: Optional[str] = None,
+        pointspread_gamma: Optional[float] = None,
+        acdnoise: Optional[float] = None,
+        crystal_dimension: Optional[Tuple[float, float, float]] = None,
+        mosaic: Optional[float] = None
+    )
+        Executes the 'buildeval15' command with specified configuration parameters.
+    """
+    def __init__(
+        self,
+        work_folder: Union[str, Path],
+        p4p_file: Optional[str] = None
+    ):
+        """
+        Initializes the EvalBuildeval15Robot with a specified work folder and
+        an optional '.p4p' file.
+
+        Parameters
+        ----------
+        work_folder : Union[str, Path]
+            The directory where the 'buildeval15' command configuration will be executed.
+        p4p_file : Optional[str], default None
+            The path to a '.p4p' file, if any, currently only skips entering a crystal
+            size if not None.
+        """
         super().__init__(work_folder)
 
         self.p4p_file = p4p_file
 
+
     def run(
         self,
-        focus_type=None,
-        polarisation_type=None,
-        pointspread_gamma=None,
-        acdnoise=None,
-        crystal_dimension=None,
-        mosaic=None
+        focus_type: Optional[str] = None,
+        polarisation_type: Optional[str] = None,
+        pointspread_gamma: Optional[float] = None,
+        acdnoise: Optional[float] = None,
+        crystal_dimension: Optional[Tuple[float, float, float]] = None,
+        mosaic: Optional[float] = None
     ):
+        """
+        Executes the 'buildeval15' command with specified configuration parameters. If values
+        are not specified the buildeval15 defaults are used. Will create the necessary .pic
+        files to run eval15all.
+
+        Parameters
+        ----------
+        focus_type : Optional[str], default None
+            The type of focus, e.g., 'tube', 'mirror'. Must be one of the predefined focus types.
+            if None will use 'synchrotron'
+        polarisation_type : Optional[str], default None
+            The type of polarisation. Must be one of the predefined polarisation types.
+            Only tested with 'none' (the default) so far.
+        pointspread_gamma : Optional[float], default None
+            The gamma value for the point spread function, default is 0.8.
+        acdnoise : Optional[float], default None
+            The noise level for the automatic crystal detection, default is 2.0.
+        crystal_dimension : Optional[Tuple[float, float, float]], default None
+            The dimensions of the crystal in millimeters for a cube-shaped crystal
+            eval's default value is 0.2
+        mosaic : Optional[float], default None
+            The mosaic spread in degrees. Eval's default is 0.3.
+
+        Raises
+        ------
+        ValueError
+            If an invalid focus type or polarisation type is specified.
+        """
         possible_focusses = (
             'unknown', 'tube', 'rotating', 'mirror', 'synchrotron', 'file'
         )

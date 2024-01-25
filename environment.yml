@@ -1,0 +1,11 @@
+name: qcrboxtools
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - cctbx
+  - numpy
+  - pytest
+  - pipreqs
+  - hatch
+prefix: C:\ProgramData\Anaconda3\envs\qcrboxtools

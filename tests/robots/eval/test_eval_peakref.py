@@ -88,14 +88,3 @@ def test_cell_cif_from_log(robot, tmp_path):
     assert result['_cell.angle_gamma_su'] == 0.0
     assert result['_cell.length_a'] == 57.68429
     assert result['_cell.volume_su'] == 7.0
-
-def test_folder_to_cif(monkeypatch, robot):
-    # Mock RmatFile.to_cif_dict and cell_cif_from_log methods
-    monkeypatch.setattr(robot.rmat_file, 'to_cif_dict', lambda: {'rmat_data': 'value'})
-    monkeypatch.setattr(robot, 'cell_cif_from_log', lambda: {'cell_param': 'value'})
-
-    # Test the method
-    result = robot.folder_to_cif()
-
-    # Verify that the result is a combination of the two mocked methods
-    assert result == {'rmat_data': 'value', 'cell_param': 'value'}

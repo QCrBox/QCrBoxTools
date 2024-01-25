@@ -35,4 +35,5 @@ dependencies = [
 [tool.pytest.ini_options]
 markers = [
     "program_dependent: depents on a software to be installed",
+    "not_implemented: placeholder for future functionality",
 ]

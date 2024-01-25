@@ -568,7 +568,7 @@ class EvalPeakrefRobot(EvalBaseRobot):
             r'#\#CIF_2.0', '', 'data_eval_output', ''
         ]
         file_lines += [
-            [f'{key} {str(val)}' for key, val in cif_dict.items]
+            f'{key} {str(val)}' for key, val in cif_dict.items()
         ]
         cif_path = self.work_folder / cif_filename
 

@@ -6,7 +6,7 @@
     "python.testing.pytestEnabled": true,
 
     "licenser.license": "MPLv2",
-    "licenser.useSingleLineStyle": true,
+    "licenser.useSPDXLicenseFormat": true,
     "licenser.projectName": "QCrBoxTools",
     "licenser.author": "Paul Niklas Ruth"
 }

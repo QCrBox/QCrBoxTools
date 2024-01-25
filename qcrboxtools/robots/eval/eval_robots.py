@@ -547,7 +547,7 @@ class EvalPeakrefRobot(EvalBaseRobot):
 
         return cif_dict
 
-    def folder_to_cif(self) -> Dict[str, float]:
+    def folder_to_cif(self, cif_filename) -> Dict[str, float]:
         """
         Consolidates RMAT and cell parameter data into a CIF format dictionary.
 
@@ -563,7 +563,16 @@ class EvalPeakrefRobot(EvalBaseRobot):
         """
         cif_dict = self.rmat_file.to_cif_dict()
         cif_dict.update(self.cell_cif_from_log())
-        return cif_dict
+
+        file_lines = [
+            r'#\#CIF_2.0', '', 'data_eval_output', ''
+        ]
+        file_lines += [
+            [f'{key} {str(val)}' for key, val in cif_dict.items]
+        ]
+        cif_path = self.work_folder / cif_filename
+
+        cif_path.write_text('\n'.join(file_lines))
 
 class EvalScandbRobot(EvalBaseRobot):
     """

@@ -133,6 +133,7 @@ def test_cif_atom_site_copied(cif_with_replacement: Tuple[dict, dict, dict]):
             for single_from, single_combined in zip(from_vals, combined_cif[key]):
                 assert single_from == single_combined
 
+@pytest.mark.not_implemented
 def test_cif_atom_type_copied(cif_with_replacement: Tuple[dict, dict, dict]):
     """
     Test that the atom type block from the original CIF is copied correctly

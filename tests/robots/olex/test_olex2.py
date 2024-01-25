@@ -7,10 +7,12 @@ headless refinement using the socket.
 import os
 import shutil
 
+import pytest
 from iotbx import cif
 import numpy as np
 from qcrboxtools.robots.olex2 import Olex2Socket
 
+@pytest.mark.program_dependent
 def test_olex2server():
     """
     Tests the connection to the Olex2 server using the `Olex2Socket` class. The test checks whether
@@ -24,6 +26,7 @@ def test_olex2server():
     )
     assert olex2.check_connection(), message
 
+@pytest.mark.program_dependent
 def test_olex2_refine(tmp_path):
     """
     Tests the refinement functionality of `Olex2Socket`. The function simulates a
@@ -56,6 +59,7 @@ def test_olex2_refine(tmp_path):
         )
         assert max(abs(refined_vals - target_vals)) < 1.1e-4
 
+@pytest.mark.program_dependent
 def test_olex2_refine_tsc(tmp_path):
     work_path = os.path.join(tmp_path, 'work.cif')
     shutil.copy('./tests/robots/cif_files/refine_nonconv_allaniso.cif', work_path)

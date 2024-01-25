@@ -31,3 +31,8 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/QCrBox/QCrBoxTools"
 "Bug Tracker" = "https://github.com/QCrBox/QCrBoxTools/issues"
+
+[tool.pytest.ini_options]
+markers = [
+    "program_dependent: depents on a software to be installed",
+]

@@ -31,4 +31,4 @@ jobs:
     - name: Test with pytest
       run: |
         # conda install pytest
-        pytest -m "not program_dependent"
+        pytest -m "not program_dependent and not not_implemented"

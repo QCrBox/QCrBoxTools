@@ -239,17 +239,21 @@ def test_reflns_kept(cif_with_replacement: Tuple[dict, dict, dict]):
     for key in to_keys:
         assert to_cif[key] == combined_cif[key]
 
+@pytest.mark.not_implemented
 def test_laue_class_change_exception():
     raise NotImplementedError()
 
+@pytest.mark.not_implemented
 def test_keep_cif_entries():
     raise NotImplementedError()
 
+@pytest.mark.not_implemented
 def test_delete_cif_entries():
     raise NotImplementedError()
 
+@pytest.mark.not_implemented
 def test_check_transformation_matrix():
-    pass
+    raise NotImplementedError()
 
 @pytest.mark.parametrize(
     "block1,block2,expected",
@@ -296,5 +300,6 @@ def test_lattice_centring_equal_errors(block1, block2, expected_error):
     with pytest.raises(expected_error):
         check_centring_equal(block1, block2)
 
+@pytest.mark.not_implemented
 def test_crystal_system_equal(block1, block2, expected):
-    pass
+    raise NotImplementedError()

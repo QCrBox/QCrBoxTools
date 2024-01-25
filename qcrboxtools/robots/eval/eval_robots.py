@@ -1,10 +1,10 @@
-
 import re
 from typing import Union, List, Optional, Tuple, Dict
 import os
 from pathlib import Path
 import subprocess
 import textwrap
+import warnings
 
 from .eval_files import PicFile, TextFile, SettingsVicFile, RmatFile
 
@@ -62,9 +62,19 @@ class EvalBaseRobot:
         if init_existed:
             old_init_file = init_file.read_text(encoding='UTF-8')
         init_file.write_text('\n'.join(command_list) + '\n', encoding='UTF-8')
-
-        with open(self.work_folder / f'{program_name}_output.log', 'w', encoding='UTF-8') as fobj:
-            subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj)
+        log_file = self.work_folder / f'{program_name}_output.log'
+        try:
+            with open(log_file, 'w', encoding='UTF-8') as fobj:
+                subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj)
+        except OSError:
+            with open(log_file, 'w', encoding='UTF-8') as fobj:
+                subprocess.call(
+                    program_name,
+                    cwd=self.work_folder,
+                    stdout=fobj,
+                    stderr=fobj,
+                    shell=True
+                )
 
         if init_existed:
             init_file.write_text(old_init_file, encoding='UTF-8')
@@ -129,9 +139,18 @@ class Eval15AllRobot(EvalBaseRobot):
         for file in self.file_list:
             file.to_file(self.work_folder)
 
-        command_list = [f'@{file.filename}' for file in self.file_list]
-        command_list.append('markdefault')
-        self._run_program_with_commands('eval15all', command_list)
+        eval15_init_command_list = [f'@{file.filename}' for file in self.file_list]
+        eval15_init_command_list.append('markdefault')
+        eval15_init_path = self.work_folder / 'eval15.init'
+        previous_file_existed = eval15_init_path.exists()
+        if previous_file_existed:
+            eval15content = eval15_init_path.read_text(encoding='UTF-8')
+        eval15_init_path.write_text('\n'.join(eval15_init_command_list) + '\n', encoding='UTF-8')
+        self._run_program_with_commands('eval15all', [''] * 10)
+        eval15_init_path.unlink()
+        if previous_file_existed:
+            eval15_init_path.write_text(eval15content, encoding='UTF-8')
+
 
 class EvalViewRobot(EvalBaseRobot):
     """
@@ -214,24 +233,24 @@ class EvalAnyRobot(EvalBaseRobot):
 
 
     _abs_columns = (
-        # name, type, n_chars
-        ('_diffrn_refln.index_h', int, 4),
-        ('_diffrn_refln.index_k', int, 4),
-        ('_diffrn_refln.index_l', int, 4),
-        ('_diffrn_refln.intensity_net', float, 8),
-        ('_diffrn_refln.intensity_net_su', float, 8),
-        ('_diffrn_refln.class_code', int, 4),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_x', float, 8),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_y', float, 8),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_z', float, 8),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_x', float, 8),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_y', float, 8),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_z', float, 8),
-        ('_qcrbox.diffrn_refln.detector_px_x_obs', float, 7),
-        ('_qcrbox.diffrn_refln.detector_px_y_obs', float, 7),
-        ('_qcrbox.diffrn_refln.detector_frame_obs', float, 8),
-        ('_qcrbox.diffrn_refln.evalsad_mystery_val1', float, 7),
-        ('_qcrbox.diffrn_refln.evalsad_mystery_val2', int, 5)
+        # name, type, n_chars, format_str
+        ('_diffrn_refln.index_h', int, 4, ' 4d'),
+        ('_diffrn_refln.index_k', int, 4, ' 4d'),
+        ('_diffrn_refln.index_l', int, 4, ' 4d'),
+        ('_diffrn_refln.intensity_net', float, 8, ' 11.2f'),
+        ('_diffrn_refln.intensity_net_su', float, 8, ' 9.2f'),
+        ('_diffrn_refln.class_code', int, 4, ' 4d'),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_x', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_y', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.direction_cosine_incid_z', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_x', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_y', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_z', float, 8, ' 9.5f'),
+        ('_qcrbox.diffrn_refln.detector_px_x_obs', float, 7, ' 8.2f'),
+        ('_qcrbox.diffrn_refln.detector_px_y_obs', float, 7, ' 8.2f'),
+        ('_qcrbox.diffrn_refln.detector_frame_obs', float, 8, ' 9.2f'),
+        ('_qcrbox.diffrn_refln.evalsad_mystery_val1', float, 7, ' 8.2f'),
+        ('_qcrbox.diffrn_refln.evalsad_mystery_val2', int, 5, ' 5d')
     )
 
     def create_abs(self):
@@ -258,7 +277,7 @@ class EvalAnyRobot(EvalBaseRobot):
         with open(sad_path, encoding='UTF-8') as fobj:
             content = fobj.read()
 
-        column_names, types, widthes = zip(*self._abs_columns)
+        column_names, types, widthes, _ = zip(*self._abs_columns)
 
         ends = [sum(widthes[:index]) for index in range(len(widthes) + 1)]
 
@@ -284,13 +303,7 @@ class EvalAnyRobot(EvalBaseRobot):
         """
         cif_dict = self.create_cif_dict()
 
-        # there are only int and float type entries so if not int -> float
-        format_strings = (
-            f'{{:{entry[2]}d}}' if entry[1] == int else f'{{:.{entry[2]}f}}'
-            for entry in self._abs_columns
-        )
-
-        line_format_string = ' '.join(format_strings)
+        line_format_string = ' '.join(f'{{:{entry[3]}}}' for entry in self._abs_columns)
 
         file_lines = [
             r'#\#CIF_2.0', '', 'data_eval_output', '', 'loop_'
@@ -628,6 +641,12 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
         creating it if necessary. It then generates a 'datcolsetup.vic' file with the
         specified parameters and runs the 'builddatcol' command.
         """
+
+        if maximum_res > minimum_res:
+            raise ValueError(
+                'The value of the maximum resolution will always'
+                + 'be smaller than the minimum resolution.'
+            )
         # builddatcol will not run without scaninfo.txt
         scandb_path = self.work_folder / 'scaninfo.txt'
         if not scandb_path.exists():
@@ -661,4 +680,56 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
         datcolsetup_file = self.work_folder / 'datcolsetup.vic'
         datcolsetup_file.write_text(datcolsetup)
 
+        rmat_file.to_file(self.work_folder)
+
         self._run_program_with_commands('builddatcol', [''] * 10)
+
+class EvalBuildeval15Robot(EvalBaseRobot):
+    def __init__(self, work_folder, p4p_file=None):
+        super().__init__(work_folder)
+
+        self.p4p_file = p4p_file
+
+    def run(
+        self,
+        focus_type=None,
+        polarisation_type=None,
+        pointspread_gamma=None,
+        acdnoise=None,
+        crystal_dimension=None,
+        mosaic=None
+    ):
+        possible_focusses = (
+            'unknown', 'tube', 'rotating', 'mirror', 'synchrotron', 'file'
+        )
+        if focus_type not in possible_focusses:
+            raise ValueError(
+                f'Invalid focus type, choose one of: {", ".join(possible_focusses)}'
+            )
+
+        if polarisation_type is None: polarisation_type='none'
+        possible_polarisations = (
+            'perpendicular', 'parallel', 'antiparallel', 'none', 'synchrotron',
+            'synchrotronz', 'osmic', 'pe', 'pa', 'ap', 'n', 's', 'sz', 'o'
+        )
+        if polarisation_type not in possible_polarisations:
+            raise ValueError(
+                f'Invalid polarisation, choose one of: {", ".join(possible_polarisations)}'
+            )
+
+        if self.p4p_file is None:
+            command_base = (
+                focus_type, pointspread_gamma, acdnoise, crystal_dimension, mosaic
+            )
+        else:
+            command_base = (
+                focus_type, pointspread_gamma, acdnoise, mosaic
+            )
+            #self.p4p_file.to_file(self.work_folder)
+            warnings.warn(
+                'Reading and writing p4p files is currently not implemented.'
+                + 'You need to add the p4p file yourself'
+                )
+        command_list = ['' if val is None else str(val) for val in command_base]
+
+        self._run_program_with_commands('buildeval15', command_list)

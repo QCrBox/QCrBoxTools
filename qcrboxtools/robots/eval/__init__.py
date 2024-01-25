@@ -80,5 +80,5 @@ than of actual use:
 from .eval_files import TextFile, PicFile, SettingsVicFile, RmatFile
 from .eval_robots import (
     Eval15AllRobot, EvalAnyRobot, EvalBuilddatcolRobot, EvalPeakrefRobot, EvalScandbRobot,
-    EvalViewRobot
+    EvalViewRobot, EvalBuildeval15Robot
 )

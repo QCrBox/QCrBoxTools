@@ -1,11 +1,14 @@
 name: qcrboxtools
 channels:
-  - conda-forge
+  - defaults
 dependencies:
   - python
   - cctbx
   - numpy
   - pytest
+  - jupyterlab
+  - jupyter
   - pipreqs
   - hatch
+  - flake8
 prefix: C:\ProgramData\Anaconda3\envs\qcrboxtools

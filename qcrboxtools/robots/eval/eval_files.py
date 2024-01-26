@@ -304,8 +304,6 @@ class PicFile(RelativePathFile):
         cmd.format(number) for cmd, number in product(_commands_with_X, range(2, 10))
     ]
 
-    command_list = []
-
     def __init__(self, filename, content_str: str,):
         """
         Initializes a new instance of the PicFile class.
@@ -320,6 +318,8 @@ class PicFile(RelativePathFile):
         line_contents = [
             line.strip().split() for line in content_str.split('\n') if not line.startswith('!')
         ]
+        self.command_list = []
+
         options = []
         for line in line_contents:
             if len(line) == 0:

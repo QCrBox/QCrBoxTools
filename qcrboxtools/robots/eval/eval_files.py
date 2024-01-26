@@ -1,9 +1,7 @@
 from itertools import product
 import re
-from typing import Union, List, Optional, Tuple, Dict
-import os
+from typing import Union, List, Optional
 from pathlib import Path
-import subprocess
 
 import numpy as np
 
@@ -155,7 +153,64 @@ class TextFile(RelativePathFile):
         return self.text
 
 
-class PicFile(RelativePathFile, dict):
+class EvalCommand:
+    """
+    A class representing a command for files within Eval.
+
+    Attributes
+    ----------
+    name : str
+        The name of the Eval command.
+    options : Union[str, List[Union[str, int, float]], None]
+        The options for the command, which can be a string, list of values, or None.
+
+    Methods
+    -------
+    __init__(self, name: str, options: Union[str, List[Union[str, int, float]], None])
+        Initializes an EvalCommand with a command name and associated options.
+    __str__(self) -> str
+        Returns a string representation of the Eval command.
+    """
+    def __init__(self, name: str, options: Union[str, List[Union[str, int, float]], None]):
+        """
+        Initializes the EvalCommand with a command name and associated options.
+
+        Parameters
+        ----------
+        name : str
+            The name of the Eval command.
+        options : Union[str, List[Union[str, int, float]], None]
+            The options for the command, which can be a single string, a list of
+            values (strings, integers, or floats), or None if there are no options.
+        """
+        self.name = name
+        self.options = options
+
+    def __str__(self):
+        """
+        Returns a string representation of the Eval command.
+
+        The method constructs a string by concatenating the command name with its
+        options. If options are provided as a list, they are joined by spaces.
+        If no options are provided, only the command name is returned.
+
+        Returns
+        -------
+        str
+            The string representation of the Eval command.
+        """
+        if self.options is None:
+            return self.name
+        if isinstance(self.options, list):
+            options_str = " ".join(
+                str(val) for val in self.options if val is not None
+            )
+        else:
+            options_str = str(self.options)
+        return f'{self.name} {options_str}'
+
+
+class PicFile(RelativePathFile):
     """
     A class representing the content of a PIC file as a dictionary.
 
@@ -249,6 +304,8 @@ class PicFile(RelativePathFile, dict):
         cmd.format(number) for cmd, number in product(_commands_with_X, range(2, 10))
     ]
 
+    command_list = []
+
     def __init__(self, filename, content_str: str,):
         """
         Initializes a new instance of the PicFile class.
@@ -291,59 +348,32 @@ class PicFile(RelativePathFile, dict):
         str
             The formatted content of the PIC file.
         """
-        entry_strs = (self.formatted_entry(key) for key in self)
-        return '\n'.join(entry_strs)
+        return '\n'.join(str(val) for val in self.command_list)
 
-    def add_data(self, new_key: str, options: List[Union[int, float, bool, str]]):
+    def add_data(self, name: str, options: List[Union[int, float, bool, str]]):
         """
         Adds a new command to the PIC file data or updates an existing command.
 
         Parameters
         ----------
-        new_key : str
+        name : str
             The command key to add or update.
         options : List[Union[int, float, bool, str]]
             The list of values associated with the command.
         """
+
         if len(options) == 0:
-            self[new_key] = None
+            self.command_list.append(EvalCommand(name, None))
         elif len(options) == 1:
-            if new_key in self and isinstance(self[new_key], list):
-                self[new_key].append(options[0])
-            elif new_key in self:
-                self[new_key] = [self[new_key], options[0]]
-            else:
-                self[new_key] = options[0]
+            self.command_list.append(EvalCommand(name, options[0]))
         else:
-            if new_key in self and isinstance(self[new_key], list):
-                self[new_key] += options
-            elif new_key in self:
-                self[new_key] = [self[new_key]] + options
-            else:
-                self[new_key] = options
+            self.command_list.append(EvalCommand(name, options))
 
-    def formatted_entry(self, key: str) -> str:
-        """
-        Formats a single data entry for output as a string.
-
-        Parameters
-        ----------
-        key : str
-            The command key to format.
-
-        Returns
-        -------
-        str
-            The formatted string for the specified command key.
-        """
-        entry = self[key]
-        if entry is None:
-            return key
-        elif isinstance(entry, list):
-            entry_str = ' '.join(str(val) for val in entry)
-        else:
-            entry_str = str(entry)
-        return f'{key} {entry_str}'
+    def __getitem__(self, key):
+        found_cmds = [cmd for cmd in self.command_list if cmd.name == key]
+        if len(found_cmds) == 0:
+            raise KeyError('No command with that name in file')
+        return found_cmds
 
 
 class SettingsVicFile(RelativePathFile, dict):

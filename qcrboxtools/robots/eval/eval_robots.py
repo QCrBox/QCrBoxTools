@@ -797,11 +797,11 @@ class EvalBuildeval15Robot(EvalBaseRobot):
 
         if self.p4p_file is None:
             command_base = (
-                focus_type, pointspread_gamma, acdnoise, crystal_dimension, mosaic
+                focus_type, polarisation_type, pointspread_gamma, acdnoise, crystal_dimension, mosaic
             )
         else:
             command_base = (
-                focus_type, pointspread_gamma, acdnoise, mosaic
+                focus_type, polarisation_type, pointspread_gamma, acdnoise, mosaic
             )
             #self.p4p_file.to_file(self.work_folder)
             warnings.warn(
@@ -809,5 +809,4 @@ class EvalBuildeval15Robot(EvalBaseRobot):
                 + 'You need to add the p4p file yourself'
                 )
         command_list = ['' if val is None else str(val) for val in command_base]
-
         self._run_program_with_commands('buildeval15', command_list)

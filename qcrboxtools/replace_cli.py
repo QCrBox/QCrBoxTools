@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This script provides a command-line interface for combining CIF (Crystallographic
 Information File) files. Whereas one cif file provides the cell information, the

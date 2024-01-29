@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 from itertools import product
 import re
 from typing import Union, List, Optional

@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This test module provides functionalities to test the interactions of `Olex2Socket` with a running
 Olex2 server. It contains tests to check the Olex2 server's availability and functionality of

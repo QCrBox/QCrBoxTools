@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This module provides utilities for the conversion of CIF data to the SHELX HKL format
 """

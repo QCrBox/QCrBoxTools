@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 from qcrboxtools.robots.eval import PicFile
 
 def test_string_representation_and_file_writing(tmp_path):

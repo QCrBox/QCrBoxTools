@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This module provides functionality for interacting with the Olex2 refinement program
 in server mode via sockets.

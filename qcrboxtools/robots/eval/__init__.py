@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This module serves as a Python interface for automating the Eval program,
 for the integration and data reduction of crystallographic

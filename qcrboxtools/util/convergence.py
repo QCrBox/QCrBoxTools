@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This module, part of the `qcrboxtools` package, offers tools for analyzing and comparing
 crystallographic data stored in CIF (Crystallographic Information File) format. The

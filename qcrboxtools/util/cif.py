@@ -1,3 +1,6 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+
 """
 This module provides utility functions for handling CIF (Crystallographic Information File) files.
 It includes functionalities such as:

@@ -10,6 +10,7 @@ from iotbx import cif
 
 from ...util.cif import cifdata_str_or_index
 
+
 def format_floats(val: float) -> str:
     """
     Format a floating-point number to a specific string format.
@@ -24,6 +25,7 @@ def format_floats(val: float) -> str:
         return f'{val: .8f}'[:8]
     else:
         return f' {val:.8f}'[:8]
+
 
 def cif2hkl4(cif_path: str, cif_dataset: [int, str], hkl_path: str) -> None:
     """

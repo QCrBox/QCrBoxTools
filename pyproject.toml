@@ -37,3 +37,8 @@ markers = [
     "program_dependent: depents on a software to be installed",
     "not_implemented: placeholder for future functionality",
 ]
+
+[tool.ruff]
+ignore-init-module-imports = true
+indent-width = 4
+line-length = 100

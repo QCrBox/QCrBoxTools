@@ -85,3 +85,9 @@ from .eval_robots import (
     Eval15AllRobot, EvalAnyRobot, EvalBuilddatcolRobot, EvalPeakrefRobot, EvalScandbRobot,
     EvalViewRobot, EvalBuildeval15Robot
 )
+
+__all__ = [
+    'TextFile', 'PicFile', 'SettingsVicFile', 'RmatFile',
+    'Eval15AllRobot', 'EvalAnyRobot', 'EvalBuilddatcolRobot', 'EvalPeakrefRobot', 'EvalScandbRobot',
+    'EvalViewRobot', 'EvalBuildeval15Robot'
+]

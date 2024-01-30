@@ -63,12 +63,12 @@ if __name__ == '__main__':
 
     try:
         cif_dataset = int(args.cif_dataset)
-    except:
+    except ValueError:
         cif_dataset = args.cif_dataset
 
     try:
         structure_cif_dataset = int(args.structure_cif_dataset)
-    except:
+    except ValueError:
         structure_cif_dataset = args.structure_cif_dataset
 
     replace_structure_from_cif(

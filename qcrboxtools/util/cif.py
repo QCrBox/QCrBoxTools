@@ -17,10 +17,12 @@ from typing import Union, Tuple, Iterable, Optional, List
 from iotbx import cif
 import numpy as np
 
+
 class NoCentringFoundError(Exception):
     """
     Exception raised when no centring information is found in a CIF file.
     """
+
 
 class InConsistentCentringError(Exception):
     """
@@ -48,6 +50,7 @@ def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
 
     return cif.reader(input_string=cif_content).model()
 
+
 def cifdata_str_or_index(model: cif.model.cif, dataset: [int, str]) -> cif.model.block:
     """
     Retrieve a CIF dataset block from the model using an index or identifier.
@@ -68,6 +71,7 @@ def cifdata_str_or_index(model: cif.model.cif, dataset: [int, str]) -> cif.model
         keys = list(model.keys())
         dataset = keys[dataset]
     return model[dataset], dataset
+
 
 def split_su_single(input_string: str) -> Tuple[float, float]:
     """
@@ -103,6 +107,7 @@ def split_su_single(input_string: str) -> Tuple[float, float]:
     su = magnitude * float(match.group(3).replace('.', ''))
     return value, su
 
+
 def split_sus(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray]:
     """
     Extract values and standard uncertainties from a list of formatted strings.
@@ -120,30 +125,36 @@ def split_sus(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray]:
     values, sus = zip(*map(split_su_single, input_strings))
     return np.array(list(values)), np.array(list(sus))
 
-def del_atom_site_condition(key:str) -> bool:
+
+def del_atom_site_condition(key: str) -> bool:
     """Check if to be deleted because an atom_site entry (these are replaced)"""
     return key.startswith('_atom_site')
 
-def del_geom_condition(key:str) -> bool:
+
+def del_geom_condition(key: str) -> bool:
     """Check if to be deleted because an geom entry (these are based on outdate info)"""
     return key.startswith('_geom')
 
-def del_refine_condition(key:str) -> bool:
+
+def del_refine_condition(key: str) -> bool:
     """Check if to be deleted because an refine entry (these combined cif is not converged)"""
-    exceptions = ('_refine_ls_weighting','_refine_ls_extinction')
+    exceptions = ('_refine_ls_weighting', '_refine_ls_extinction')
     return key.startswith('_refine') and not key.startswith(exceptions)
 
-def del_refln_condition(key:str) -> bool:
+
+def del_refln_condition(key: str) -> bool:
     """Check if to be deleted because a refln entry with calc (these are based on outdated info)"""
     return key.startswith('_refln') and '_calc' in key
 
-def del_refine_file(key:str) -> bool:
+
+def del_refine_file(key: str) -> bool:
     """Check if to be deleted because if containes the res/ins file (is replaced)"""
     test_keys = (
-        '_shelx_res_file', # shelxl
-        '_iucr_refine_instructions_details' # olex2
+        '_shelx_res_file',  # shelxl
+        '_iucr_refine_instructions_details'  # olex2
     )
     return any(key == test_key for test_key in test_keys)
+
 
 def is_num_su(string: str) -> bool:
     """
@@ -161,6 +172,7 @@ def is_num_su(string: str) -> bool:
         and standard uncertainties, False otherwise.
     """
     return re.search(r'[^\d\.\-\+\(\)]', string) is None
+
 
 def replace_structure_from_cif(
     cif_path: Union[str, Path],
@@ -212,13 +224,13 @@ def replace_structure_from_cif(
         del_refine_file
     )
 
-    #delete loops
+    # delete loops
     keys = tuple(new_block.loops.keys())
     for key in keys:
         if any(condition(key) for condition in conditions):
             del new_block[key]
 
-    #delete items
+    # delete items
     for key in new_block.keys():
         if any(condition(key) for condition in conditions):
             del new_block[key]
@@ -230,7 +242,7 @@ def replace_structure_from_cif(
 
         for key, vals in loop.items():
             num_su_column = all(map(is_num_su, vals))
-            brackets_column = any('(' in val  for val in vals)
+            brackets_column = any('(' in val for val in vals)
             if num_su_column and brackets_column:
                 values, _ = split_sus(vals)
                 for i, new_val in enumerate(f'{val}' for val in values):
@@ -255,6 +267,7 @@ def replace_structure_from_cif(
 
     with open(output_cif_path, 'w', encoding='UTF-8') as fobj:
         fobj.write(str(new_cif_obj))
+
 
 def check_centring_equal(
     block1: cif.model.block,
@@ -308,6 +321,7 @@ def check_centring_equal(
         raise InConsistentCentringError('Centrings from entries do not agree for cif2')
     return block1_centrings[0] == block2_centrings[0]
 
+
 def check_crystal_system(block1: cif.model.block, block2: cif.model.block) -> bool:
     """
     Check if two CIF blocks belong to the same crystal system.
@@ -325,6 +339,7 @@ def check_crystal_system(block1: cif.model.block, block2: cif.model.block) -> bo
         True if both blocks belong to the same crystal system, False otherwise.
     """
     return block1['_space_group_crystal_system'] == block2['_space_group_crystal_system']
+
 
 def cif_iso2aniso(
     input_cif_path: Union[str, Path],
@@ -416,11 +431,11 @@ def cif_iso2aniso(
             for name in new_aniso_labels
         ])
 
-
     cif_content[block_name] = block
 
     with open(output_cif_path, 'w', encoding='UTF-8') as fobj:
         fobj.write(str(cif_content))
+
 
 def calc_rec_angle_cosines(
     alpha: float,
@@ -457,6 +472,7 @@ def calc_rec_angle_cosines(
 
     return cos_alpha_star, cos_beta_star, cos_gamma_star
 
+
 def single_value_iso2aniso(
     uiso: float,
     alpha: float,
@@ -489,3 +505,46 @@ def single_value_iso2aniso(
     u23 = uiso * cos_alpha_star
 
     return uiso, uiso, uiso, u12, u13, u23
+
+
+cif_categories = [
+    'diffrn', 'cell', 'cell_measurement', 'cell_measurement_refln',
+    'diffrn_attenuator', 'diffrn_detector', 'diffrn_measurement',
+    'diffrn_orient', 'diffrn_orient_matrix', 'diffrn_orient_refln',
+    'diffrn_radiation', 'diffrn_radiation_wavelength', 'diffrn_refln',
+    'diffrn_reflns', 'diffrn_reflns_class', 'diffrn_reflns_transf_matrix',
+    'diffrn_scale_group', 'diffrn_source', 'diffrn_standards',
+    'diffrn_standard_refln', 'refln', 'reflns', 'reflns_class',
+    'reflns_scale', 'reflns_shell', 'exptl', 'chemical',
+    'chemical_conn_atom', 'chemical_conn_bond', 'chemical_formula',
+    'exptl_absorpt', 'exptl_crystal', 'exptl_crystal_appearance',
+    'exptl_crystal_face', 'space_group', 'space_group_generator',
+    'space_group_symop', 'space_group_wyckoff', 'model', 'geom',
+    'geom_angle', 'geom_bond', 'geom_contact', 'geom_hbond',
+    'geom_torsion', 'model_site', 'valence', 'valence_param',
+    'valence_ref', 'publication', 'audit', 'audit_author',
+    'audit_author_role', 'audit_conform', 'audit_contact_author',
+    'audit_link', 'audit_support', 'citation', 'citation_author',
+    'citation_editor', 'computing', 'database', 'database_code',
+    'database_related', 'display', 'display_colour', 'journal',
+    'journal_coeditor', 'journal_date', 'journal_index',
+    'journal_techeditor', 'publ', 'publ_author', 'publ_body',
+    'publ_contact_author', 'publ_manuscript',
+    'publ_manuscript_incl_extra', 'publ_requested', 'publ_section',
+    'structure', 'atom', 'atom_analytical', 'atom_analytical_mass_loss',
+    'atom_analytical_source', 'atom_site', 'atom_site_aniso',
+    'atom_sites', 'atom_sites_cartn_transform',
+    'atom_sites_fract_transform', 'atom_type', 'atom_type_scat', 'refine',
+    'refine_diff', 'refine_ls', 'refine_ls_class'
+]
+
+
+def cif1to2_idea(modify):
+    for replacement in reversed(cif_categories):
+        repl_from = replacement + '_'
+        repl_to = replacement + '.'
+        len_replace = len(repl_to)
+        modify = [
+            repl_to + value[len_replace:] if (value.startswith(repl_from) and ('.' not in value))
+            else value for value in modify
+        ]

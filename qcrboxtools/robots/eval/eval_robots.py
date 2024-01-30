@@ -788,7 +788,9 @@ class EvalBuildeval15Robot(EvalBaseRobot):
                 f'Invalid focus type, choose one of: {", ".join(possible_focusses)}'
             )
 
-        if polarisation_type is None: polarisation_type='none'
+        if polarisation_type is None:
+            polarisation_type='none'
+
         possible_polarisations = (
             'perpendicular', 'parallel', 'antiparallel', 'none', 'synchrotron',
             'synchrotronz', 'osmic', 'pe', 'pa', 'ap', 'n', 's', 'sz', 'o'
@@ -800,7 +802,8 @@ class EvalBuildeval15Robot(EvalBaseRobot):
 
         if self.p4p_file is None:
             command_base = (
-                focus_type, polarisation_type, pointspread_gamma, acdnoise, crystal_dimension, mosaic
+                focus_type, polarisation_type, pointspread_gamma,
+                acdnoise, crystal_dimension, mosaic
             )
         else:
             command_base = (

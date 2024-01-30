@@ -9,11 +9,12 @@ in server mode via sockets.
 import os
 import pathlib
 import time
+import warnings
 from itertools import count
 from typing import Any
-import warnings
 
 from .basesocket import SocketRobot
+
 
 class Olex2Socket(SocketRobot):
     """

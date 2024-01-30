@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import numpy as np
-import pytest
 
 from qcrboxtools.robots.eval import RmatFile
 
@@ -131,7 +130,9 @@ def test_to_rmat_file(tmp_path):
         content = [line for line in file.readlines() if len(line.strip()) > 0]
 
     # Extract the expected content from the original rmat_content
-    expected_content = [line for line in rmat_content.strip().splitlines(keepends=True) if not line.startswith('#')]
+    expected_content = [
+        line for line in rmat_content.strip().splitlines(keepends=True) if not line.startswith('#')
+    ]
 
     # Compare each line of the file content with the expected content
     for line, expected_line in zip(content, expected_content):

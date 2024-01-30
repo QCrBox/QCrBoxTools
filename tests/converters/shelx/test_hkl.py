@@ -35,14 +35,14 @@ def read_hkl_as_np(hkl_path, sort=False):
         hkl_lines = [read_hkl_line(line) for line in fo.readlines() if valid_hkl_line(line)]
     pivot = list(zip(*hkl_lines))
     if len(pivot) == 5:
-        h, k, l, i, su_i = pivot
+        miller_h, miller_k, miller_l, i, su_i = pivot
         number = None
     elif len(pivot) == 6:
-        h, k, l, i, su_i, number = pivot
+        miller_h, miller_k, miller_l, i, su_i, number = pivot
         number = np.array([int(val) for val in number])
     else:
         raise ValueError(f'len(pivot) was {len(pivot)} {str(pivot)}')
-    hkl = np.stack((h, k, l), axis=-1)
+    hkl = np.stack((miller_h, miller_k, miller_l,), axis=-1)
     i = np.array(i)
     su_i = np.array(su_i)
     remove_zero_mask = np.logical_not(np.all(hkl == 0, axis=-1))

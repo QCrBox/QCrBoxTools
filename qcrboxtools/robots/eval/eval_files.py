@@ -47,6 +47,7 @@ def infer_and_cast(s: str) -> Union[float, int, bool, np.ndarray, str]:
     # If all else fails, return as string
     return s
 
+
 class RelativePathFile:
     """
     A class representing a relative path file.

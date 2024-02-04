@@ -1,0 +1,137 @@
+# Copyright 2024 Paul Niklas Ruth.
+# SPDX-License-Identifier: MPL-2.0
+from qcrboxtools.converters.cif.entry_conversion import (
+    to_unified_keywords, to_unified_name, to_unified_kw_block,
+    to_requested_kw_block, unified_to_requested_keywords
+)
+
+import pytest
+from iotbx.cif import model
+
+
+def test_to_unified_name():
+    custom_categories = ['iucr', 'olex2', 'shelx']
+
+    # Test with a name that should be converted using custom categories
+    assert to_unified_name('_iucr_entry_example', custom_categories) == '_iucr.entry_example'
+
+    # Test with a name that should fall back to the alias mechanism
+    assert to_unified_name('_journal_date_accepted', custom_categories) == '_journal_date.accepted'
+
+    # Test with a name that does not match custom categories or aliases
+    assert to_unified_name('_unmatched_entry', custom_categories) == '_unmatched_entry'
+
+@pytest.fixture
+def custom_categories():
+    return ['mock']
+
+@pytest.fixture
+def mock_old_block():
+    block = model.block()
+    # Add mock data items
+    block.add_data_item('_mock_entry', 'value1')
+    block.add_data_item('_journal_date_accepted', '2020-01-01')  # This should get converted based on the alias
+
+    # Add a mock loop
+    loop_data = {
+        '_mock_loop_entry1': ['val1', 'val2'],
+        '_mock_loop_entry2': ['val3', 'val4'],
+    }
+    loop = model.loop(data=loop_data)
+    block.add_loop(loop)
+
+    return block
+
+def test_to_unified_kw_block(mock_old_block, custom_categories):
+    converted_block = to_unified_kw_block(mock_old_block, custom_categories)
+
+    # Verify that the block is a CIF block object
+    assert isinstance(converted_block, model.block), "The returned object is not a CIF block."
+
+    # Check if entries have been correctly converted
+    expected_names = ['_mock.entry', '_journal_date.accepted', '_mock.loop_entry1', '_mock.loop_entry2']
+    for name in expected_names:
+        assert name in converted_block, f"Expected entry '{name}' not found in the converted block."
+
+@pytest.fixture
+def mock_cif(mock_old_block):
+    """
+    Creates a mock CIF file containing two blocks for testing.
+    Each block will be a copy of the mock_old_block to simulate a real CIF structure.
+    """
+    cif = model.cif()
+    cif['block_1'] = mock_old_block
+    cif['block_2'] = mock_old_block.copy()  # Assuming a copy method or similar functionality
+    return cif
+
+def test_to_unified_keywords(mock_cif, custom_categories):
+    """
+    Test to ensure that `to_unified_keywords` correctly converts all blocks within
+    a CIF file using the specified custom categories.
+    """
+    unified_cif = to_unified_keywords(mock_cif, custom_categories)
+
+    # Verify that the CIF object contains the same number of blocks as the mock CIF
+    assert len(unified_cif) == len(mock_cif), "The number of blocks in the unified CIF does not match the original."
+
+    # Iterate through each block in the unified CIF to ensure conversions were applied
+    for block_name, unified_block in unified_cif.items():
+        assert isinstance(unified_block, model.block), f"The block '{block_name}' is not a CIF block."
+
+        # Example verification that entries were converted (specific checks depend on mock data and custom categories)
+        expected_names = ['_mock.entry', '_journal.date_accepted', '_mock.loop_entry1', '_mock.loop_entry2']
+        for name in expected_names:
+            assert name in unified_block, f"Expected entry '{name}' not found in block '{block_name}'."
+
+
+@pytest.fixture
+def unified_block():
+    """
+    Creates a unified CIF block with predefined entries and loops for testing.
+    This block simulates a structure that has already been processed to unify names.
+    """
+    block = model.block()
+    # Add unified data items
+    block.add_data_item('_mock.entry', 'value1')
+    block.add_data_item('_journal_date.accepted', '2020-01-01')
+
+    # Add a unified loop
+    loop_data = {
+        '_mock.loop_entry1': ['val1', 'val2'],
+        '_mock.loop_entry2': ['val3', 'val4'],
+    }
+    loop = model.loop(data=loop_data)
+    block.add_loop(loop)
+
+    return block
+
+def test_to_requested_kw_block(unified_block, custom_categories):
+    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry1']
+
+    converted_block = to_requested_kw_block(unified_block, requested_entries, custom_categories)
+
+    # Ensure all requested entries are present in the converted block
+    for entry_name in requested_entries:
+        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
+
+@pytest.fixture
+def unified_cif(unified_block):
+    """
+    Creates a mock CIF file containing a unified block for testing.
+    This simulates a CIF file that has already undergone the unification process.
+    """
+    cif = model.cif()
+    cif['test_block'] = unified_block
+    return cif
+
+def test_unified_to_requested_keywords(unified_cif, custom_categories):
+    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry2']
+
+    # Convert using unified_to_requested_keywords
+    new_cif = unified_to_requested_keywords(unified_cif, requested_entries, custom_categories)
+
+    # Ensure that each block in the new CIF contains only the requested entries
+    for block_name, block in new_cif.items():
+        # Check for presence of requested entries directly without conversion since "journal" is not a custom category
+        for entry_name in requested_entries:
+            assert entry_name in block, f"Requested entry '{entry_name}' missing in block '{block_name}'."

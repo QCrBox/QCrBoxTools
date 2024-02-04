@@ -3,32 +3,32 @@
 
 data_test
 
-_cell_length_a                    10.000(3)
-_cell_length_b                    10.000(2)
-_cell_length_c                    10.000(2)
-_cell_angle_alpha                 90
-_cell_angle_beta                  90
-_cell_angle_gamma                 90
+_cell.length_a                    10.000(3)
+_cell.length_b                    10.000(2)
+_cell.length_c                    10.000(2)
+_cell.angle_alpha                 90
+_cell.angle_beta                  90
+_cell.angle_gamma                 90
 
 loop_
-    _atom_site_label
-    _atom_site_type_symbol
-    _atom_site_fract_x
-    _atom_site_fract_y
-    _atom_site_fract_z
+    _atom_site.label
+    _atom_site.type_symbol
+    _atom_site.fract_x
+    _atom_site.fract_y
+    _atom_site.fract_z
     H1  H  0.0791(3)  0.0612(3)  0.0000(3)
     O1  O  0.0000(3)  0.0000(3)  0.0000(3)
     H2  H -0.0791(3)  0.0612(3)  0.0000(3)
 
 loop_
-    _atom_site_aniso_label
-    _atom_site_aniso_type_symbol
-    _atom_site_aniso_U_11
-    _atom_site_aniso_U_22
-    _atom_site_aniso_U_33
-    _atom_site_aniso_U_12
-    _atom_site_aniso_U_13
-    _atom_site_aniso_U_23
+    _atom_site_aniso.label
+    _atom_site_aniso.type_symbol
+    _atom_site_aniso.u_11
+    _atom_site_aniso.u_22
+    _atom_site_aniso.u_33
+    _atom_site_aniso.u_12
+    _atom_site_aniso.u_13
+    _atom_site_aniso.u_23
     H1  H  0.020(3)   0.020(5)  0.020(6)   -0.004(4)  -0.000(5)  -0.004(4)
     O1  O  0.0220(4)  0.022(4)  0.0224(3)   0.0041(3) -0.0001(5) -0.0042(4)
     H2  H  0.025(4)   0.025(5)  0.0254(13)  0.002(8)   0.000(4)   0.0014(12)

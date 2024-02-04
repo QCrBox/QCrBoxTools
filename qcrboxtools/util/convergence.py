@@ -35,23 +35,23 @@ def cell_dict2atom_sites_dict(
 
     Args:
         cell_dict (Dict[str, Union[float, np.ndarray]]): A dictionary representing a unit cell.
-        It should contain the following keys: '_cell_length_a', '_cell_length_b', '_cell_length_c',
-        '_cell_angle_alpha', '_cell_angle_beta', '_cell_angle_gamma'. The corresponding values
+        It should contain the following keys: '_cell.length_a', '_cell.length_b', '_cell.length_c',
+        '_cell_angle.alpha', '_cell.angle_beta', '_cell.angle_gamma'. The corresponding values
         should be floats representing the cell lengths (a, b, c) in angstroms and the cell angles
         (alpha, beta, gamma) in degrees.
 
     Returns:
         Dict[str, Union[str, np.ndarray]]: A dictionary containing the transformation matrix
-        and its description. The keys are '_atom_sites_Cartn_transform_axes' (with value being
+        and its description. The keys are '_atom_sites_cartn_transform.axes' (with value being
         a string description of the transformation axes) and '_atom_sites_Cartn_tran_matrix'
         (with value being a 3x3 numpy array representing the transformation matrix).
     """
-    a = split_su_single(cell_dict['_cell_length_a'])[0]
-    b = split_su_single(cell_dict['_cell_length_b'])[0]
-    c = split_su_single(cell_dict['_cell_length_c'])[0]
-    alpha = split_su_single(cell_dict['_cell_angle_alpha'])[0] / 180.0 * np.pi
-    beta = split_su_single(cell_dict['_cell_angle_beta'])[0] / 180.0 * np.pi
-    gamma = split_su_single(cell_dict['_cell_angle_gamma'])[0] / 180.0 * np.pi
+    a = split_su_single(cell_dict['_cell.length_a'])[0]
+    b = split_su_single(cell_dict['_cell.length_b'])[0]
+    c = split_su_single(cell_dict['_cell.length_c'])[0]
+    alpha = split_su_single(cell_dict['_cell.angle_alpha'])[0] / 180.0 * np.pi
+    beta = split_su_single(cell_dict['_cell.angle_beta'])[0] / 180.0 * np.pi
+    gamma = split_su_single(cell_dict['_cell.angle_gamma'])[0] / 180.0 * np.pi
     matrix = np.array(
         [
             [
@@ -74,8 +74,8 @@ def cell_dict2atom_sites_dict(
         ]
     )
     atom_sites_dict = {
-        '_atom_sites_Cartn_transform_axes': 'a parallel to x; b in the plane of y and z',
-        '_atom_sites_Cartn_tran_matrix': matrix
+        '_atom_sites_cartn_transform.axes': 'a parallel to x; b in the plane of y and z',
+        '_atom_sites_cartn_transform.matrix': matrix
     }
     return atom_sites_dict
 
@@ -110,17 +110,17 @@ def add_cart_pos(
     """
     atom_sites_dict = cell_dict2atom_sites_dict(cell_dict)
     xyz_fract = np.array(
-        [atom_site_dict[f'_atom_site_fract_{val}'] for val in ('x', 'y', 'z')]
+        [atom_site_dict[f'_atom_site.fract_{val}'] for val in ('x', 'y', 'z')]
     ).T
     xyz_cartn = np.einsum(
         'xy, zy -> zx',
-        atom_sites_dict['_atom_sites_Cartn_tran_matrix'],
+        atom_sites_dict['_atom_sites_cartn_transform.matrix'],
         xyz_fract
     )
     atom_site_out = atom_site_dict.copy()
-    atom_site_out['_atom_site_Cartn_x'] = list(xyz_cartn[:,0])
-    atom_site_out['_atom_site_Cartn_y'] = list(xyz_cartn[:,1])
-    atom_site_out['_atom_site_Cartn_z'] = list(xyz_cartn[:,2])
+    atom_site_out['_atom_site.cartn_x'] = list(xyz_cartn[:,0])
+    atom_site_out['_atom_site.cartn_y'] = list(xyz_cartn[:,1])
+    atom_site_out['_atom_site.cartn_z'] = list(xyz_cartn[:,2])
     return atom_site_out, atom_sites_dict
 
 def position_difference(
@@ -153,15 +153,15 @@ def position_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    positions_sus1 = [split_sus(block1[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    positions_sus1 = [split_sus(block1[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac1 = {
-        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus1)
+        f'_atom_site.fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus1)
     }
     frac1 = np.stack([val[0] for val in positions_sus1], axis=1)
     frac1_su = np.stack([val[1] for val in positions_sus1], axis=1)
-    positions_sus2 = [split_sus(block2[f'_atom_site_fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    positions_sus2 = [split_sus(block2[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac2 = {
-        f'_atom_site_fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus2)
+        f'_atom_site.fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus2)
     }
     frac2 = np.stack([val[0] for val in positions_sus2], axis=1)
     frac2_su = np.stack([val[1] for val in positions_sus2], axis=1)
@@ -170,15 +170,15 @@ def position_difference(
     atom_site2, _ = add_cart_pos(atom_site_frac2, block2)
 
     cart1 = np.stack((
-        atom_site1['_atom_site_Cartn_x'],
-        atom_site1['_atom_site_Cartn_y'],
-        atom_site1['_atom_site_Cartn_z'],
+        atom_site1['_atom_site.cartn_x'],
+        atom_site1['_atom_site.cartn_y'],
+        atom_site1['_atom_site.cartn_z'],
     ), axis=1)
 
     cart2 = np.stack((
-        atom_site2['_atom_site_Cartn_x'],
-        atom_site2['_atom_site_Cartn_y'],
-        atom_site2['_atom_site_Cartn_z'],
+        atom_site2['_atom_site.cartn_x'],
+        atom_site2['_atom_site.cartn_y'],
+        atom_site2['_atom_site.cartn_z'],
     ), axis=1)
 
     distances = np.linalg.norm(cart1 - cart2, axis=-1)
@@ -225,8 +225,8 @@ def anisotropic_adp_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    uij_sus1 = [split_sus(block1[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
-    uij_sus2 = [split_sus(block2[f'_atom_site_aniso_U_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus1 = [split_sus(block1[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus2 = [split_sus(block2[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
 
     uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
     uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)

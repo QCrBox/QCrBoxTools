@@ -20,23 +20,23 @@ def test_single_value_iso2aniso(uiso, expected):
     assert np.isclose(result, expected, atol=1e-3).all()
 
 def uiso_matches_uaniso(atom_name, block):
-    aniso_labels = list(block['_atom_site_aniso_label'])
+    aniso_labels = list(block['_atom_site_aniso.label'])
     assert atom_name in aniso_labels
     aniso_index = aniso_labels.index(atom_name)
-    uiso_index = list(block['_atom_site_label']).index(atom_name)
-    uiso = split_su_single(block['_atom_site_U_iso_or_equiv'][uiso_index])[0]
+    uiso_index = list(block['_atom_site.label']).index(atom_name)
+    uiso = split_su_single(block['_atom_site.u_iso_or_equiv'][uiso_index])[0]
     uaniso = np.array([
-        split_su_single(block[f'_atom_site_aniso_U_{ij}'][aniso_index])[0]
+        split_su_single(block[f'_atom_site_aniso.u_{ij}'][aniso_index])[0]
         for ij in (11, 22, 33, 12, 13, 23)
     ])
     u_aniso_comp = single_value_iso2aniso(
         uiso,
-        split_su_single(block['_cell_angle_alpha'])[0],
-        split_su_single(block['_cell_angle_beta'])[0],
-        split_su_single(block['_cell_angle_gamma'])[0]
+        split_su_single(block['_cell.angle_alpha'])[0],
+        split_su_single(block['_cell.angle_beta'])[0],
+        split_su_single(block['_cell.angle_gamma'])[0]
     )
     assert np.isclose(uaniso, u_aniso_comp, atol=1e-3).all()
-    assert block['_atom_site_adp_type'][uiso_index] == 'Uani'
+    assert block['_atom_site.adp_type'][uiso_index] == 'Uani'
 
 def test_cif_iso2aniso_byname(tmp_path):
     input_cif_path = Path('./tests/util/cif_files/iso2aniso.cif')
@@ -49,7 +49,7 @@ def test_cif_iso2aniso_byname(tmp_path):
     uiso_matches_uaniso('H2a', block)
 
     # test H2b has not been added
-    aniso_labels = list(block['_atom_site_aniso_label'])
+    aniso_labels = list(block['_atom_site_aniso.label'])
     assert all(label not in aniso_labels for label in ('H2b', 'H3a', 'H3b'))
 
 def test_cif_iso2aniso_byelement(tmp_path):
@@ -76,5 +76,5 @@ def test_cif_iso2aniso_byregex(tmp_path):
     for atom_name in ('H2b', 'H3b'):
         uiso_matches_uaniso(atom_name, block)
     # test H2a H3b have not been added
-    aniso_labels = list(block['_atom_site_aniso_label'])
+    aniso_labels = list(block['_atom_site_aniso.label'])
     assert all(label not in aniso_labels for label in ('H2a', 'H3a'))

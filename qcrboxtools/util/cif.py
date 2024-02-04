@@ -144,14 +144,14 @@ def del_refine_condition(key: str) -> bool:
 
 def del_refln_condition(key: str) -> bool:
     """Check if to be deleted because a refln entry with calc (these are based on outdated info)"""
-    return key.startswith('_refln') and '_calc' in key
+    return key.startswith('_refln') and 'calc' in key
 
 
 def del_refine_file(key: str) -> bool:
     """Check if to be deleted because if containes the res/ins file (is replaced)"""
     test_keys = (
-        '_shelx_res_file',  # shelxl
-        '_iucr_refine_instructions_details'  # olex2
+        '_shelx.res_file',  # shelxl
+        '_iucr.refine_instructions_details'  # olex2
     )
     return any(key == test_key for test_key in test_keys)
 
@@ -253,8 +253,8 @@ def replace_structure_from_cif(
     keys = [key for key in structure_cif_block if key.startswith('_atom_sites')]
 
     add_if_present = (
-        '_shelx_res_file',
-        '_iucr_refine_instructions_details'
+        '_shelx.res_file',
+        '_iucr.refine_instructions_details'
     )
     for key in add_if_present:
         if key in structure_cif_block:
@@ -299,10 +299,8 @@ def check_centring_equal(
     block2_centrings = []
 
     space_group_entries = (
-        '_space_group_name_H-M_alt',
-        '_space_group_name_Hall',
-        '_symmetry_space_group_name_H-M',
-        '_symmetry_space_group_name_Hall'
+        '_space_group.name_h-m_alt',
+        '_space_group.name_hall'
     )
 
     for entry in space_group_entries:
@@ -312,9 +310,9 @@ def check_centring_equal(
             block2_centrings.append(block2[entry].replace('-', '')[0].upper())
 
     if len(block1_centrings) == 0:
-        raise NoCentringFoundError('No _space_group_name_H-M_alt/Hall found in cif1')
+        raise NoCentringFoundError('No _space_group.name_h-m_alt/hall found in cif1')
     if len(block2_centrings) == 0:
-        raise NoCentringFoundError('No _space_group_name_H-M_alt/Hall found in cif2')
+        raise NoCentringFoundError('No _space_group.name_h-m_alt/hall found in cif2')
     if any(check_centring != block1_centrings[0] for check_centring in block1_centrings[1:]):
         raise InConsistentCentringError('Centrings from entries do not agree for cif1')
     if any(check_centring != block2_centrings[0] for check_centring in block2_centrings[1:]):
@@ -338,7 +336,7 @@ def check_crystal_system(block1: cif.model.block, block2: cif.model.block) -> bo
     bool
         True if both blocks belong to the same crystal system, False otherwise.
     """
-    return block1['_space_group_crystal_system'] == block2['_space_group_crystal_system']
+    return block1['_space_group.crystal_system'] == block2['_space_group.crystal_system']
 
 
 def cif_iso2aniso(
@@ -378,7 +376,7 @@ def cif_iso2aniso(
     """
     cif_content = read_cif_safe(input_cif_path)
     block, block_name = cifdata_str_or_index(cif_content, cif_dataset)
-    atom_site_labels = list(block['_atom_site_label'])
+    atom_site_labels = list(block['_atom_site.label'])
 
     # Get selected atoms
     if select_names is None:
@@ -386,7 +384,7 @@ def cif_iso2aniso(
 
     if select_elements is not None:
         select_names += [
-            name for name, element in zip(atom_site_labels, block['_atom_site_type_symbol'])
+            name for name, element in zip(atom_site_labels, block['_atom_site.type_symbol'])
             if element in select_elements
         ]
 
@@ -399,7 +397,7 @@ def cif_iso2aniso(
     select_names = list(set(select_names))
 
     # if overwrite False remove preexistring
-    existing = list(block['_atom_site_aniso_label'])
+    existing = list(block['_atom_site_aniso.label'])
     if not overwrite:
         select_names = [name for name in select_names if name not in existing]
 
@@ -407,14 +405,14 @@ def cif_iso2aniso(
     new_values = {}
     for name in select_names:
         uiso_index = atom_site_labels.index(name)
-        uiso = split_su_single(block['_atom_site_U_iso_or_equiv'][uiso_index])[0]
+        uiso = split_su_single(block['_atom_site.u_iso_or_equiv'][uiso_index])[0]
         new_values[name] = single_value_iso2aniso(
             uiso,
-            split_su_single(block['_cell_angle_alpha'])[0],
-            split_su_single(block['_cell_angle_beta'])[0],
-            split_su_single(block['_cell_angle_gamma'])[0]
+            split_su_single(block['_cell.angle_alpha'])[0],
+            split_su_single(block['_cell.angle_beta'])[0],
+            split_su_single(block['_cell.angle_gamma'])[0]
         )
-        block['_atom_site_adp_type'][uiso_index] = 'Uani'
+        block['_atom_site.adp_type'][uiso_index] = 'Uani'
 
     # build up new atom_site_aniso arrays
     loop = block['_atom_site_aniso']
@@ -422,10 +420,10 @@ def cif_iso2aniso(
 
     for _ in range(len(new_aniso_labels) - loop.n_rows()):
         loop.add_row(['?'] * loop.n_columns())
-    loop.update_column('_atom_site_aniso_label', new_aniso_labels)
+    loop.update_column('_atom_site_aniso.label', new_aniso_labels)
     for ij_index, ij in enumerate((11, 22, 33, 12, 13, 23)):
-        aniso_key = f'_atom_site_aniso_U_{ij}'
-        loop.update_column(f'_atom_site_aniso_U_{ij}', [
+        aniso_key = f'_atom_site_aniso.u_{ij}'
+        loop.update_column(f'_atom_site_aniso.u_{ij}', [
             f'{new_values[name][ij_index]:8.8f}'
             if name in select_names else block[aniso_key][existing.index(name)]
             for name in new_aniso_labels

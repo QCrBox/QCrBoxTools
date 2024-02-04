@@ -209,7 +209,7 @@ def test_cif_refln_calc_deleted(cif_with_replacement: Tuple[dict, dict, dict]):
     containing 'calc') is deleted in the combined CIF.
     """
     _, _, combined_cif = cif_with_replacement
-    assert not any(key.startswith('_refln_') and 'calc' in key for key in combined_cif.keys())
+    assert not any(key.startswith('_refln.') and 'calc' in key for key in combined_cif.keys())
 
 def test_cif_cell_kept(cif_with_replacement: Tuple[dict, dict, dict]):
     """
@@ -262,41 +262,30 @@ def test_check_transformation_matrix():
 @pytest.mark.parametrize(
     "block1,block2,expected",
     [
-        [{'_space_group_name_H-M_alt': 'P n m a'}, {'_space_group_name_H-M_alt': 'P n m a'}, True],
-        [{'_space_group_name_H-M_alt': 'P n m a'}, {'_space_group_name_H-M_alt': 'C c c m'}, False],
-        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': '-P 2yac'}, True],
-        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': 'P -2y'}, True],
-        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': 'C -2y'}, False],
-        [{'_space_group_name_Hall': '-P 2yac'}, {'_space_group_name_Hall': '-C 2y'}, False],
+        [{'_space_group.name_h-m_alt': 'P n m a'}, {'_space_group.name_h-m_alt': 'P n m a'}, True],
+        [{'_space_group.name_h-m_alt': 'P n m a'}, {'_space_group.name_h-m_alt': 'C c c m'}, False],
+        [{'_space_group.name_hall': '-P 2yac'}, {'_space_group.name_hall': '-P 2yac'}, True],
+        [{'_space_group.name_hall': '-P 2yac'}, {'_space_group.name_hall': 'P -2y'}, True],
+        [{'_space_group.name_hall': '-P 2yac'}, {'_space_group.name_hall': 'C -2y'}, False],
+        [{'_space_group.name_hall': '-P 2yac'}, {'_space_group.name_hall': '-C 2y'}, False],
         [
-            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': '-P 2yac'},
-            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': 'P 2yac'}, True
+            {'_space_group.name_h-m_alt': 'P n m a', '_space_group.name_hall': '-P 2yac'},
+            {'_space_group.name_h-m_alt': 'P n m a', '_space_group.name_hall': 'P 2yac'}, True
         ]
     ]
 )
 def test_lattice_centring_equal(block1, block2, expected):
     assert check_centring_equal(block1, block2) == expected
 
-    # check deprecated convention
-    renames = (
-        ('_space_group_name_H-M_alt', '_symmetry_space_group_name_H-M'),
-        ('_space_group_name_Hall', '_symmetry_space_group_name_Hall')
-    )
-    for block in (block1, block2):
-        for start_name, end_name in renames:
-            if start_name in block:
-                block[end_name] = block.pop(start_name)
-    assert check_centring_equal(block1, block2) == expected
-
 
 @pytest.mark.parametrize(
     "block1,block2,expected_error",
     [
-        [{'_space_group_name_H-M_alt': 'P n m a'}, {}, NoCentringFoundError],
-        [{}, {'_space_group_name_H-M_alt': 'P n m a'}, NoCentringFoundError],
+        [{'_space_group.name_h-m_alt': 'P n m a'}, {}, NoCentringFoundError],
+        [{}, {'_space_group.name_h-m_alt': 'P n m a'}, NoCentringFoundError],
         [
-            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': '-P 2yac'},
-            {'_space_group_name_H-M_alt': 'P n m a', '_space_group_name_Hall': 'C 2yac'}, InConsistentCentringError
+            {'_space_group.name_h-m_alt': 'P n m a', '_space_group.name_hall': '-P 2yac'},
+            {'_space_group.name_h-m_alt': 'P n m a', '_space_group.name_hall': 'C 2yac'}, InConsistentCentringError
         ]
     ]
 )

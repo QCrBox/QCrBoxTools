@@ -79,7 +79,7 @@ def test_to_unified_keywords(mock_cif, custom_categories):
         assert isinstance(unified_block, model.block), f"The block '{block_name}' is not a CIF block."
 
         # Example verification that entries were converted (specific checks depend on mock data and custom categories)
-        expected_names = ['_mock.entry', '_journal.date_accepted', '_mock.loop_entry1', '_mock.loop_entry2']
+        expected_names = ['_mock.entry', '_journal_date.accepted', '_mock.loop_entry1', '_mock.loop_entry2']
         for name in expected_names:
             assert name in unified_block, f"Expected entry '{name}' not found in block '{block_name}'."
 

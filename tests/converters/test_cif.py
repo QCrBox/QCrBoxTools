@@ -4,6 +4,7 @@ from qcrboxtools.converters.cif.entry_conversion import (
     to_unified_keywords, to_unified_name, to_unified_kw_block,
     to_requested_kw_block, unified_to_requested_keywords
 )
+from qcrboxtools.converters.cif.entry_check import cif_entries_present
 
 import pytest
 from iotbx.cif import model
@@ -154,3 +155,28 @@ def test_unified_to_requested_keywords(unified_cif, custom_categories):
                     assert entry_name in block, f"Requested entry '{entry_name}' was not found in the converted block."
 
         assert '_nonexistent_entry' not in block, "Optional, non-existent entry was generated from nothing."
+
+
+@pytest.fixture
+def mock_block():
+    """
+    Creates a mock CIF block with predefined entries for testing.
+    """
+    block = model.block()
+    block.add_data_item('_existing_entry', 'value1')
+    block.add_data_item('_another_entry', 'value2')
+    return block
+
+def test_cif_entries_present(mock_block):
+    custom_categories = ['existing', 'another']
+    present_entries = ['_existing.entry', '_another_entry']
+    absent_entries = ['_missing_entry']
+
+    # Test with entries that are present
+    assert cif_entries_present(mock_block, custom_categories, present_entries) == True, \
+        "Function should return True when all entries are present."
+
+    # Test with at least one absent entry
+    assert cif_entries_present(mock_block, custom_categories, present_entries + absent_entries) == False, \
+        "Function should return False when any specified entry is absent."
+

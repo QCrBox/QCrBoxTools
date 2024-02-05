@@ -105,14 +105,30 @@ def unified_block():
 
     return block
 
+#def test_to_requested_kw_block(unified_block, custom_categories):
+#    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry1']
+#
+#    converted_block = to_requested_kw_block(unified_block, requested_entries, custom_categories)
+#
+#    # Ensure all requested entries are present in the converted block
+#    for entry_name in requested_entries:
+#        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
+
+
 def test_to_requested_kw_block(unified_block, custom_categories):
-    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry1']
+    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
+    optional_entries = ['_nonexistent_entry', 'mock_entry']
 
-    converted_block = to_requested_kw_block(unified_block, requested_entries, custom_categories)
+    # Attempt conversion with a non-existent entry marked as optional
+    converted_block = to_requested_kw_block(unified_block, requested_entries, optional_entries, custom_categories)
 
-    # Ensure all requested entries are present in the converted block
+    # Ensure all non-optional requested entries are present in the converted block
     for entry_name in requested_entries:
-        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
+        if entry_name != '_nonexistent_entry':
+            assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
+
+    # Ensure the optional, non-existent entry does not cause an error and is rightly not present
+    assert '_nonexistent_entry' not in converted_block, "Optional, non-existent entry was generated from nothing."
 
 @pytest.fixture
 def unified_cif(unified_block):
@@ -125,13 +141,16 @@ def unified_cif(unified_block):
     return cif
 
 def test_unified_to_requested_keywords(unified_cif, custom_categories):
-    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry2']
+    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
+    optional_entries = ['_nonexistent_entry', 'mock_entry']
 
     # Convert using unified_to_requested_keywords
-    new_cif = unified_to_requested_keywords(unified_cif, requested_entries, custom_categories)
+    new_cif = unified_to_requested_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
 
     # Ensure that each block in the new CIF contains only the requested entries
-    for block_name, block in new_cif.items():
-        # Check for presence of requested entries directly without conversion since "journal" is not a custom category
+    for _, block in new_cif.items():
         for entry_name in requested_entries:
-            assert entry_name in block, f"Requested entry '{entry_name}' missing in block '{block_name}'."
+                if entry_name != '_nonexistent_entry':
+                    assert entry_name in block, f"Requested entry '{entry_name}' was not found in the converted block."
+
+        assert '_nonexistent_entry' not in block, "Optional, non-existent entry was generated from nothing."

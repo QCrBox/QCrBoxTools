@@ -119,6 +119,7 @@ def to_unified_keywords(cif: model.cif, custom_categories=None):
 def unified_to_requested_keywords(
     cif: model.cif,
     requested_entries: List[str],
+    optional_entries: List[str],
     custom_categories: List[str]
 ) -> model.cif:
     """
@@ -134,7 +135,11 @@ def unified_to_requested_keywords(
         The CIF object to be converted.
     requested_entries : List[str]
         A list of entry names to be included in the converted CIF file. Need to be either
-        entries in cif, aliases of entries in cif or entries renamed via the custom categories
+        entries in cif, aliases of entries in cif or entries renamed via the custom categories.
+    optional_entries : List[str]
+        Entries within this list are declared to be optional and therefore will not raise
+        an error when not found. They still need to be in requested entries to enable the
+        output in a specific position within the newly generated cif.
     custom_categories : List[str]
         User defined categories (e.g. 'iucr', 'olex2' or 'shelx') that can be taken
         into account where an entry _category_example would look up _category.example
@@ -147,8 +152,12 @@ def unified_to_requested_keywords(
 
     """
     new_cif = model.cif({
-        block_name: to_requested_kw_block(old_block, requested_entries, custom_categories)
-        for block_name, old_block in cif.items()
+        block_name: to_requested_kw_block(
+            old_block,
+            requested_entries,
+            optional_entries,
+            custom_categories
+        ) for block_name, old_block in cif.items()
     })
 
     return new_cif
@@ -156,6 +165,7 @@ def unified_to_requested_keywords(
 def to_requested_kw_block(
     old_block: model.block,
     requested_entries: List[str],
+    optional_entries: List[str],
     custom_categories: List[str]
 ) -> model.block:
     """
@@ -173,6 +183,10 @@ def to_requested_kw_block(
     requested_entries : List[str]
         Entry names to include in their order, accounting for original, alias, or custom
         category names.
+     optional_entries : List[str]
+        Entries within this list are declared to be optional and therefore will not raise
+        an error when not found. They still need to be in requested entries to enable the
+        output in a specific position within the newly generated cif.
     custom_categories : List[str]
         Categories to reverse unify names, matching custom formatted entries.
 
@@ -197,6 +211,14 @@ def to_requested_kw_block(
 
     for entry in requested_entries:
         lookup_name = to_unified_name(entry, custom_categories)
+        if lookup_name not in old_block and entry not in optional_entries:
+            raise ValueError(
+                f'The corresponding entry "{lookup_name}" for the requested '
+                + f'non-optional entry {entry} could not be found.'
+            )
+        elif lookup_name not in old_block and entry in optional_entries:
+            continue
+
         if lookup_name in entry2loop_name:
             new_loop = new_loops[entry2loop_name[lookup_name]]
             if new_loop is not None:

@@ -90,10 +90,10 @@ class Olex2Socket(SocketRobot):
 
         self.wait_for_completion(2000, 'startup', cmd)
 
-        if path.with_suffix(".ins").exists():
-            path.with_suffix(".ins").unlink()
-        if path.with_suffix(".hkl").exists():
-            path.with_suffix(".hkl").unlink()
+        if path.absolute().with_suffix(".ins").exists():
+            path.absolute().with_suffix(".ins").unlink()
+        if path.absolute().with_suffix(".hkl").exists():
+            path.absolute().with_suffix(".hkl").unlink()
 
         load_cmds = [
             f'file {path.with_suffix(".ins")}',

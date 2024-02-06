@@ -70,8 +70,17 @@ class Olex2Socket(SocketRobot):
         """
         path = pathlib.Path(path)
         self._structure_path = path
+
+        working_dir = path.absolute().parents[0]
+
+        log_indexes = [int(filename.name[5:-4]) for filename in working_dir.glob('task_*.log')]
+
+        if len(log_indexes) > 0:
+            self._task_id_counter = count(max(log_indexes) + 1)
+        else:
+            self._task_id_counter = count()
         startup_commands = [
-            f'user {path.absolute().parents[0]}',
+            f'user {working_dir}',
             f'reap {path.absolute()}'
         ]
 
@@ -80,6 +89,11 @@ class Olex2Socket(SocketRobot):
         self._send_input(cmd)
 
         self.wait_for_completion(2000, 'startup', cmd)
+
+        if path.with_suffix(".ins").exists():
+            path.with_suffix(".ins").unlink()
+        if path.with_suffix(".hkl").exists():
+            path.with_suffix(".hkl").unlink()
 
         load_cmds = [
             f'file {path.with_suffix(".ins")}',

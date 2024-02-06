@@ -9,6 +9,7 @@ in server mode via sockets.
 import os
 import pathlib
 import time
+import shutil
 import warnings
 from itertools import count
 from typing import Any
@@ -91,8 +92,17 @@ class Olex2Socket(SocketRobot):
         self.wait_for_completion(2000, 'startup', cmd)
 
         if path.absolute().with_suffix(".ins").exists():
+            shutil.copy(
+                path.absolute().with_suffix(".ins"),
+                str(path.absolute().with_suffix("")) + "_moved.ins"
+            )
             path.absolute().with_suffix(".ins").unlink()
+
         if path.absolute().with_suffix(".hkl").exists():
+            shutil.copy(
+                path.absolute().with_suffix(".hkl"),
+                str(path.absolute().with_suffix("")) + "_moved.hkl"
+            )
             path.absolute().with_suffix(".hkl").unlink()
 
         load_cmds = [

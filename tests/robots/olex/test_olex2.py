@@ -40,8 +40,12 @@ def test_olex2_refine(tmp_path):
     Args:
     - tmp_path: A fixture provided by pytest for temporary directories.
     """
-    work_path = os.path.join(tmp_path, 'work.cif')
+    work_path = tmp_path / 'work.cif'
     shutil.copy('./tests/robots/olex/cif_files/refine_nonconv_nonHaniso.cif', work_path)
+
+    # create these files to check that loading works if they already exist
+    work_path.with_suffix('.hkl').touch()
+    work_path.with_suffix('.ins').touch()
 
     olex2 = Olex2Socket()
     olex2.structure_path = work_path

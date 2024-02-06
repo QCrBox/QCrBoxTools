@@ -13,7 +13,7 @@ from qcrboxtools.converters.cif.trim import (
 @pytest.mark.parametrize("name,keep_only_regexes,delete_regexes,expected", [
     ("_keep_this_entry", [r"_keep.*"], [r"_delete.*"], True),
     ("_delete_this_entry", [r"_keep.*"], [r"_delete.*"], False),
-    ("_ambiguous_entry", [r"_amb.*"], [r"_amb.*"], False),  # Fails both keep and delete
+    ("_ambiguous_entry", [r"_amb.*"], [r"_amb.*"], False),  # delete overwrites keep
     ("_keep_not_delete", [r"_keep.*"], [r"_not.*"], True)
 ])
 def test_keep_single_kw(name, keep_only_regexes, delete_regexes, expected):

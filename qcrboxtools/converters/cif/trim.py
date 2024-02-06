@@ -29,6 +29,7 @@ def trim_cif_file(
         The name of the block within the CIF file to trim.
     keep_only_regexes : List[str]
         Regex patterns specifying which entries to keep when any is fulfilled.
+        If empty, keep all entries.
     delete_regexes : List[str]
         Regex patterns specifying which entries to delete when any is fulfilled.
     delete_empty_entries : bool, optional
@@ -67,6 +68,7 @@ def keep_single_kw(
         The name of the CIF entry to evaluate.
     keep_only_regexes : List[str]
         Regex patterns specifying which entries to keep if any is fulfilled.
+        If empty, keep all entries.
     delete_regexes : List[str]
         Regex patterns specifying which entries to delete if any is fulfilled.
 
@@ -77,10 +79,12 @@ def keep_single_kw(
         delete condition, False otherwise.
 
     """
-
-    condition1 = any(
-        re.match(pattern, name) is not None for pattern in keep_only_regexes
-    )
+    if len(keep_only_regexes) == 0:
+        condition1 = True
+    else:
+        condition1 = any(
+            re.match(pattern, name) is not None for pattern in keep_only_regexes
+        )
 
     condition2 = all(
         re.match(pattern, name) is None for pattern in delete_regexes
@@ -105,7 +109,7 @@ def trim_cif_block(
     old_block : model.block
         The original CIF block to trim.
     keep_only_regexes : List[str]
-        Regex patterns specifying which entries to keep.
+        Regex patterns specifying which entries to keep. If empty, keep all entries.
     delete_regexes : List[str]
         Regex patterns specifying which entries to delete.
     delete_empty_entries : bool, optional

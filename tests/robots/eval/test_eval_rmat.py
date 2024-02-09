@@ -4,6 +4,7 @@
 import numpy as np
 
 from qcrboxtools.robots.eval import RmatFile
+from iotbx.cif import model
 
 rmat_content = """
 # Created by peakref (version 1.4 2021091400) at 16-Nov-2023 13:49:55
@@ -34,15 +35,15 @@ expected_cell = np.array([5.9899, 18.4723, 9.0827, 90.0000, 90.0000, 90.0000, 10
 expected_sigmacell = np.array([0.02070, 0.03351, 0.02659, 0.18847, 0.30094, 0.22203, 4.6500])
 
 cif_rmat_data = {
-    '_diffrn_orient_matrix.UB_11': 0.1600435,
-    '_diffrn_orient_matrix.UB_12': 0.0135282,
-    '_diffrn_orient_matrix.UB_13': 0.0149924,
-    '_diffrn_orient_matrix.UB_21': -0.0090313,
-    '_diffrn_orient_matrix.UB_22': -0.0167682,
-    '_diffrn_orient_matrix.UB_23': 0.1045150,
-    '_diffrn_orient_matrix.UB_31': 0.0466450,
-    '_diffrn_orient_matrix.UB_32': -0.0496632,
-    '_diffrn_orient_matrix.UB_33': -0.0312043
+    '_diffrn_orient_matrix.ub_11': 0.1600435,
+    '_diffrn_orient_matrix.ub_12': 0.0135282,
+    '_diffrn_orient_matrix.ub_13': 0.0149924,
+    '_diffrn_orient_matrix.ub_21': -0.0090313,
+    '_diffrn_orient_matrix.ub_22': -0.0167682,
+    '_diffrn_orient_matrix.ub_23': 0.1045150,
+    '_diffrn_orient_matrix.ub_31': 0.0466450,
+    '_diffrn_orient_matrix.ub_32': -0.0496632,
+    '_diffrn_orient_matrix.ub_33': -0.0312043
 }
 
 cif_cell_data = {
@@ -104,20 +105,33 @@ def test_to_cif_dict():
     for key, expected_value in cif_sigmacell_data.items():
         assert np.isclose(cif_dict[key], expected_value), f"CIF entry {key} does not match expected value"
 
-def test_from_cif_dict():
+def test_from_cif_dict_and_file(tmp_path):
     # Merge all CIF dictionaries
     complete_cif_dict = {**cif_rmat_data, **cif_cell_data, **cif_sigmacell_data, **cif_space_group_data}
 
-    rmat = RmatFile.from_cif_dict('test.rmat', complete_cif_dict)
+    # Create a cif file from the dict
+    block = model.block()
+    for name, entry in complete_cif_dict.items():
+        block.add_data_item(name, entry)
+    cif = model.cif()
+    cif['newblock'] = block
+    cif_path = tmp_path / 'test.cif'
+    cif_path.write_text(str(cif))
 
-    # Test RMAT values
-    assert np.allclose(rmat['RMAT'], expected_rmat), "RMAT values do not match expected CIF data"
+    # test for creation from dict or cif file
+    rmats = (
+        RmatFile.from_cif_dict('test.rmat', complete_cif_dict),
+        RmatFile.from_cif_file('test.rmat', cif_path)
+    )
+    for rmat in rmats:
+        # Test RMAT values
+        assert np.allclose(rmat['RMAT'], expected_rmat), "RMAT values do not match expected CIF data"
 
-    # Test CELL values
-    assert np.allclose(rmat['CELL'], expected_cell), "CELL values do not match expected CIF data"
+        # Test CELL values
+        assert np.allclose(rmat['CELL'], expected_cell), "CELL values do not match expected CIF data"
 
-    # Test SIGMACELL values
-    assert np.allclose(rmat['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
+        # Test SIGMACELL values
+        assert np.allclose(rmat['SIGMACELL'], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
 
 def test_to_rmat_file(tmp_path):
     rmat = RmatFile('test.rmat', rmat_content)

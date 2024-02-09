@@ -5,6 +5,7 @@ from itertools import product
 import re
 from typing import Union, List, Optional
 from pathlib import Path
+from iotbx.cif import reader, model
 
 import numpy as np
 
@@ -570,6 +571,30 @@ class RmatFile(RelativePathFile, dict):
         ]
         return '\n'.join(output)
 
+    def to_cif_file(
+        self,
+        cif_path: str,
+        block_name: str
+    ) -> None:
+        """
+        Writes a cif file from the data with the RMAT object.
+
+        Parameters
+        ----------
+        cif_path : str
+            Path of newly created cif file
+        block_name :
+            Name of data block within the cif file
+        """
+
+        cif = model.cif()
+        block = model.block()
+        for name, entry in self.to_cif_dict().items():
+            block.add_data_item(name, entry)
+        cif[block_name] = block
+        cif_path = Path(cif_path)
+        cif_path.write_text(str(cif), encoding='utf-8')
+
     def to_cif_dict(self) -> dict:
         """
         Converts the RMAT data to a dictionary in CIF format.
@@ -580,15 +605,15 @@ class RmatFile(RelativePathFile, dict):
             A dictionary containing the RMAT data in CIF format.
         """
         cif_dict = {
-            '_diffrn_orient_matrix.UB_11': self['RMAT'][0][0],
-            '_diffrn_orient_matrix.UB_12': self['RMAT'][0][1],
-            '_diffrn_orient_matrix.UB_13': self['RMAT'][0][2],
-            '_diffrn_orient_matrix.UB_21': self['RMAT'][1][0],
-            '_diffrn_orient_matrix.UB_22': self['RMAT'][1][1],
-            '_diffrn_orient_matrix.UB_23': self['RMAT'][1][2],
-            '_diffrn_orient_matrix.UB_31': self['RMAT'][2][0],
-            '_diffrn_orient_matrix.UB_32': self['RMAT'][2][1],
-            '_diffrn_orient_matrix.UB_33': self['RMAT'][2][2],
+            '_diffrn_orient_matrix.ub_11': self['RMAT'][0][0],
+            '_diffrn_orient_matrix.ub_12': self['RMAT'][0][1],
+            '_diffrn_orient_matrix.ub_13': self['RMAT'][0][2],
+            '_diffrn_orient_matrix.ub_21': self['RMAT'][1][0],
+            '_diffrn_orient_matrix.ub_22': self['RMAT'][1][1],
+            '_diffrn_orient_matrix.ub_23': self['RMAT'][1][2],
+            '_diffrn_orient_matrix.ub_31': self['RMAT'][2][0],
+            '_diffrn_orient_matrix.ub_32': self['RMAT'][2][1],
+            '_diffrn_orient_matrix.ub_33': self['RMAT'][2][2],
             '_space_group.centring_type': self['CENTRING']
         }
         if 'TMAT' in self:
@@ -631,7 +656,35 @@ class RmatFile(RelativePathFile, dict):
         return cif_dict
 
     @classmethod
-    def from_cif_dict(cls, filename: str, cif_dict: dict) -> 'RmatFile':
+    def from_cif_file(
+        cls,
+        rmat_filename: str,
+        cif_filename: str
+    ):
+        """
+        Creates an RmatFile instance from a CIF file.
+
+        Parameters
+        ----------
+        rmat_filename : str
+            The name for the RMAT file to create.
+        cif_filename : str
+            The name for the cif file to read from. Needs to use the
+            unified keywords.
+        cif_dict : dict
+            A dictionary containing CIF data.
+
+        Returns
+        -------
+        RmatFile
+            An instance of RmatFile created from the CIF dictionary.
+        """
+        cif = reader(str(cif_filename))
+        block = list(cif.model().values())[0]
+        return cls.from_cif_dict(rmat_filename, block)
+
+    @classmethod
+    def from_cif_dict(cls, rmat_filename: str, cif_dict: dict) -> 'RmatFile':
         """
         Creates an RmatFile instance from a CIF format dictionary.
 
@@ -647,14 +700,25 @@ class RmatFile(RelativePathFile, dict):
         RmatFile
             An instance of RmatFile created from the CIF dictionary.
         """
-        new = cls(filename)
+        new = cls(rmat_filename)
         new['RMAT'] = np.array(
             [
-                [cif_dict[f'_diffrn_orient_matrix.UB_{i}{j}'] for j in range(1,4)]
+                [float(cif_dict[f'_diffrn_orient_matrix.ub_{i}{j}']) for j in range(1,4)]
                 for i in range(1,4)
             ]
         )
-        new['CENTRING'] = cif_dict['_space_group.centring_type']
+        if '_space_group.centring_type' in cif_dict:
+            new['CENTRING'] = cif_dict['_space_group.centring_type']
+        else:
+            space_group_entries = (
+                '_space_group.name_h-m_alt', '_space_group.name_h-m_full', '_space_group.name_hall'
+            )
+            for entry in space_group_entries:
+                if entry in cif_dict:
+                    new['CENTRING'] = entry[0]
+                    break
+            else:
+                raise KeyError('No lattice centring found in cif (_space_group.centring_type)')
 
         tmat_entries = [
             f'_diffrn_reflns_transf_matrix.{i}{j}' for i, j in product(range(1,4), repeat=2)
@@ -663,7 +727,7 @@ class RmatFile(RelativePathFile, dict):
         if all(entry in cif_dict for entry in tmat_entries):
             new['TMAT'] = np.array(
                 [
-                    [cif_dict[f'_diffrn_reflns_transf_matrix.{i}{j}'] for j in range(1,4)]
+                    [float(cif_dict[f'_diffrn_reflns_transf_matrix.{i}{j}']) for j in range(1,4)]
                     for i in range(1,4)
                 ]
             )
@@ -676,9 +740,9 @@ class RmatFile(RelativePathFile, dict):
         )
 
         if all(entry in cif_dict for entry in cell_entries):
-            new['CELL'] = np.array([cif_dict[entry] for entry in cell_entries])
+            new['CELL'] = np.array([float(cif_dict[entry]) for entry in cell_entries])
 
         sigmacell_entries = tuple(entry + '_su' for entry in cell_entries)
         if all(entry in cif_dict for entry in sigmacell_entries):
-            new['SIGMACELL'] = np.array([cif_dict[entry] for entry in sigmacell_entries])
+            new['SIGMACELL'] = np.array([float(cif_dict[entry]) for entry in sigmacell_entries])
         return new

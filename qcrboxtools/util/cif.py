@@ -9,10 +9,11 @@ It includes functionalities such as:
 - Extracting numerical values and estimated standard uncertainties (sus) from formatted CIF strings.
 - Replacing the structure block of a CIF file with another.
 """
-
+from itertools import product
 from pathlib import Path
 import re
-from typing import Union, Tuple, Iterable, Optional, List
+from collections import defaultdict
+from typing import Union, Tuple, Iterable, Optional, List, Dict
 
 from iotbx import cif
 import numpy as np
@@ -51,7 +52,7 @@ def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
     return cif.reader(input_string=cif_content).model()
 
 
-def cifdata_str_or_index(model: cif.model.cif, dataset: [int, str]) -> cif.model.block:
+def cifdata_str_or_index(model: cif.model.cif, dataset: Union[int, str]) -> cif.model.block:
     """
     Retrieve a CIF dataset block from the model using an index or identifier.
 
@@ -503,3 +504,233 @@ def single_value_iso2aniso(
     u23 = uiso * cos_alpha_star
 
     return uiso, uiso, uiso, u12, u13, u23
+
+class NonMatchingMergeKeys(Exception):
+    """
+    Exception raised when the keys intended for merging in CIF loops do not match.
+    """
+
+class NonExistingMergeKey(Exception):
+    """
+    Exception raised when no matching keys are found for merging in CIF loops.
+    """
+
+def loop_to_row_dict(
+    loop: cif.model.loop,
+    merge_keys: Tuple[str]
+) -> Dict[Tuple, Dict[str, str]]:
+    """
+    Convert a CIF loop to a dictionary with keys as tuples of merge key values and
+    values as dictionaries of non-merge key-value pairs.
+
+    Parameters
+    ----------
+    loop : cif.model.loop
+        The CIF loop to be converted.
+    merge_keys : Tuple[str]
+        A tuple of strings representing the keys on which to merge.
+
+    Returns
+    -------
+    Dict[Tuple, Dict[str, str]]
+        A dictionary where each key is a tuple of values from the merge keys, and
+        each value is a dictionary of non-merge key-value pairs, with default values
+        as '?' for missing entries.
+
+    Notes
+    -----
+    This function is a helper intended to facilitate merging CIF loops based on
+    specified keys. It organizes loop data for easy comparison and merging.
+    """
+    keys = (tuple(vals) for vals in zip(*(loop[key] for key in merge_keys)))
+    nonmerge_keys = [key for key in loop.keys() if key not in merge_keys]
+
+    values = [
+        defaultdict(
+            lambda: '?',
+            [(key, val) for key, val in zip(nonmerge_keys, row_vals)]
+        )
+        for row_vals in zip(*(loop[key] for key in nonmerge_keys))
+    ]
+    return dict(zip(keys, values))
+
+def merge_cif_loops(
+    loop1: cif.model.loop,
+    loop2: cif.model.loop,
+    merge_on: Union[str, List[str]]=r'*\.label'
+) -> cif.model.loop:
+    """
+    Merge two CIF loops based on matching keys specified by `merge_on`.
+
+    Parameters
+    ----------
+    loop1 : cif.model.loop
+        The first CIF loop to merge.
+    loop2 : cif.model.loop
+        The second CIF loop to merge.
+    merge_on : Union[str, List[str]], optional
+        A string or list of strings representing the regex patterns of keys on
+        which the loops should be merged. Defaults to r'*\\.label' to match any
+        key ending with '.label'.
+
+    Returns
+    -------
+    cif.model.loop
+        A new CIF loop that is the result of merging `loop1` and `loop2` based
+        on the specified `merge_on` keys. Missing values are filles with '?'.
+
+    Raises
+    ------
+    NonExistingMergeKey
+        If no keys match the `merge_on` pattern in either loop.
+    NonMatchingMergeKeys
+        If the keys found to merge on do not have a one-to-one correspondence
+        between the two loops.
+    """
+    if isinstance(merge_on, str):
+        merge_on = [merge_on]
+
+    merge_keys = [
+        key for key in loop1.keys()
+        if any(re.match(pattern, key) is not None for pattern in merge_on)
+    ]
+    merge_keys_check = [
+        key for key in loop2.keys()
+        if any(re.match(pattern, key) is not None for pattern in merge_on)
+    ]
+
+    keys_identical = all(
+        key1 == key2 for key1, key2 in zip(sorted(merge_keys), sorted(merge_keys_check))
+    )
+
+    if len(merge_keys) == 0 and len(merge_keys_check) == 0:
+        raise NonExistingMergeKey('No matching keys found for merging.')
+
+    equal_number_keys = len(merge_keys) == len(merge_keys_check)
+    if not (keys_identical and equal_number_keys):
+        raise NonMatchingMergeKeys(
+            ('Found keys for matching loop are not identical. '
+             + f'loop1:{sorted(merge_keys)} loop2:{sorted(merge_keys_check)}'
+            )
+        )
+
+    start_dict = loop_to_row_dict(loop1, merge_keys)
+    add_dict = loop_to_row_dict(loop2, merge_keys)
+
+    for merge_key, inner_dict in add_dict.items():
+        if merge_key not in start_dict:
+            start_dict[merge_key] = inner_dict
+        else:
+            start_dict[merge_key].update(inner_dict)
+
+    new_dict = {key: val for key, val in zip(merge_keys, zip(*start_dict.keys()))}
+    nonmerge_keys = set(
+        [key for key in loop1.keys() if key not in merge_keys]
+        + [key for key in loop2.keys() if key not in merge_keys]
+    )
+
+    nonmerge_columns = zip(*[[row[key] for key in nonmerge_keys] for row in start_dict.values()])
+    non_merge_dict = {key: val for key, val in zip(nonmerge_keys, nonmerge_columns)}
+    new_dict.update(non_merge_dict)
+
+    return cif.model.loop(data=new_dict)
+
+class NonUniqueBlockMerging(Exception):
+    """
+    Exception raised when a CIF block's loops are attempted to be merged more
+    than once with different loops.
+    """
+
+MERGE_CIF_DEFAULT = 1
+
+def merge_cif_blocks(
+    block1: cif.model.block,
+    block2: cif.model.block,
+    possible_markers: Union[int, List[str], str] = MERGE_CIF_DEFAULT
+) -> cif.model.block:
+    """
+    Merge two CIF blocks by attempting to merge their loops based on specified key patterns.
+
+    This function iterates over loops within each block, merging them based on regex patterns
+    defined in `possible_markers`. It aims to create a unified block from two sources, handling
+    key mismatches or overlaps as specified. Unmergeable loops due to key discrepancies are skipped.
+
+    Parameters
+    ----------
+    block1 : cif.model.block
+        The first CIF block to merge.
+    block2 : cif.model.block
+        The second CIF block to merge. Values take precedence over block1.
+    possible_markers : Union[int, List[str], str], optional
+        A list of regex patterns, a single regex pattern for keys to merge loops on, or an integer
+        flag to use a default set of markers. Defaults to MERGE_CIF_DEFAULT, applying a default
+        set of patterns.
+
+    Returns
+    -------
+    cif.model.block
+        A new CIF block that results from merging `block1` and `block2`.
+
+    Raises
+    ------
+    NonUniqueBlockMerging
+        If a loop within either block is merged more than once with different loops, indicating
+        a conflict in merging criteria or an attempt to merge non-unique loops.
+    """
+
+    if possible_markers == MERGE_CIF_DEFAULT:
+        possible_markers = [r'.*\.id', r'.*.label_?\d*', r'.*_refln\.index.*', r'_atom_type\.symbol']
+    if isinstance(possible_markers, str):
+        possible_markers = [possible_markers]
+    # merge blocks
+    used_loops1 = []
+    used_loops2 = []
+    new_loops = {}
+    entry2loop_name = {}
+    iter_product = product(block1.loops.items(), block2.loops.items(), possible_markers)
+    for (loop1_name, loop1), (loop2_name, loop2), marker in iter_product:
+        try:
+            merged_loop = merge_cif_loops(loop1, loop2, merge_on=marker)
+            if loop1_name in used_loops1:
+                raise NonUniqueBlockMerging(
+                    (f'loop1: {loop1_name} merged at least twice. '
+                     + f'Second merge with {loop2_name} of block2')
+                )
+            if loop2_name in used_loops2:
+                raise NonUniqueBlockMerging(
+                    (f'loop2: {loop2_name} merged at least twice. '
+                     + f'Second merge with {loop1_name} of block1')
+                )
+            used_loops1.append(loop1_name)
+            used_loops2.append(loop2_name)
+            entry2loop_name.update({entry: merged_loop.name for entry in merged_loop.keys()})
+            new_loops[merged_loop.name] = merged_loop
+        except (NonExistingMergeKey, NonMatchingMergeKeys):
+            pass
+    for block, used_loops in zip((block1, block2), (used_loops1, used_loops2)):
+        missing_loops = [name for name in block.loops.keys() if name not in used_loops]
+        for name in missing_loops:
+            new_loops[name] = block.loops[name]
+            entry2loop_name.update({entry: name for entry in block.loops[name].keys()})
+
+    merged_block = cif.model.block()
+
+    for entry in block1.keys():
+        if entry in entry2loop_name:
+            new_loop = new_loops[entry2loop_name[entry]]
+            if new_loop is not None:
+                merged_block.add_loop(new_loop)
+                new_loops[entry2loop_name[entry]] = None
+        else:
+            merged_block.add_data_item(entry, block1[entry])
+
+    for entry in block2.keys():
+        if entry in entry2loop_name:
+            new_loop = new_loops[entry2loop_name[entry]]
+            if new_loop is not None:
+                merged_block.add_loop(new_loop)
+                new_loops[entry2loop_name[entry]] = None
+        else:
+            merged_block.add_data_item(entry, block2[entry])
+
+    return merged_block

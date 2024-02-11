@@ -1,0 +1,100 @@
+data_test_entry_1
+_space_group.name_h-m_alt        'P 1'
+_cell.length_a                    10.0
+_cell.length_b                    10.0
+_cell.length_c                    10.0
+_cell.angle_alpha                 90
+_cell.angle_beta                  90
+_cell.angle_gamma                 90
+loop_
+_space_group_symop.id
+_space_group_symop.operation_xyz
+_space_group_symop.test_entry
+1 'x, y, z' 'copy this'
+
+loop_
+_diffrn_refln.index_h
+_diffrn_refln.index_k
+_diffrn_refln.index_l
+_diffrn_refln.intensity_net
+_diffrn_refln.intensity_u
+1 0 0 100 0.01
+0 1 0 150 0.02
+0 0 1 200 0.03
+1 1 0 250 0.04
+
+loop_
+  _atom_site_aniso.label
+  _atom_site_aniso.u_23
+  _atom_site_aniso.u_13
+  _atom_site_aniso.u_12
+  Si1     0.00296(17)  0.00221(17)  -0.00202(17)
+  C1      0.0014(6)    0.0019(6)    -0.0010(6)
+  C2      0.0001(6)    0.0041(6)    -0.0016(6)
+
+loop_
+  _geom_bond.atom_site_label_1
+  _geom_bond.atom_site_label_2
+  _geom_bond.distance
+  _geom_bond.site_symmetry_2
+  _geom_bond.publ_flag
+  Si1  C11  2.3048(18)  .  ?
+  Si1  C3   2.3093(17)  .  ?
+  Si1  C15  2.3465(18)  .  ?
+  Si1  C4   2.3929(17)  .  ?
+
+data_test_entry_2
+_cell.length_a                    10.0
+_cell.length_b                    10.0
+_cell.length_c                    12.0
+_cell.angle_alpha                 90
+_cell.angle_beta                  90
+_cell.angle_gamma                 90
+_cell.volume                      1200.0
+loop_
+_space_group_symop.id
+_space_group_symop.operation_xyz
+1 'x, y, z'
+
+# Adding _diffrn_refln loop with unique entries
+loop_
+_diffrn_refln.index_h
+_diffrn_refln.index_k
+_diffrn_refln.index_l
+_diffrn_refln.intensity_net
+_diffrn_refln.intensity_u
+_diffrn_refln.test_column
+2 0 0 300 0.05 11
+0 2 0 350 0.06 22
+0 0 2 400 0.07 33
+1 2 0 450 0.08 44
+1 1 0 250 0.04 55
+
+loop_
+  _atom_site.label
+  _atom_site.type_symbol
+  _atom_site.fract_x
+  _atom_site.fract_y
+  _atom_site.fract_z
+  _atom_site.u_iso_or_equiv
+  _atom_site.adp_type
+  _atom_site.occupancy
+  _atom_site.site_symmetry_order
+  _atom_site.calc_flag
+  _atom_site.refinement_flags_posn
+  _atom_site.refinement_flags_adp
+  _atom_site.refinement_flags_occupancy
+  _atom_site.disorder_assembly
+  _atom_site.disorder_group
+  Si1   Si  0.58426(2)   0.34590(6)   0.67211(2)  0.01777(11)  Uani        1  1  d     .  .  .  .  .
+  C1    C   0.65507(6)    0.2951(2)   0.76615(7)    0.0196(3)  Uani        1  1  d     .  .  .  .  .
+  C2    C   0.66480(6)    0.3931(2)   0.72178(7)    0.0186(3)  Uani        1  1  d     .  .  .  .  .
+
+loop_
+  _atom_site_aniso.label
+  _atom_site_aniso.u_11
+  _atom_site_aniso.u_22
+  _atom_site_aniso.u_33
+  Si1   0.0172(2)   0.0191(2)   0.0148(2)
+  C1    0.0214(8)   0.0200(8)   0.0144(7)
+  C2    0.0206(8)   0.0175(8)   0.0163(7)

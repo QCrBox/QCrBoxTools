@@ -653,7 +653,7 @@ def merge_cif_blocks(
 
     This function iterates over loops within each block, merging them based on regex patterns
     defined in `possible_markers`. It aims to create a unified block from two sources, handling
-    key mismatches or overlaps as specified. Unmergeable loops due to key discrepancies are skipped.
+    key mismatches or overlaps as specified.
 
     Parameters
     ----------
@@ -734,3 +734,65 @@ def merge_cif_blocks(
             merged_block.add_data_item(entry, block2[entry])
 
     return merged_block
+
+def merge_cif_files(
+    cif_path: Union[str, Path],
+    block_name: str,
+    cif_path2: Union[str, Path],
+    block_name2: str,
+    output_path: Union[str, Path],
+    output_block_name: str,
+    possible_markers: Union[int, List[str], str]=MERGE_CIF_DEFAULT
+):
+    """
+    Merges two specified blocks from two Crystallographic Information File (CIF)
+    paths into a single block, and writes the result to a new CIF file.
+
+    This function reads two CIF files, extracts specified blocks from each,
+    merges these blocks based on common indices or specified markers, and
+    writes the merged block to a new CIF file with a specified block name.
+    The identification and extraction of blocks are flexible, allowing by name
+    or by index if the block name is not found. The merging process respects
+    specified markers to align columns and rows from two different blocks
+    of CIF data. The output is a new CIF file with the merged block.
+
+    Parameters
+    ----------
+    cif_path : Union[str, Path]
+        Path to the first CIF file.
+    block_name : str
+        Name or index of the block to extract from the first CIF file.
+        If block_name is not present in the CIF file, the function will
+        attempt to call it into an integer to select by index.
+    cif_path2 : Union[str, Path]
+        Path to the second CIF file.
+    block_name2 : str
+        Name or index of the block to extract from the second CIF file.
+        If block_name2 is not present in the CIF file, the function will
+        attempt to call it into an integer to select by index.
+    output_path : Union[str, Path]
+        Path for the output CIF file containing the merged block.
+    output_block_name : str
+        Name for the block in the output CIF file.
+    possible_markers : Union[int, List[str], str], optional
+        Regex marker(s) to use for merging the blocks. If not specified,
+        uses a default set of markers or an index.
+    """
+    model1 = read_cif_safe(cif_path)
+    if block_name in model1:
+        block1 = model1[block_name]
+    else:
+        block1, _ = cifdata_str_or_index(model1, int(block_name))
+
+    model2 = read_cif_safe(cif_path2)
+    if block_name2 in model2:
+        block2 = model2[block_name2]
+    else:
+        block2, _ = cifdata_str_or_index(model2, int(block_name2))
+
+    output_block = merge_cif_blocks(block1, block2, possible_markers)
+
+    output_cif = cif.model.cif()
+    output_cif[output_block_name] = output_block
+
+    Path(output_path).write_text(str(output_cif), encoding='UTF-8')

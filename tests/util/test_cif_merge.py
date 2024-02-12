@@ -5,7 +5,7 @@ import pytest
 from typing import Dict, List
 
 from qcrboxtools.util.cif import (
-    merge_cif_loops, NonExistingMergeKey, NonMatchingMergeKeys, merge_cif_blocks
+    merge_cif_loops, NonExistingMergeKey, NonMatchingMergeKeys, merge_cif_blocks, merge_cif_files
 )
 from iotbx import cif
 
@@ -61,24 +61,42 @@ def test_merge_block_conflicts():
 
     merged_block = merge_cif_blocks(*cif_obj.values())
 
-    # test unique block 1 copied
-    assert list(merged_block['_atom_site.label']) == ['Si1', 'C1', 'C2']
+    assert list(merged_block['_atom_site.label']) == ['Si1', 'C1', 'C2'], "Unique block 1 atom_site.label not correctly copied"
+    assert '?' not in list(merged_block['_atom_site_aniso.u_11']), "atom_site_aniso not correctly merged from both blocks"
+    assert '?' not in list(merged_block['_atom_site_aniso.u_23']), "atom_site_aniso not correctly merged from both blocks"
+    assert list(merged_block['_diffrn_refln.test_column']).count('?') == 3, "Unknown values in diffrn_refln.test_column not filled as expected"
+    assert merged_block['_space_group_symop.test_entry'][0] == 'copy this', "Additional value from block1 (merged by .id) not present"
+    assert float(merged_block['_cell.length_c']) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
+    assert float(merged_block['_cell.volume']) == 1200.0, "Block2's unique value cell.volume not copied as expected"
+    assert merged_block['_space_group.name_h-m_alt'] == 'P 1', "Block1's unique value space_group.name_h-m_alt not correctly copied"
 
-    # atom_site_aniso successfully merged from both blocks (merged by .label)
-    assert '?' not in list(merged_block['_atom_site_aniso.u_11'])
-    assert '?' not in list(merged_block['_atom_site_aniso.u_23'])
 
-    # test filling of unknown values (merged by refln.index)
-    assert list(merged_block['_diffrn_refln.test_column']).count('?') == 3
+def test_merge_cif_files(tmp_path):
+    # Define the path to the original CIF file for input
+    cif_path = './tests/util/cif_files/merge_me.cif'
+    # Define a temporary output path using tmp_path
+    output_path = tmp_path / "output_merged.cif"
 
-    # test additional value from block1 (merged by .id)
-    assert merged_block['_space_group_symop.test_entry'][0] == 'copy this'
+    # Execute the merging function with block indices
+    merge_cif_files(
+        cif_path=cif_path,
+        block_name='0',  # Assuming the first block is selected by index
+        cif_path2=cif_path,
+        block_name2='1',  # Assuming the second block is selected by index
+        output_path=output_path,
+        output_block_name='merged_block'
+    )
 
-    # test block2 overwrites block1
-    assert float(merged_block['_cell.length_c']) == 12.0
+    # Read the output CIF to verify results
+    merged_cif = cif.reader(str(output_path)).model()
+    merged_block = merged_cif['merged_block']
 
-    # test block2 alone copied
-    assert float(merged_block['_cell.volume']) == 1200.0
-
-    # test block1 alone copied
-    assert merged_block['_space_group.name_h-m_alt'] == 'P 1'
+    # Perform assertions to verify correct merging
+    assert list(merged_block['_atom_site.label']) == ['Si1', 'C1', 'C2'], "Unique block 1 atom_site.label not correctly copied"
+    assert '?' not in list(merged_block['_atom_site_aniso.u_11']), "atom_site_aniso not correctly merged from both blocks"
+    assert '?' not in list(merged_block['_atom_site_aniso.u_23']), "atom_site_aniso not correctly merged from both blocks"
+    assert list(merged_block['_diffrn_refln.test_column']).count('?') == 3, "Unknown values in diffrn_refln.test_column not filled as expected"
+    assert merged_block['_space_group_symop.test_entry'][0] == 'copy this', "Additional value from block1 (merged by .id) not present"
+    assert float(merged_block['_cell.length_c']) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
+    assert float(merged_block['_cell.volume']) == 1200.0, "Block2's unique value cell.volume not copied as expected"
+    assert merged_block['_space_group.name_h-m_alt'] == 'P 1', "Block1's unique value space_group.name_h-m_alt not correctly copied"

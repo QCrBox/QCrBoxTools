@@ -616,7 +616,7 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
     Attributes
     ----------
     work_folder : Path
-        The working directory where the 'builddatcol' command will be executed.
+        The working directory where the 'builddatcol' command will be or has been executed.
     """
     def create_datcol_files(
         self,
@@ -695,6 +695,51 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
         rmat_file.to_file(self.work_folder)
 
         self._run_program_with_commands('builddatcol', [''] * 10)
+
+    def extract_vars(self) -> Dict[str, Union[float, int]]:
+        """
+        Extracts parameters from the 'datcolsetup.vic' file in the working directory.
+
+        Parses the configuration file used by 'builddatcol' to retrieve parameters
+        related to the data collection setup, such as resolution limits, box size,
+        box depth, maximum duration, and minimum reflections in a box.
+
+        Returns
+        -------
+        Dict[str, Union[float, int]]
+            A dictionary containing the extracted parameters with their values.
+            The keys correspond to parameter names such as 'minimum_res', 'maximum_res',
+            'box_size', 'box_depth', 'maximum_duration', and 'min_refln_in_box',
+            with their values cast to the appropriate types (float or int).
+
+        Raises
+        ------
+        KeyError
+            If any expected parameter is not found in the 'datcolsetup.vic' file,
+            indicating a potential issue with file content or format.
+        """
+
+        datcolsetup = self.work_folder / 'datcolsetup.vic'
+        content = datcolsetup.read_text()
+        searches = (
+            ('minimum_res', 'resomin', float),
+            ('maximum_res', 'resomax', float),
+            ('box_size', 'boxsizemm', float),
+            ('box_depth', 'boxdepth', int),
+            ('maximum_duration', 'durationmax', float),
+            ('min_refln_in_box', 'boxrefl', float)
+        )
+        results = {}
+        number_pattern = r'(\d+\.?\d*)'
+        for name, internal_name, output_type in searches:
+            search_pattern = rf'{internal_name}\s+{number_pattern}'
+            search = re.search(search_pattern, content)
+            if search is None:
+                raise KeyError(f'Could not find {name}/{internal_name} in datcolsetup.vic')
+            results[name] = output_type(search.group(1))
+
+        return results
+
 
 class EvalBuildeval15Robot(EvalBaseRobot):
     """

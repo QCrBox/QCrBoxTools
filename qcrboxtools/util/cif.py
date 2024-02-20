@@ -68,10 +68,23 @@ def cifdata_str_or_index(model: cif.model.cif, dataset: Union[int, str]) -> cif.
     Tuple[cif.model.block, str]
         The CIF dataset block and its identifier.
     """
-    if isinstance(dataset, int):
+    if dataset in model.keys():
+        return model[dataset], dataset
+    try:
+        dataset_index = int(dataset)
         keys = list(model.keys())
-        dataset = keys[dataset]
-    return model[dataset], dataset
+        dataset = keys[dataset_index]
+        return model[dataset], dataset
+    except ValueError as exc:
+        raise ValueError(
+            'Dataset does not exist in cif and cannot be cast into int as index. '
+            + f'Got: {dataset}'
+        ) from exc
+    except IndexError as exc:
+        raise IndexError(
+            'The given dataset does not exists and integer index is out of range'
+            + f'. Got: {dataset}'
+        ) from exc
 
 
 def split_su_single(input_string: str) -> Tuple[float, float]:

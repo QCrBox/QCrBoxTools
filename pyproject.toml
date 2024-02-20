@@ -8,7 +8,7 @@ authors = [
   { name="Paul Niklas Ruth", email="paul.n.ruth@durham.ac.uk" },
 ]
 description = "Provide crystallographic functionality needed in QCrBox. This is file conversion, execution of programs and other common functionality. Is not itself dependent on QCrBox."
-version = "0.0.4"
+version = "0.0.5"
 readme = "README.md"
 requires-python = ">=3.9"
 License-File = "LICENSE"

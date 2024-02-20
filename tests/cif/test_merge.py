@@ -2,12 +2,15 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import pytest
+from pathlib import Path
 from typing import Dict, List
 
 from qcrboxtools.cif.merge import (
     merge_cif_loops, NonExistingMergeKey, NonMatchingMergeKeys, merge_cif_blocks, merge_cif_files
 )
 from iotbx import cif
+
+test_file_path = Path('./tests/cif/cif_files')
 
 @pytest.fixture
 def loop1():
@@ -57,7 +60,7 @@ def test_merge_non_identical_keys(loop1, loop2):
 
 
 def test_merge_block_conflicts():
-    cif_obj = cif.reader('./tests/util/cif_files/merge_me.cif').model()
+    cif_obj = cif.reader(str(test_file_path/ 'merge_me.cif')).model()
 
     merged_block = merge_cif_blocks(*cif_obj.values())
 
@@ -73,7 +76,7 @@ def test_merge_block_conflicts():
 
 def test_merge_cif_files(tmp_path):
     # Define the path to the original CIF file for input
-    cif_path = './tests/util/cif_files/merge_me.cif'
+    cif_path = test_file_path/ 'merge_me.cif'
     # Define a temporary output path using tmp_path
     output_path = tmp_path / "output_merged.cif"
 

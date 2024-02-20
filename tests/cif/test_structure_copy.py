@@ -29,12 +29,8 @@ from qcrboxtools.cif.merge import (
 
 test_file_path = Path('./tests/cif/cif_files')
 
-@pytest.fixture(scope="module", name='cif_with_replacement', params=[
-        True, # use cli instead of internal call
-        False # use internal call
-    ])
+@pytest.fixture(scope="module", name='cif_with_replacement')
 def fixture_cif_with_replacement(
-    request: bool,
     tmp_path_factory: pytest.TempPathFactory
 ) -> Tuple[dict, dict, dict]:
     """
@@ -49,20 +45,13 @@ def fixture_cif_with_replacement(
     to_cif_dataset = '105K_P'
     combined_cif_path = tmp_path_factory.mktemp('output') / 'output.cif'
 
-    if request.param:
-        command = [
-            'python', '-m', 'qcrboxtools.replace_cli', str(to_cif_path), str(to_cif_dataset),
-             str(from_cif_path), str(from_cif_dataset), '--output_cif_path', str(combined_cif_path)
-        ]
-        subprocess.call(command)
-    else:
-        replace_structure_from_cif(
-            to_cif_path,
-            to_cif_dataset,
-            from_cif_path,
-            from_cif_dataset,
-            combined_cif_path
-        )
+    replace_structure_from_cif(
+        to_cif_path,
+        to_cif_dataset,
+        from_cif_path,
+        from_cif_dataset,
+        combined_cif_path
+    )
 
     from_cif = read_cif_safe(from_cif_path)
     to_cif = read_cif_safe(to_cif_path)

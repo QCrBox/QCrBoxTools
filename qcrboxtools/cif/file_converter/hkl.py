@@ -4,11 +4,12 @@
 """
 This module provides utilities for the conversion of CIF data to the SHELX HKL format
 """
+from typing import Union
 
 import numpy as np
 from iotbx import cif
 
-from ...util.cif import cifdata_str_or_index
+from ..merge import cifdata_str_or_index
 
 
 def format_floats(val: float) -> str:
@@ -27,7 +28,7 @@ def format_floats(val: float) -> str:
         return f' {val:.8f}'[:8]
 
 
-def cif2hkl4(cif_path: str, cif_dataset: [int, str], hkl_path: str) -> None:
+def cif2hkl4(cif_path: str, cif_dataset: Union[int, str], hkl_path: str) -> None:
     """
     Convert CIF data to the HKL format and save to the specified file path.
 

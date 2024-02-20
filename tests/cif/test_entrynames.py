@@ -1,10 +1,10 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
-from qcrboxtools.converters.cif.entry_conversion import (
-    to_unified_keywords, to_unified_name, to_unified_kw_block,
-    to_requested_kw_block, unified_to_requested_keywords
+from qcrboxtools.cif.entries import (
+    cif_to_unified_keywords, entry_to_unified_keyword, block_to_unified_keywords,
+    block_to_requested_keywords, cif_to_requested_keywords
 )
-from qcrboxtools.converters.cif.entry_check import cif_entries_present
+from qcrboxtools.cif.entries import cif_entries_present
 
 import pytest
 from iotbx.cif import model
@@ -14,13 +14,13 @@ def test_to_unified_name():
     custom_categories = ['iucr', 'olex2', 'shelx']
 
     # Test with a name that should be converted using custom categories
-    assert to_unified_name('_iucr_entry_example', custom_categories) == '_iucr.entry_example'
+    assert entry_to_unified_keyword('_iucr_entry_example', custom_categories) == '_iucr.entry_example'
 
     # Test with a name that should fall back to the alias mechanism
-    assert to_unified_name('_journal_date_accepted', custom_categories) == '_journal_date.accepted'
+    assert entry_to_unified_keyword('_journal_date_accepted', custom_categories) == '_journal_date.accepted'
 
     # Test with a name that does not match custom categories or aliases
-    assert to_unified_name('_unmatched_entry', custom_categories) == '_unmatched_entry'
+    assert entry_to_unified_keyword('_unmatched_entry', custom_categories) == '_unmatched_entry'
 
 @pytest.fixture
 def custom_categories():
@@ -43,8 +43,8 @@ def mock_old_block():
 
     return block
 
-def test_to_unified_kw_block(mock_old_block, custom_categories):
-    converted_block = to_unified_kw_block(mock_old_block, custom_categories)
+def test_block_to_unified_keywords(mock_old_block, custom_categories):
+    converted_block = block_to_unified_keywords(mock_old_block, custom_categories)
 
     # Verify that the block is a CIF block object
     assert isinstance(converted_block, model.block), "The returned object is not a CIF block."
@@ -65,12 +65,12 @@ def mock_cif(mock_old_block):
     cif['block_2'] = mock_old_block.copy()  # Assuming a copy method or similar functionality
     return cif
 
-def test_to_unified_keywords(mock_cif, custom_categories):
+def test_cif_to_unified_keywords(mock_cif, custom_categories):
     """
-    Test to ensure that `to_unified_keywords` correctly converts all blocks within
+    Test to ensure that `cif_to_unified_keywords` correctly converts all blocks within
     a CIF file using the specified custom categories.
     """
-    unified_cif = to_unified_keywords(mock_cif, custom_categories)
+    unified_cif = cif_to_unified_keywords(mock_cif, custom_categories)
 
     # Verify that the CIF object contains the same number of blocks as the mock CIF
     assert len(unified_cif) == len(mock_cif), "The number of blocks in the unified CIF does not match the original."
@@ -106,22 +106,22 @@ def unified_block():
 
     return block
 
-#def test_to_requested_kw_block(unified_block, custom_categories):
+#def test_block_to_requested_keywords(unified_block, custom_categories):
 #    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry1']
 #
-#    converted_block = to_requested_kw_block(unified_block, requested_entries, custom_categories)
+#    converted_block = block_to_requested_keywords(unified_block, requested_entries, custom_categories)
 #
 #    # Ensure all requested entries are present in the converted block
 #    for entry_name in requested_entries:
 #        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
 
 
-def test_to_requested_kw_block(unified_block, custom_categories):
+def test_block_to_requested_keywords(unified_block, custom_categories):
     requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
     optional_entries = ['_nonexistent_entry', 'mock_entry']
 
     # Attempt conversion with a non-existent entry marked as optional
-    converted_block = to_requested_kw_block(unified_block, requested_entries, optional_entries, custom_categories)
+    converted_block = block_to_requested_keywords(unified_block, requested_entries, optional_entries, custom_categories)
 
     # Ensure all non-optional requested entries are present in the converted block
     for entry_name in requested_entries:
@@ -141,12 +141,12 @@ def unified_cif(unified_block):
     cif['test_block'] = unified_block
     return cif
 
-def test_unified_to_requested_keywords(unified_cif, custom_categories):
+def test_cif_to_requested_keywords(unified_cif, custom_categories):
     requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
     optional_entries = ['_nonexistent_entry', 'mock_entry']
 
-    # Convert using unified_to_requested_keywords
-    new_cif = unified_to_requested_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
+    # Convert using cif_to_requested_keywords
+    new_cif = cif_to_requested_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
 
     # Ensure that each block in the new CIF contains only the requested entries
     for _, block in new_cif.items():

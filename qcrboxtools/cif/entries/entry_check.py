@@ -5,7 +5,7 @@ from typing import List
 
 from iotbx.cif import model
 
-from .entry_conversion import to_unified_name, to_unified_kw_block
+from .entry_conversion import entry_to_unified_keyword, block_to_unified_keywords
 
 def cif_entries_present(
     block: model.block,
@@ -32,11 +32,11 @@ def cif_entries_present(
     bool
         True if all entries are present in the unified block, False otherwise.
     """
-    unified_block = to_unified_kw_block(
+    unified_block = block_to_unified_keywords(
         block,
         custom_categories
     )
 
-    unified_entries = [to_unified_name(entry, custom_categories) for entry in cif_entries]
+    unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in cif_entries]
 
     return all(entry in unified_block for entry in unified_entries)

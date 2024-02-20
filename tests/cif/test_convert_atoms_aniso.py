@@ -5,10 +5,11 @@ from pathlib import Path
 
 import pytest
 import numpy as np
-from qcrboxtools.util.cif import (
+from qcrboxtools.cif.iso2aniso import (
     read_cif_safe, cif_iso2aniso, single_value_iso2aniso, split_su_single, cifdata_str_or_index
 )
 
+test_file_path = Path('./tests/cif/cif_files')
 
 @pytest.mark.parametrize("uiso, expected", [
     (0.040, (0.040, 0.040, 0.040, -0.000, 0.007, -0.000)),
@@ -39,7 +40,7 @@ def uiso_matches_uaniso(atom_name, block):
     assert block['_atom_site.adp_type'][uiso_index] == 'Uani'
 
 def test_cif_iso2aniso_byname(tmp_path):
-    input_cif_path = Path('./tests/util/cif_files/iso2aniso.cif')
+    input_cif_path = test_file_path / 'iso2aniso.cif'
     output_path = tmp_path / 'output.cif'
     cif_dataset = 0
     #only replace H1a
@@ -53,7 +54,7 @@ def test_cif_iso2aniso_byname(tmp_path):
     assert all(label not in aniso_labels for label in ('H2b', 'H3a', 'H3b'))
 
 def test_cif_iso2aniso_byelement(tmp_path):
-    input_cif_path = Path('./tests/util/cif_files/iso2aniso.cif')
+    input_cif_path = test_file_path / 'iso2aniso.cif'
     output_path = tmp_path / 'output.cif'
     cif_dataset = 0
     #replace all H
@@ -65,7 +66,7 @@ def test_cif_iso2aniso_byelement(tmp_path):
         uiso_matches_uaniso(atom_name, block)
 
 def test_cif_iso2aniso_byregex(tmp_path):
-    input_cif_path = Path('./tests/util/cif_files/iso2aniso.cif')
+    input_cif_path = test_file_path / 'iso2aniso.cif'
     output_path = tmp_path / 'output.cif'
     cif_dataset = 0
     #replace H*b

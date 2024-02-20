@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from iotbx.cif import model, reader
 
-from qcrboxtools.converters.cif.trim import (
+from qcrboxtools.cif.trim import (
     keep_single_kw, trim_cif_block, trim_cif_file
 )
 

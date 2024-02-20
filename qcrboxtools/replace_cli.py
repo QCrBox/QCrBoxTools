@@ -21,7 +21,7 @@ appropriate parameters.
 
 import argparse
 
-from .util.cif import replace_structure_from_cif
+from .cif.merge import replace_structure_from_cif
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

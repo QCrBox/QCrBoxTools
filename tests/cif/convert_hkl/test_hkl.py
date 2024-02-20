@@ -1,12 +1,14 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
-
+from pathlib import Path
 import re
 
 import numpy as np
 import pytest
 
-from qcrboxtools.converters.shelx.hkl import cif2hkl4
+from qcrboxtools.cif.file_converter.hkl import cif2hkl4
+
+test_file_dir = Path('./tests/cif/convert_hkl/test_files')
 
 def valid_hkl_line(line):
     return re.search(r'[^\d\s\.\-]', line) is None and len(line.strip()) > 0
@@ -65,13 +67,13 @@ def read_hkl_as_np(hkl_path, sort=False):
 
 
 @pytest.mark.parametrize('cif_path', [
-    './tests/converters/shelx/olex.cif',
-    './tests/converters/shelx/shelx.cif'
+    test_file_dir / 'olex.cif',
+    test_file_dir / 'shelx.cif'
 ])
 def test_cif_2_shelx_hkl(cif_path, tmp_path):
 
     # read shelxl hkl (created by olex)
-    target_path = 'tests/converters/shelx/target.hkl'
+    target_path = test_file_dir / 'target.hkl'
     # convert into numpy arrays hkl, intensity, su
     # sort arrays by h, k, l
     hkl_ref, i_ref, su_ref, _ = read_hkl_as_np(target_path, True)

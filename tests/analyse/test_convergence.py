@@ -13,9 +13,11 @@ from pathlib import Path
 
 from pytest import approx
 
-from qcrboxtools.util.convergence import (
+from qcrboxtools.analyse.convergence import (
     position_difference, anisotropic_adp_difference, check_converged
 )
+
+test_file_path = Path('./tests/analyse/cif_files')
 
 def test_position_difference_diff():
     """
@@ -25,8 +27,8 @@ def test_position_difference_diff():
     differences, as well as the maximum and mean positions normalized by the estimated
     standard uncertainty (su). Ensures these values match the expected results.
     """
-    cif1path = Path('tests/util/cif_files/difference_test1.cif')
-    cif2path = Path('tests/util/cif_files/difference_test2.cif')
+    cif1path = test_file_path / 'difference_test1.cif'
+    cif2path = test_file_path / 'difference_test2.cif'
 
     diff_dict = position_difference(
         cif1path,
@@ -50,7 +52,7 @@ def test_position_difference_equal():
     normalized values by the estimated standard uncertainty (su), are zero when comparing
     the same CIF file to itself.
     """
-    cif1path = Path('tests/util/cif_files/difference_test1.cif')
+    cif1path = test_file_path / 'difference_test1.cif'
 
     diff_dict = position_difference(cif1path, 0, cif1path, 0)
 
@@ -68,8 +70,8 @@ def test_uij_difference_diff():
     in anisotropic ADPs, as well as their normalized values by the estimated standard
     deviation (su). Checks these values against expected results.
     """
-    cif1path = Path('tests/util/cif_files/difference_test1.cif')
-    cif2path = Path('tests/util/cif_files/difference_test2.cif')
+    cif1path = test_file_path / 'difference_test1.cif'
+    cif2path = test_file_path / 'difference_test2.cif'
 
     diff_dict = anisotropic_adp_difference(
         cif1path,
@@ -94,7 +96,7 @@ def test_uij_difference_equal():
     their normalized values by the estimated standard uncertainty (su), are zero when
     comparing the same CIF file to itself.
     """
-    cif1path = Path('tests/util/cif_files/difference_test1.cif')
+    cif1path = test_file_path / 'difference_test1.cif'
 
     diff_dict = anisotropic_adp_difference(cif1path, 0, cif1path, 0)
 
@@ -111,8 +113,8 @@ def test_check_convergence():
     based on predefined criteria for position and ADP differences. Verifies both
     scenarios where datasets are considered converged and not converged.
     """
-    cif1path = Path('tests/util/cif_files/difference_test1.cif')
-    cif2path = Path('tests/util/cif_files/difference_test2.cif')
+    cif1path = test_file_path / 'difference_test1.cif'
+    cif2path = test_file_path / 'difference_test2.cif'
 
     criteria = {
         'max abs position': 0.1,

@@ -4,7 +4,7 @@
 import pytest
 from typing import Dict, List
 
-from qcrboxtools.util.cif import (
+from qcrboxtools.cif.merge import (
     merge_cif_loops, NonExistingMergeKey, NonMatchingMergeKeys, merge_cif_blocks, merge_cif_files
 )
 from iotbx import cif

@@ -18,7 +18,8 @@ from typing import Union, Tuple, Optional, List, Dict
 from iotbx import cif
 import numpy as np
 
-from .read import read_cif_safe, cifdata_str_or_index, is_num_su, split_su_single, split_sus
+from .read import read_cif_safe, cifdata_str_or_index
+from .uncertainties import is_num_su, split_su_single, split_sus
 
 
 class NoCentringFoundError(Exception):

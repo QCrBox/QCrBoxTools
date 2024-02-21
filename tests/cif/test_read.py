@@ -5,10 +5,8 @@ from iotbx import cif
 import numpy as np
 import pytest
 
-from qcrboxtools.cif.read import(
+from qcrboxtools.cif.read import (
     cifdata_str_or_index,
-    split_su_single,
-    split_sus
 )
 
 def test_cifdata_str_or_index_by_str():
@@ -75,46 +73,3 @@ def test_cifdata_str_or_index_non_int_index():
     # Test retrieval with a string that can't be converted to an int
     with pytest.raises(ValueError):
         cifdata_str_or_index(model, 'invalid_index')
-
-@pytest.mark.parametrize('string, test_value, test_su', [
-    ('100(1)', 100.0, 1),
-    ('-100(20)', -100.0, 20.0),
-    ('0.021(2)', 0.021, 0.002),
-    ('-0.0213(3)', -0.0213, 0.0003),
-    ('2.1(1.3)', 2.1, 1.3),
-    ('0.648461', 0.648461, np.nan)
-])
-def test_split_su_single(string: str, test_value: float, test_su: float):
-    """Test the `split_su_single` function with various formatted strings."""
-    val, su = split_su_single(string)
-    assert val == pytest.approx(test_value)
-    if np.isnan(su) or np.isnan(test_su):
-        assert np.isnan(su) and np.isnan(test_su)
-    else:
-        assert su == pytest.approx(test_su)
-
-def test_split_sus():
-    """Test the `split_sus` function."""
-    strings = [
-        '0.03527(13)',
-        '0.02546(10)',
-        '0.02949(11)',
-        '0.00307(9)',
-        '0.01031(9)',
-        '-0.00352(8)'
-    ]
-
-    solutions = [
-        (0.03527, 0.00013),
-        (0.02546, 0.00010),
-        (0.02949, 0.00011),
-        (0.00307, 0.00009),
-        (0.01031, 0.00009),
-        (-0.00352, 0.00008)
-    ]
-
-    values, sus = split_sus(strings)
-
-    for value, su, (check_value, check_su) in zip(values, sus, solutions):
-        assert value == pytest.approx(check_value)
-        assert su == pytest.approx(check_su)

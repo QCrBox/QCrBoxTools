@@ -6,7 +6,8 @@ from typing import Union, List, Optional, Tuple
 
 import numpy as np
 
-from .read import read_cif_safe, cifdata_str_or_index, split_su_single
+from .read import read_cif_safe, cifdata_str_or_index
+from .uncertainties import split_su_single
 
 def cif_iso2aniso(
     input_cif_path: Union[str, Path],

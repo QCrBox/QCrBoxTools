@@ -21,7 +21,8 @@ Functions:
 from pathlib import Path
 from typing import Union, Dict, List, Any, Tuple
 import numpy as np
-from ..cif.read import read_cif_safe, cifdata_str_or_index, split_sus, split_su_single
+from ..cif.read import read_cif_safe, cifdata_str_or_index
+from ..cif.uncertainties import split_sus, split_su_single
 
 def cell_dict2atom_sites_dict(
     cell_dict: Dict[str, Union[float, np.ndarray]]

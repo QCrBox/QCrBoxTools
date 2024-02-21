@@ -183,7 +183,7 @@ def block_to_requested_keywords(
     requested_entries : List[str]
         Entry names to include in their order, accounting for original, alias, or custom
         category names.
-     optional_entries : List[str]
+    optional_entries : List[str]
         Entries within this list are declared to be optional and therefore will not raise
         an error when not found. They still need to be in requested entries to enable the
         output in a specific position within the newly generated cif.

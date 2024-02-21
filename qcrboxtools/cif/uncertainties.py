@@ -7,6 +7,28 @@ from collections import defaultdict
 import numpy as np
 from iotbx.cif import model
 
+def is_num_su(string: str, allow_brackets_missing: bool = True) -> bool:
+    """
+    Check if a string is compatible with numerical values and standard uncertainties.
+
+    Parameters
+    ----------
+    string : str
+        The string to be checked.
+    allow_brackets_missing : bool
+        If True, values without brackets will also be recognised as valid.
+
+    Returns
+    -------
+    bool
+        True if the string only contains characters valid for numerical values
+        and standard uncertainties, False otherwise.
+    """
+    contains_brackets = '(' in string and ')' in string
+    only_num_and_brackets = re.search(r'[^\d\.\-\+\(\)]', string) is None
+    return (contains_brackets or allow_brackets_missing) and only_num_and_brackets
+
+
 def split_su_single(input_string: str) -> Tuple[float, float]:
     """
     Extract the value and standard uncertainty from a CIF formatted string.
@@ -59,27 +81,6 @@ def split_sus(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray]:
     values, sus = zip(*map(split_su_single, input_strings))
     return list(values), list(sus)
 
-def is_num_su(string: str, allow_brackets_missing: bool = False) -> bool:
-    """
-    Check if a string is compatible with numerical values and standard uncertainties.
-
-    Parameters
-    ----------
-    string : str
-        The string to be checked.
-    allow_brackets_missing : bool
-        If True, values without brackets will also be recognised as valid.
-
-    Returns
-    -------
-    bool
-        True if the string only contains characters valid for numerical values
-        and standard uncertainties, False otherwise.
-    """
-    contains_brackets = '(' in string and ')' in string
-    only_num_and_brackets = re.search(r'[^\d\.\-\+\(\)]', string) is None
-    return (contains_brackets or allow_brackets_missing) and only_num_and_brackets
-
 def split_su_block(block: model.block) -> model.block:
     """
     Splits numerical values and their standard uncertainties (SUs) into separate entries
@@ -106,7 +107,7 @@ def split_su_block(block: model.block) -> model.block:
     for loop_name, loop_entries in block.loops.items():
         for entry_name, entry_vals in loop_entries.items():
             entry2loop_name[entry_name] = loop_name
-            if any(is_num_su(val) for val in entry_vals):
+            if any(is_num_su(val, allow_brackets_missing=False) for val in entry_vals):
                 non_su_vals, su_vals = split_sus(entry_vals)
                 new_loops[loop_name][entry_name] = non_su_vals
                 new_loops[loop_name][entry_name + '_su'] = su_vals
@@ -121,7 +122,7 @@ def split_su_block(block: model.block) -> model.block:
             if new_loop is not None:
                 converted_block.add_loop(model.loop(data=new_loop))
                 new_loops[entry2loop_name[entry]] = None
-        elif is_num_su(entry_val):
+        elif is_num_su(entry_val, allow_brackets_missing=False):
             non_su_val, su_val = split_su_single(entry_val)
             converted_block.add_data_item(entry, non_su_val)
             converted_block.add_data_item(entry + '_su', su_val)

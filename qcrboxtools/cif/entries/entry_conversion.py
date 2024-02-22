@@ -38,7 +38,7 @@ def entry_to_unified_keyword(
 
 
 def block_to_unified_keywords(
-    old_block: model.block,
+    block: model.block,
     custom_categories: List[str] = None
 ) -> model.block:
     """
@@ -48,7 +48,7 @@ def block_to_unified_keywords(
 
     Parameters
     ----------
-    old_block : model.block
+    block : model.block
         The original CIF block to convert.
     custom_categories : List[str], optional
         Custom categories to use for name conversion. Defaults to an empty list if
@@ -68,7 +68,7 @@ def block_to_unified_keywords(
     loop_lookup = {}
     converted_loops = {}
 
-    for _, loop in old_block.loops.items():
+    for _, loop in block.loops.items():
         new_loop = model.loop(data={
              entry_to_unified_keyword(entry_name, custom_categories): entry_data
              for entry_name, entry_data in loop.items()
@@ -76,7 +76,7 @@ def block_to_unified_keywords(
         loop_lookup.update({entry: new_loop.name() for entry in list(loop)})
         converted_loops[new_loop.name()] = new_loop
 
-    for entry_name, entry_content in old_block.items():
+    for entry_name, entry_content in block.items():
         if entry_name in loop_lookup and converted_loops[loop_lookup[entry_name]] is not None:
             loop_to_add = converted_loops[loop_lookup[entry_name]]
             if loop_to_add is not None:
@@ -111,14 +111,14 @@ def cif_to_unified_keywords(cif: model.cif, custom_categories=None):
 
     """
     new_cif = model.cif({
-        block_name: block_to_unified_keywords(old_block, custom_categories)
-        for block_name, old_block in cif.items()
+        block_name: block_to_unified_keywords(block, custom_categories)
+        for block_name, block in cif.items()
     })
     return new_cif
 
 def cif_to_requested_keywords(
     cif: model.cif,
-    requested_entries: List[str],
+    compulsory_entries: List[str],
     optional_entries: List[str],
     custom_categories: List[str]
 ) -> model.cif:
@@ -133,7 +133,7 @@ def cif_to_requested_keywords(
     ----------
     cif : model.cif
         The CIF object to be converted.
-    requested_entries : List[str]
+    compulsory_entries : List[str]
         A list of entry names to be included in the converted CIF file. Need to be either
         entries in cif, aliases of entries in cif or entries renamed via the custom categories.
     optional_entries : List[str]
@@ -153,18 +153,18 @@ def cif_to_requested_keywords(
     """
     new_cif = model.cif({
         block_name: block_to_requested_keywords(
-            old_block,
-            requested_entries,
+            block,
+            compulsory_entries,
             optional_entries,
             custom_categories
-        ) for block_name, old_block in cif.items()
+        ) for block_name, block in cif.items()
     })
 
     return new_cif
 
 def block_to_requested_keywords(
-    old_block: model.block,
-    requested_entries: List[str],
+    block: model.block,
+    compulsory_entries: List[str],
     optional_entries: List[str],
     custom_categories: List[str]
 ) -> model.block:
@@ -177,16 +177,14 @@ def block_to_requested_keywords(
 
     Parameters
     ----------
-    old_block : model.block
+    block : model.block
         The CIF block to be converted, should only contain unified keywords or keywords
         using custom categories.
-    requested_entries : List[str]
-        Entry names to include in their order, accounting for original, alias, or custom
-        category names.
+    compulsory_entries : List[str]
+        Entry names to include. If they are not found a ValueError will be raised
     optional_entries : List[str]
-        Entries within this list are declared to be optional and therefore will not raise
-        an error when not found. They still need to be in requested entries to enable the
-        output in a specific position within the newly generated cif.
+        Entries within this list are included if they are present and ignored if they
+        are not within the old
     custom_categories : List[str]
         Categories to reverse unify names, matching custom formatted entries.
 
@@ -196,8 +194,9 @@ def block_to_requested_keywords(
         A CIF block containing only the requested entries in specified order.
 
     """
+    requested_entries = list(compulsory_entries) + list(optional_entries)
     entry2loop_name = {}
-    for loop_name, loop_entries in old_block.loops.items():
+    for loop_name, loop_entries in block.loops.items():
         for entry_name in loop_entries.keys():
             entry2loop_name[entry_name] = loop_name
 
@@ -205,18 +204,18 @@ def block_to_requested_keywords(
     for entry in requested_entries:
         lookup_name = entry_to_unified_keyword(entry, custom_categories)
         if lookup_name in entry2loop_name:
-            new_loops[entry2loop_name[lookup_name]][entry] = old_block[lookup_name]
+            new_loops[entry2loop_name[lookup_name]][entry] = block[lookup_name]
 
     converted_block = model.block()
 
     for entry in requested_entries:
         lookup_name = entry_to_unified_keyword(entry, custom_categories)
-        if lookup_name not in old_block and entry not in optional_entries:
+        if lookup_name not in block and entry not in optional_entries:
             raise ValueError(
                 f'The corresponding entry "{lookup_name}" for the requested '
                 + f'non-optional entry {entry} could not be found.'
             )
-        elif lookup_name not in old_block and entry in optional_entries:
+        elif lookup_name not in block and entry in optional_entries:
             continue
 
         if lookup_name in entry2loop_name:
@@ -225,6 +224,6 @@ def block_to_requested_keywords(
                 converted_block.add_loop(model.loop(data=new_loop))
                 new_loops[entry2loop_name[lookup_name]] = None
         else:
-            converted_block.add_data_item(entry, old_block[lookup_name])
+            converted_block.add_data_item(entry, block[lookup_name])
 
     return converted_block

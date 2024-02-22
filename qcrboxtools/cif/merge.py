@@ -18,7 +18,7 @@ from typing import Union, Tuple, List, Dict
 from iotbx import cif
 
 from .read import read_cif_safe, cifdata_str_or_index
-from .uncertainties import is_num_su, split_sus
+from .uncertainties import is_num_su, split_su_array
 
 
 class NoCentringFoundError(Exception):
@@ -131,7 +131,7 @@ def replace_structure_from_cif(
             num_su_column = all(map(is_num_su, vals))
             brackets_column = any('(' in val for val in vals)
             if num_su_column and brackets_column:
-                values, _ = split_sus(vals)
+                values, _ = split_su_array(vals)
                 for i, new_val in enumerate(f'{val}' for val in values):
                     loop[key][i] = new_val
 

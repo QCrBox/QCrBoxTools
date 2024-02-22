@@ -21,7 +21,7 @@ from iotbx import cif
 from qcrboxtools.cif.merge import (
     read_cif_safe,
     replace_structure_from_cif,
-    split_sus,
+    split_su_array,
     check_centring_equal,
     InConsistentCentringError,
     NoCentringFoundError
@@ -76,7 +76,7 @@ def test_cif_atom_site_copied(cif_with_replacement: Tuple[dict, dict, dict]):
         assert not any('(' in val for val in combined_cif[key])
         from_vals = from_cif[key]
         if any('(' in val for val in from_vals):
-            from_vals, _ = split_sus(from_vals)
+            from_vals, _ = split_su_array(from_vals)
             combined_vals = np.array([float(val) for val in combined_cif[key]])
             assert np.max(np.abs(from_vals - combined_vals)) < 1e-6
         else:

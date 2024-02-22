@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Union, Dict, List, Any, Tuple
 import numpy as np
 from ..cif.read import read_cif_safe, cifdata_str_or_index
-from ..cif.uncertainties import split_sus, split_su_single
+from ..cif.uncertainties import split_su_array, split_su_single
 
 def cell_dict2atom_sites_dict(
     cell_dict: Dict[str, Union[float, np.ndarray]]
@@ -154,13 +154,13 @@ def position_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    positions_sus1 = [split_sus(block1[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    positions_sus1 = [split_su_array(block1[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac1 = {
         f'_atom_site.fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus1)
     }
     frac1 = np.stack([val[0] for val in positions_sus1], axis=1)
     frac1_su = np.stack([val[1] for val in positions_sus1], axis=1)
-    positions_sus2 = [split_sus(block2[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
+    positions_sus2 = [split_su_array(block2[f'_atom_site.fract_{xyz}']) for xyz in ('x', 'y', 'z')]
     atom_site_frac2 = {
         f'_atom_site.fract_{xyz}': vals[0] for xyz, vals in zip(('x', 'y', 'z'), positions_sus2)
     }
@@ -226,8 +226,8 @@ def anisotropic_adp_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    uij_sus1 = [split_sus(block1[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
-    uij_sus2 = [split_sus(block2[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus1 = [split_su_array(block1[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus2 = [split_su_array(block2[f'_atom_site_aniso.u_{ij}']) for ij in (11, 22, 33, 12, 13, 23)]
 
     uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
     uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)

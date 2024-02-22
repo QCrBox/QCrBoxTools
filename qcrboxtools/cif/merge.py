@@ -400,7 +400,9 @@ def merge_cif_blocks(
     """
 
     if possible_markers == MERGE_CIF_DEFAULT:
-        possible_markers = [r'.*\.id', r'.*.label_?\d*', r'.*_refln\.index.*', r'_atom_type\.symbol']
+        possible_markers = [
+            r'.*\.id', r'.*.label_?\d*', r'.*_refln\.index.*', r'_atom_type\.symbol'
+        ]
     if isinstance(possible_markers, str):
         possible_markers = [possible_markers]
     # merge blocks

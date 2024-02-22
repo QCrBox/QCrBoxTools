@@ -1,14 +1,14 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
-
+from pathlib import Path
 from iotbx import cif
 import pytest
-from pathlib import Path
 from textwrap import dedent
 import re
 
 from qcrboxtools.cif.read import (
-    cifdata_str_or_index, read_cif_as_unified, cif_file_unify_split
+    cifdata_str_or_index, read_cif_as_unified, cif_file_unify_split,
+    cif_file_unified_to_keywords_merge_su
 )
 
 def test_cifdata_str_or_index_by_str():
@@ -173,3 +173,70 @@ def test_cif_file_unify_split(cif_path, tmp_path):
 
     for line in expected_lines:
         assert re.search(line, output_cif_content) is not None, f"Expected line not found: {line}"
+
+
+@pytest.fixture
+def temp_cif_file(tmp_path) -> Path:
+    """
+    Creates a temporary CIF file with pre-defined content for testing.
+
+    Returns
+    -------
+    Path
+        The path to the temporary CIF file.
+    """
+    cif_content = """
+    data_test
+    _custom.test 'something'
+    _cell.length_a 10.0
+    _cell.length_a_su 0.03
+    _cell.length_b 20.0
+    _cell.length_b_su 0.02
+    loop_
+    _atom_site.label
+    _atom_site.fract_x
+    _atom_site.fract_x_su
+    _atom_site.fract_y
+    _atom_site.fract_y_su
+    _atom_site.fract_z
+    _atom_site.fract_z_su
+    C1 0.234 0.012 0.567 0.045 0.890 0.078
+    O1 -0.345 0.023 0.678 0.0 -0.901 0.089
+    """
+    cif_file = tmp_path / "test.cif"
+    cif_file.write_text(cif_content, encoding='UTF-8')
+    return cif_file
+
+def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
+    """
+    Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
+    as expected, merging SUs and filtering entries according to specified criteria.
+    """
+    output_cif_path = tmp_path / "output.cif"
+
+    # Define compulsory and optional entries for the test
+    compulsory_entries = ['_cell_length_a']
+    optional_entries = ['_cell_length_b', '_atom_site_fract_x', '_atom_site_fract_y']
+    custom_categories = ['custom']  # Assuming custom categories functionality is part of your implementation
+
+    # Call the function with merge_sus enabled
+    cif_file_unified_to_keywords_merge_su(
+        input_cif_path=temp_cif_file,
+        output_cif_path=output_cif_path,
+        compulsory_entries=compulsory_entries,
+        optional_entries=optional_entries,
+        custom_categories=custom_categories,
+        merge_sus=True
+    )
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding='UTF-8')
+    search_patterns = (
+        r'_cell_length_a\s+10.00\(3\)',
+        r'_cell_length_b\s+20.00\(2\)',
+        '_atom_site_fract_x',
+        '_atom_site_fract_y'
+    )
+    for pattern in search_patterns:
+        assert re.search(pattern, output_content) is not None
+    assert '_atom_site_fract_z' not in output_content, "Included _atom_site.fract_z entry unexpectedly"

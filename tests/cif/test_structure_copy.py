@@ -11,12 +11,10 @@ formatted strings and manipulating CIF data structure.
 """
 
 from pathlib import Path
-import subprocess
 from typing import Tuple
 
 import numpy as np
 import pytest
-from iotbx import cif
 
 from qcrboxtools.cif.merge import (
     read_cif_safe,

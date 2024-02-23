@@ -9,7 +9,7 @@ import re
 from qcrboxtools.cif.read import (
     cifdata_str_or_index, read_cif_as_unified, cif_file_unify_split,
     cif_file_unified_to_keywords_merge_su, cif_file_unified_yml_instr,
-    keywords_from_yml
+    cif_entries_from_yml
 )
 
 def test_cifdata_str_or_index_by_str():
@@ -242,41 +242,45 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
         assert re.search(pattern, output_content) is not None
     assert '_atom_site_fract_z' not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
-def test_direct_keywords_extraction():
+def test_direct_cif_entries_extraction():
     """Test extraction of directly defined keywords."""
     yml_dict = {
-        "commands": {
-            "process_cif": {
-                "required_keywords": ["_cell_length_a", "_cell_length_b"],
-                "optional_keywords": ["_atom_site.label"]
+        "commands": [
+            {
+                "name": "process_cif",
+                "required_cif_entries": ["_cell_length_a", "_cell_length_b"],
+                "optional_cif_entries": ["_atom_site.label"]
             }
-        }
+        ]
     }
-    compulsory, optional = keywords_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
     assert sorted(compulsory) == sorted(["_cell_length_a", "_cell_length_b"]), "Failed to extract compulsory keywords"
     assert sorted(optional) == sorted(["_atom_site.label"]), "Failed to extract optional keywords"
 
-def test_keywords_extraction_via_sets():
+def test_cif_entries_extraction_via_sets():
     """Test extraction of keywords defined through keyword sets."""
     yml_dict = {
-        "commands": {
-            "process_cif": {
-                "required_keyword_sets": ["cell_dimensions"],
-                "optional_keyword_sets": ["atom_sites"]
+        "commands": [
+            {
+                "name": "process_cif",
+                "required_cif_entry_sets": ["cell_dimensions"],
+                "optional_cif_entry_sets": ["atom_sites"]
             }
-        },
-        "keyword_sets": {
-            "cell_dimensions": {
+        ],
+        "cif_entry_sets": [
+            {
+                "name": "cell_dimensions",
                 "required": ["_cell_length_a", "_cell_length_b"],
                 "optional": []  # Example with an empty list
             },
-            "atom_sites": {
+            {
+                "name": "atom_sites",
                 "required": [],
                 "optional": ["_atom_site.label", "_atom_site.occupancy"]
             }
-        }
+        ]
     }
-    compulsory, optional = keywords_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
     assert set(compulsory) == {"_cell_length_a", "_cell_length_b"}, "Failed to extract compulsory keywords from sets"
     assert set(optional) == {"_atom_site.label", "_atom_site.occupancy"}, "Failed to extract optional keywords from sets"
 
@@ -284,76 +288,87 @@ def test_keywords_extraction_via_sets():
 def test_error_for_missing_command_or_set(missing_key):
     """Test that the correct errors are raised for missing commands or keyword sets."""
     yml_dict = {
-        'commands': {"nonexistent_set": {"required_keyword_sets": ["missing"]}}
+        'commands': [
+            {"name": "nonexistent_set", "required_cif_entry_sets": ["missing"]}
+        ]
     }
     with pytest.raises(KeyError):
-        keywords_from_yml(yml_dict, missing_key)
+        cif_entries_from_yml(yml_dict, missing_key)
 
-def test_incorrect_entry_in_keyword_set():
+def test_incorrect_entry_in_cif_entry_set():
     """Test detection of incorrect entries within keyword sets."""
     yml_dict = {
-        "commands": {
-            "process_cif": {
-                "required_keyword_sets": ["incorrect_set"]
+        "commands": [
+            {
+                "name": "process_cif",
+                "required_cif_entry_sets": ["incorrect_set"]
             }
-        },
-        "keyword_sets": {
-            "incorrect_set": {
+        ],
+        "cif_entry_sets": [
+            {
+                "name": "incorrect_set",
                 "wrong_entry": ["_cell_length_a"]  # Intentionally incorrect to trigger the error
             }
-        }
+        ]
+
     }
     with pytest.raises(NameError):
-        keywords_from_yml(yml_dict, "process_cif")
+        cif_entries_from_yml(yml_dict, "process_cif")
 
-def test_unique_compulsory_keywords_from_multiple_sets():
+def test_unique_compulsory_cif_entries_from_multiple_sets():
     """Test that compulsory keywords from multiple sets are appended uniquely."""
     yml_dict = {
-        "commands": {
-            "process_cif": {
-                "required_keyword_sets": ["set1", "set2"],
+        "commands": [
+            {
+                "name": "process_cif",
+                "required_cif_entry_sets": ["set1", "set2"],
             }
-        },
-        "keyword_sets": {
-            "set1": {
+        ],
+        "cif_entry_sets": [
+            {
+                "name": "set1",
                 "required": ["_cell_length_a", "_cell_angle_alpha"],
                 "optional": []
             },
-            "set2": {
+            {
+                "name": "set2",
                 "required": ["_cell_length_a", "_cell_volume"],
                 "optional": []
             }
-        }
+        ]
     }
-    compulsory, optional = keywords_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
     assert sorted(compulsory) == sorted(list(set(["_cell_length_a", "_cell_angle_alpha", "_cell_volume"]))), \
         "Compulsory keywords should be unique and include all items from both sets"
     assert optional == [], "No optional keywords should be present"
 
-def test_unique_optional_keywords_from_multiple_sets():
+def test_unique_optional_cif_entries_from_multiple_sets():
     """
     Test that optional keywords from multiple sets are appended uniquely and exclude compulsory ones.
     Also test that optional keyword set entries all end up in optional
     """
     yml_dict = {
-        "commands": {
-            "process_cif": {
-                "optional_keyword_sets": ["set1", "set2"],
-                "required_keywords": ["_cell_length_a"]  # Ensure exclusion of compulsory from optional
+        "commands": [
+            {
+                "name": "process_cif",
+                "optional_cif_entry_sets": ["set1", "set2"],
+                "required_cif_entries": ["_cell_length_a"]  # Ensure exclusion of compulsory from optional
             }
-        },
-        "keyword_sets": {
-            "set1": {
+        ],
+        "cif_entry_sets": [
+            {
+                "name": "set1",
                 "required": ["_cell_length_a", "_cell_angle_alpha"], # _cell_length_a should be excluded
                 "optional": []
             },
-            "set2": {
+            {
+                "name": "set2",
                 "required": ["_cell_volume"],
                 "optional": ["_cell_length_b"]
             }
-        }
+        ]
     }
-    compulsory, optional = keywords_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
     assert compulsory == ["_cell_length_a"], "Only specified compulsory keywords should be present"
     # Ensure _cell_length_a is not duplicated in optional, despite being in both sets and compulsory
     assert sorted(optional) == sorted(list(set(["_cell_length_b", "_cell_angle_alpha", "_cell_volume"]))), \
@@ -366,26 +381,26 @@ def test_cif_file_unified_yml_instr(temp_cif_file, tmp_path):
 
     # Mock YAML content
     yml_content = dedent("""
-    keyword_sets :
-      test1:
+    cif_entry_sets :
+      - name: test1
         required : [
           _cell_length_a
         ]
         optional : [
           _atom_site_fract_y
         ]
-      test2:
+      - name: test2
         required : [
           _invalid_keyword, _atom_site_fract_x
         ]
     commands :
-      process_cif:
-        merge_su: true
+      - name: process_cif
+        merge_cif_su: Yes
         custom_cif_categories: [custom]
-        required_keyword_sets: [test1]
-        optional_keyword_sets: [test2]
-        required_keywords: [_cell_length_b]
-        optional_keywords: [_atom_site_label]
+        required_cif_entry_sets: [test1]
+        optional_cif_entry_sets: [test2]
+        required_cif_entries: [_cell_length_b]
+        optional_cif_entries: [_atom_site_label]
     """)
     yml_path.write_text(yml_content)
 

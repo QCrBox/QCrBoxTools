@@ -229,12 +229,13 @@ class NoKeywordsError(BaseException):
         Explanation of the error
     """
 
-def keywords_from_yml(yml_dict, command):
+def cif_entries_from_yml(yml_dict, command):
     """
-    Extracts compulsory and optional keywords for a given command from a YAML configuration dictionary.
+    Extracts compulsory and optional cif_entries for a given command from a YAML configuration
+    dictionary.
 
     Parses the YAML configuration dictionary to find and compile lists of compulsory and optional
-    keywords specified under a given command. This includes directly specified keywords and those
+    cif entries specified under a given command. This includes directly specified keywords and those
     included in keyword sets referenced by the command.
 
     Parameters
@@ -242,64 +243,69 @@ def keywords_from_yml(yml_dict, command):
     yml_dict : dict
         The dictionary obtained from parsing the YAML configuration file.
     command : str
-        The command name to look up in the YAML dictionary for extracting keyword specifications.
+        The command name to look up in the YAML dictionary for extracting cif entry specifications.
 
     Returns
     -------
     Tuple[List[str], List[str]]
-        A tuple containing two lists: the first list contains compulsory keywords, and the second
-        list contains optional keywords. Both lists are de-duplicated.
+        A tuple containing two lists: the first list contains compulsory cif entries, and the second
+        list contains optional cif entries. Both lists are de-duplicated.
 
     Raises
     ------
     KeyError
-        If the specified command or referenced keyword sets are not found in the YAML dictionary.
+        If the specified command or referenced cif entry sets are not found in the YAML dictionary.
     NameError
-        If the keyword set contains entries other than 'required' or 'optional', indicating a possible typo.
+        If the keyword set contains entries other than 'name', 'required' or 'optional', indicating a possible typo.
 
     Examples
     --------
     >>> yml_dict = {
-    ...     "commands": {
-    ...         "process_cif": {
-    ...             "required_keywords": ["_cell_length_a"],
-    ...             "optional_keywords": ["_atom_site_label"]
+    ...     "commands": [
+    ...         {
+                    "name": "process_cif",
+    ...             "required_cif_entries": ["_cell_length_a"],
+    ...             "optional_cif_entries": ["_atom_site_label"]
     ...         }
-    ...     }
+    ...     ]
     ... }
-    >>> keywords_from_yml(yml_dict, "process_cif")
+    >>> cif_entries_from_yml(yml_dict, "process_cif")
     (['_cell_length_a'], ['_atom_site_label'])
     """
-    options = yml_dict['commands'][command]
+    entry_sets = {eset['name']: eset for eset in yml_dict.get('cif_entry_sets', [])}
+    try:
+        options = next(cmd for cmd in yml_dict['commands'] if cmd['name'] == command)
+    except StopIteration as exc:
+        raise KeyError(f'Command {command} not found in yml_dict.') from exc
     possible_entries = (
-        'required_keyword_sets', 'required_keywords', 'optional_keyword_sets', 'optional_keywords'
+        'required_cif_entry_sets', 'required_cif_entries', 'optional_cif_entry_sets', 'optional_cif_entries'
     )
     if not any(entry in options for entry in possible_entries):
         raise NoKeywordsError(
             'Command {command} has no entries defining optional or necessary keywords.'
         )
-    compulsory_kws = options.get('required_keywords', [])
-    optional_kws = options.get('optional_keywords', [])
-    for kwset in options.get('required_keyword_sets', []):
+    compulsory_kws = options.get('required_cif_entries', [])
+    optional_kws = options.get('optional_cif_entries', [])
+    for kwset in options.get('required_cif_entry_sets', []):
         try:
-            kwset_dict = yml_dict['keyword_sets'][kwset]
+            kwset_dict = entry_sets[kwset]
         except KeyError as exc:
             raise KeyError(f'Keyword set {kwset} not found.') from exc
-        if any(key not in ('required', 'optional') for key in kwset_dict):
+        if any(key not in ('name', 'required', 'optional') for key in kwset_dict):
             raise NameError(
-                f'Found entry other than "required" or "optional" in keyword set {kwset}. Typo?'
+                f'Found entry other than "name", "required" or "optional" in keyword set {kwset}. Typo?'
             )
         compulsory_kws += kwset_dict.get('required', [])
         optional_kws += kwset_dict.get('optional', [])
 
-    for kwset in options.get('optional_keyword_sets', []):
+    for kwset in options.get('optional_cif_entry_sets', []):
         try:
-            kwset_dict = yml_dict['keyword_sets'][kwset]
+            kwset_dict = entry_sets[kwset]
         except KeyError as exc:
             raise KeyError(f'Keyword set {kwset} not found.') from exc
-        if any(key not in ('required', 'optional') for key in kwset_dict):
+        if any(key not in ('name', 'required', 'optional') for key in kwset_dict):
             raise NameError(
-                f'Found entry other than "required" or "optional" in keyword set {kwset}. Typo?'
+                f'Found entry other than "name", "required" or "optional" in keyword set {kwset}. Typo?'
             )
         optional_kws += kwset_dict.get('required', [])
         optional_kws += kwset_dict.get('optional', [])
@@ -348,13 +354,13 @@ def cif_file_unified_yml_instr(
         yml_dict = yaml.safe_load(fobj)
 
     try:
-        options = yml_dict['commands'][command]
-    except KeyError as exc:
+        options = next(cmd for cmd in yml_dict['commands'] if cmd['name'] == command)
+    except StopIteration as exc:
         raise KeyError(f'Command {command} not found in {yml_path}.') from exc
 
-    compulsory_entries, optional_entries = keywords_from_yml(yml_dict, command)
-    merge_sus = options['merge_su']
-    custom_categories = options['custom_cif_categories']
+    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command)
+    merge_sus = options.get('merge_cif_su', False)
+    custom_categories = options.get('custom_cif_categories', [])
 
     cif_file_unified_to_keywords_merge_su(
         input_cif_path,

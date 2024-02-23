@@ -25,7 +25,8 @@ classifiers = [
 
 dependencies = [
   "numpy>=1.26.2",
-  "cctbx>=2020.8"
+  "cctbx>=2020.8",
+  "PyYAML>=5.0"
 ]
 
 [project.urls]

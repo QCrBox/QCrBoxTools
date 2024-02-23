@@ -11,4 +11,5 @@ dependencies:
   - pipreqs
   - hatch
   - flake8
+  - pyyaml
 prefix: C:\ProgramData\Anaconda3\envs\qcrboxtools

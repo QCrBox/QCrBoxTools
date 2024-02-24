@@ -238,7 +238,7 @@ def sample_block_with_su() -> model.block:
     block.add_loop(model.loop(data=loop_data))
     return block
 
-def test_merge_su_block_with_revised_fixture(sample_block_with_su):
+def test_merge_su_block(sample_block_with_su):
     merged_block = merge_su_block(sample_block_with_su)
     # non-loop tests
     assert merged_block['_cell.length_a'] == '10.00(3)', "Failed to merge cell.length.a and its SU correctly"

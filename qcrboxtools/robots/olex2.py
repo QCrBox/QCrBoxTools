@@ -127,7 +127,7 @@ class Olex2Socket(SocketRobot):
         """
         if path is not None:
             path = pathlib.Path(path)
-            if path.absolute().parent != self.structure_path.parent:
+            if path.absolute().parent != self.structure_path.absolute().parent:
                 shutil.copy(path, self.structure_path.parent / path.name)
             cmds = [
                 "spy.SetParam('snum.NoSpherA2.use_aspherical', True)",

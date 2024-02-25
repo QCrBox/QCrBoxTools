@@ -194,30 +194,45 @@ def block_to_requested_keywords(
         A CIF block containing only the requested entries in specified order.
 
     """
+    unified_comp_entries = [
+        entry_to_unified_keyword(entry, custom_categories) for entry in compulsory_entries
+    ]
+    for original_entry, unified_entry in zip(compulsory_entries, unified_comp_entries):
+        if unified_entry not in block.keys():
+            raise ValueError(
+                f'The corresponding entry "{unified_entry}" for the requested '
+                + f'non-optional entry {original_entry} could not be found in cif block.'
+            )
+
+    unified_opt_entries =  [
+        entry_to_unified_keyword(entry, custom_categories) for entry in optional_entries
+    ]
+
     requested_entries = list(compulsory_entries) + list(optional_entries)
+
+    entry_dict = dict(zip(unified_comp_entries + unified_opt_entries, requested_entries))
+
+    output_entries = [
+        (val, entry_dict[val]) for val in block if val in entry_dict
+    ]
+
     entry2loop_name = {}
     for loop_name, loop_entries in block.loops.items():
         for entry_name in loop_entries.keys():
             entry2loop_name[entry_name] = loop_name
 
     new_loops = defaultdict(dict)
-    for entry in requested_entries:
-        lookup_name = entry_to_unified_keyword(entry, custom_categories)
+    for lookup_name, entry in output_entries:
+        #lookup_name = entry_to_unified_keyword(entry, custom_categories)
         if lookup_name in entry2loop_name:
             new_loops[entry2loop_name[lookup_name]][entry] = block[lookup_name]
 
     converted_block = model.block()
 
-    for entry in requested_entries:
-        lookup_name = entry_to_unified_keyword(entry, custom_categories)
-        if lookup_name not in block and entry not in optional_entries:
-            raise ValueError(
-                f'The corresponding entry "{lookup_name}" for the requested '
-                + f'non-optional entry {entry} could not be found.'
-            )
-        elif lookup_name not in block and entry in optional_entries:
-            continue
-
+    for lookup_name, entry in output_entries:
+        #lookup_name = entry_to_unified_keyword(entry, custom_categories)
+        #if lookup_name not in block and entry in optional_entries:
+        #    continue
         if lookup_name in entry2loop_name:
             new_loop = new_loops[entry2loop_name[lookup_name]]
             if new_loop is not None:

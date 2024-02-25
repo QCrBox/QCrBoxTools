@@ -117,7 +117,7 @@ def unified_block():
 
 
 def test_block_to_requested_keywords(unified_block, custom_categories):
-    requested_entries = ['_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
+    requested_entries = ['_journal_date_accepted', '_mock_loop_entry1']
     optional_entries = ['_nonexistent_entry', 'mock_entry']
 
     # Attempt conversion with a non-existent entry marked as optional
@@ -142,7 +142,7 @@ def unified_cif(unified_block):
     return cif
 
 def test_cif_to_requested_keywords(unified_cif, custom_categories):
-    requested_entries = ['_journal_date_accepted', '_mock_loop_entry1', '_nonexistent_entry']
+    requested_entries = ['_journal_date_accepted', '_mock_loop_entry1']
     optional_entries = ['_nonexistent_entry', 'mock_entry']
 
     # Convert using cif_to_requested_keywords

@@ -302,7 +302,7 @@ def merge_su_array(values: List[float], sus: List[float]) -> List[str]:
     return [format_string.format(val=val) for val in values]
 
 
-def merge_su_block(block: model.block) -> model.block:
+def merge_su_block(block: model.block, exclude: Optional[List[str]]=None) -> model.block:
     """
     Merge numerical values with their standard uncertainties within a CIF block
     according to the crystallographic information framework (CIF)
@@ -314,6 +314,9 @@ def merge_su_block(block: model.block) -> model.block:
     ----------
     block : model.block
         The input CIF block containing numerical values and potential SUs.
+    exclude : List[str]
+        A list of strings that represent entries that will not be merged with their
+        su, optional.
 
     Returns
     -------
@@ -351,13 +354,20 @@ def merge_su_block(block: model.block) -> model.block:
     """
     entry2loop_name = {}
     new_loops = defaultdict(dict)
+    if exclude is None:
+        exclude = []
 
     for loop_name, loop_entries in block.loops.items():
         for entry_name, entry_vals in loop_entries.items():
             entry2loop_name[entry_name] = loop_name
-            if entry_name.endswith('_su') and entry_name[:-3] in loop_entries:
+            is_merged_su = all((
+                entry_name.endswith('_su'),
+                entry_name[:-3] in loop_entries,
+                entry_name[:-3] not in exclude
+            ))
+            if is_merged_su:
                 continue
-            if entry_name + '_su' in loop_entries:
+            if entry_name + '_su' in loop_entries and entry_name not in exclude:
                 merged_vals = merge_su_array(entry_vals, loop_entries[entry_name + '_su'])
                 new_loops[loop_name][entry_name] = merged_vals
             else:
@@ -371,9 +381,9 @@ def merge_su_block(block: model.block) -> model.block:
             if new_loop is not None:
                 converted_block.add_loop(model.loop(data=new_loop))
                 new_loops[entry2loop_name[entry]] = None
-        elif entry.endswith('_su') and entry[:-3] in block:
+        elif all((entry.endswith('_su'), entry[:-3] in block, entry[:-3] not in exclude)):
             continue
-        elif entry + '_su' in block:
+        elif entry + '_su' in block and entry not in exclude:
             merged_entry_val = merge_su_single(entry_val, block[entry + '_su'])
             converted_block.add_data_item(entry, merged_entry_val)
         else:
@@ -382,7 +392,7 @@ def merge_su_block(block: model.block) -> model.block:
     return converted_block
 
 
-def merge_su_cif(cif: model.cif) -> model.cif:
+def merge_su_cif(cif: model.cif, exclude: Optional[List[str]]=None) -> model.cif:
     """
     Merges numerical values with their standard uncertainties (SUs) across all blocks
     in a CIF model for both single data items and entries within loops adhering to the
@@ -393,6 +403,9 @@ def merge_su_cif(cif: model.cif) -> model.cif:
     cif : model.cif
         The input CIF model, consisting of one or more blocks, each potentially
         containing numerical values alongside their standard uncertainties.
+    exclude : List[str]
+        A list of strings that represent entries that will not be merged with their
+        su, optional.
 
     Returns
     -------
@@ -427,7 +440,7 @@ def merge_su_cif(cif: model.cif) -> model.cif:
     processed_cif = model.cif()
 
     for block_name, block in cif.items():
-        processed_block = merge_su_block(block)
+        processed_block = merge_su_block(block, exclude=exclude)
         processed_cif[block_name] = processed_block
 
     return processed_cif

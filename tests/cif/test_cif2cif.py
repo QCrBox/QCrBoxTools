@@ -110,7 +110,7 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
 
     # Define compulsory and optional entries for the test
     compulsory_entries = ['_cell_length_a']
-    optional_entries = ['_cell_length_b', '_atom_site_fract_x', '_atom_site_fract_y']
+    optional_entries = ['_cell_length_b', '_cell_length_b_su', '_atom_site_fract_x', '_atom_site_fract_y']
     custom_categories = ['custom']  # Assuming custom categories functionality is part of your implementation
 
     # Call the function with merge_sus enabled
@@ -127,7 +127,8 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
     output_content = output_cif_path.read_text(encoding='UTF-8')
     search_patterns = (
         r'_cell_length_a\s+10.00\(3\)',
-        r'_cell_length_b\s+20.00\(2\)',
+        r'_cell_length_b\s+20.0',
+        '_cell_length_b_su', # cell_length_b_su is requested as entry and should not be merged
         '_atom_site_fract_x',
         '_atom_site_fract_y'
     )

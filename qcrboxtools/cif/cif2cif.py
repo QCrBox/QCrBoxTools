@@ -9,6 +9,7 @@ import yaml
 from .read import read_cif_as_unified, read_cif_safe
 from .uncertainties import merge_su_cif
 from .entries import cif_to_requested_keywords
+from .entries.entry_conversion import entry_to_unified_keyword
 
 
 def cif_file_unify_split(
@@ -91,8 +92,8 @@ def cif_file_unified_to_keywords_merge_su(
         in a block of the provided CIF, facilitating reversions based on these categories.
     merge_sus : bool, default=False
         If True, numerical values and their standard uncertainties in the CIF model are
-        merged before any other processing. If False, the CIF model is processed without
-        merging SUs.
+        merged before any other processing, if the su (or an alias) is not included as a
+        compulsory or optional cif entry. If False, the CIF model is processed without merging SUs.
 
     Returns
     -------
@@ -100,16 +101,27 @@ def cif_file_unified_to_keywords_merge_su(
         The function writes directly to the file specified by `output_cif_path`.
     """
     cif_model = read_cif_safe(input_cif_path)
-    if merge_sus:
-        cif_model = merge_su_cif(cif_model)
 
-    if compulsory_entries is not None or optional_entries is not None:
-        if compulsory_entries is None:
-            compulsory_entries = []
-        if optional_entries is None:
-            optional_entries = []
-        if custom_categories is None:
-            custom_categories = []
+    if compulsory_entries is None:
+        compulsory_entries = []
+    if optional_entries is None:
+        optional_entries = []
+    if custom_categories is None:
+        custom_categories = []
+
+    all_keywords = set(compulsory_entries + optional_entries)
+
+    if merge_sus:
+        unified_entries = [
+            entry_to_unified_keyword(entry, custom_categories)
+            for entry in all_keywords
+        ]
+
+        # entries are explicitely requested and therefore should not be merged
+        exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith('_su')]
+        cif_model = merge_su_cif(cif_model, exclude=exclude_entries)
+
+    if len(all_keywords) > 0:
         cif_model = cif_to_requested_keywords(
             cif_model, compulsory_entries, optional_entries, custom_categories
         )

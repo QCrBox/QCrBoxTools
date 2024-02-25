@@ -9,6 +9,7 @@ headless refinement using the socket.
 
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 from iotbx import cif
@@ -71,8 +72,7 @@ def test_olex2_refine_tsc(tmp_path):
     work_path = os.path.join(tmp_path, 'work.cif')
     shutil.copy('./tests/robots/olex/cif_files/refine_nonconv_allaniso.cif', work_path)
 
-    tsc_path = os.path.join(tmp_path, 'work.tscb')
-    shutil.copy('./tests/robots/olex/cif_files/refine_allaniso.tscb', tsc_path)
+    tsc_path = Path('./tests/robots/olex/cif_files/refine_allaniso.tscb').absolute()
 
     olex2 = Olex2Socket()
     olex2.structure_path = work_path

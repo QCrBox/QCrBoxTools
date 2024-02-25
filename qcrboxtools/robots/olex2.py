@@ -106,9 +106,9 @@ class Olex2Socket(SocketRobot):
             path.absolute().with_suffix(".hkl").unlink()
 
         load_cmds = [
-            f'file {path.with_suffix(".ins")}',
-            f'export {path.with_suffix(".hkl")}',
-            f'reap {path.with_suffix(".ins")}'
+            f'file {path.with_suffix(".ins").name}',
+            f'export {path.with_suffix(".hkl").name}',
+            f'reap {path.with_suffix(".ins").name}'
         ]
         self.send_command('\n'.join(load_cmds))
 
@@ -127,11 +127,13 @@ class Olex2Socket(SocketRobot):
         """
         if path is not None:
             path = pathlib.Path(path)
+            if path.absolute().parent != self.structure_path.parent:
+                shutil.copy(path, self.structure_path.parent / path.name)
             cmds = [
                 "spy.SetParam('snum.NoSpherA2.use_aspherical', True)",
                 "spy.SetParam('snum.NoSpherA2.Calculate', False)",
                 "spy.SetParam('snum.NoSpherA2.source', 'tsc_file')",
-                f"spy.SetParam('snum.NoSpherA2.file', {path})"
+                f"spy.SetParam('snum.NoSpherA2.file', '{path.name}')"
             ]
             self.send_command('\n'.join(cmds))
         else:

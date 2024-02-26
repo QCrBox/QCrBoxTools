@@ -106,7 +106,6 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
     """
-    output_cif_path = tmp_path / "output.cif"
 
     # Define compulsory and optional entries for the test
     compulsory_entries = ['_cell_length_a']
@@ -130,7 +129,7 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
         r'_cell_length_b\s+20.0',
         '_cell_length_b_su', # cell_length_b_su is requested as entry and should not be merged
         '_atom_site_fract_x',
-        '_atom_site_fract_y'
+        '_atom_site_fract_y',
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
@@ -143,11 +142,13 @@ def test_cif_file_all_unified_su(temp_cif_file, tmp_path):
     """
     output_cif_path = tmp_path / "output.cif"
 
+    # write an entry that is not unified at the moment
+    with open(temp_cif_file, 'a') as fobj:
+        fobj.write("\n_custom_test2  'something else'\n")
+
     # Define compulsory and optional entries for the test
     compulsory_entries = ['_cell_length_a', '_cell.length_b_su']
-    optional_entries = [
-        'all_unified'
-    ]
+    optional_entries = ['all_unified']
     custom_categories = ['custom']
 
     # Call the function with merge_sus enabled
@@ -168,7 +169,8 @@ def test_cif_file_all_unified_su(temp_cif_file, tmp_path):
         r'_cell\.length_b_su', # cell_length_b_su is requested as entry and should not be merged
         r'_atom_site\.fract_x',
         r'_atom_site\.fract_y',
-        r'_atom_site\.fract_z' # also include as all_unified in keywords
+        r'_atom_site\.fract_z', # also include as all_unified in keywords
+        r'_custom\.test2'  # all unified should output unified keywords -> convert via category
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None

@@ -81,11 +81,13 @@ def cif_file_unified_to_keywords_merge_su(
     compulsory_entries : List[str], optional
         A list of entry names that must be included in the converted CIF file. These need to be
         either entries in the CIF, aliases of entries in the CIF, or entries renamed via the
-        custom categories.
+        custom categories. The keyword "all_unified" can be passed in this category to skip
+        the selection of keywords entirely and therefore only merge the sus if requested.
     optional_entries : List[str], optional
-        Entries within this list are declared to be optional and therefore will not raise
-        an error when not found in the CIF. They still need to be in the requested entries
-        to enable their output in a specific position within the newly generated CIF.
+        Entries within this list are declared to be optional and will be included if present,
+        but do not raise an error if they are missing. The keyword "all_unified" can be
+        passed in this category to skip the selection of keywords entirely and therefore
+        only merge the sus if requested.
     custom_categories : List[str], optional
         User-defined categories (e.g., 'iucr', 'olex2', or 'shelx') that can be taken
         into account where an entry "_category.example" would be cpnverted to "_category_example"
@@ -121,7 +123,7 @@ def cif_file_unified_to_keywords_merge_su(
         exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith('_su')]
         cif_model = merge_su_cif(cif_model, exclude=exclude_entries)
 
-    if len(all_keywords) > 0:
+    if len(all_keywords) > 0 and 'all_unified' not in all_keywords:
         cif_model = cif_to_requested_keywords(
             cif_model, compulsory_entries, optional_entries, custom_categories
         )

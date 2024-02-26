@@ -111,7 +111,7 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
     # Define compulsory and optional entries for the test
     compulsory_entries = ['_cell_length_a']
     optional_entries = ['_cell_length_b', '_cell_length_b_su', '_atom_site_fract_x', '_atom_site_fract_y']
-    custom_categories = ['custom']  # Assuming custom categories functionality is part of your implementation
+    custom_categories = ['custom']
 
     # Call the function with merge_sus enabled
     cif_file_unified_to_keywords_merge_su(
@@ -135,6 +135,45 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
     assert '_atom_site_fract_z' not in output_content, "Included _atom_site.fract_z entry unexpectedly"
+
+def test_cif_file_all_unified_su(temp_cif_file, tmp_path):
+    """
+    Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
+    as expected, merging SUs and filtering entries according to specified criteria.
+    """
+    output_cif_path = tmp_path / "output.cif"
+
+    # Define compulsory and optional entries for the test
+    compulsory_entries = ['_cell_length_a', '_cell.length_b_su']
+    optional_entries = [
+        'all_unified'
+    ]
+    custom_categories = ['custom']
+
+    # Call the function with merge_sus enabled
+    cif_file_unified_to_keywords_merge_su(
+        input_cif_path=temp_cif_file,
+        output_cif_path=output_cif_path,
+        compulsory_entries=compulsory_entries,
+        optional_entries=optional_entries,
+        custom_categories=custom_categories,
+        merge_sus=True
+    )
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding='UTF-8')
+    search_patterns = (
+        r'_cell\.length_a\s+10.00\(3\)',
+        r'_cell\.length_b\s+20.0',
+        r'_cell\.length_b_su', # cell_length_b_su is requested as entry and should not be merged
+        r'_atom_site\.fract_x',
+        r'_atom_site\.fract_y',
+        r'_atom_site\.fract_z' # also include as all_unified in keywords
+    )
+    for pattern in search_patterns:
+        assert re.search(pattern, output_content) is not None
+    assert '_cell_length_a' not in output_content, "Renaming should be skipped entirely"
+
 
 def test_direct_cif_entries_extraction():
     """Test extraction of directly defined keywords."""

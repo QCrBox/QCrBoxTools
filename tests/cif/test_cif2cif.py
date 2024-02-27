@@ -106,6 +106,7 @@ def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
     """
+    output_cif_path = tmp_path / 'output.cif'
 
     # Define compulsory and optional entries for the test
     compulsory_entries = ['_cell_length_a']

@@ -76,6 +76,20 @@ class Olex2Socket(SocketRobot):
 
         log_indexes = [int(filename.name[5:-4]) for filename in working_dir.glob('task_*.log')]
 
+        if path.absolute().with_suffix(".ins").exists():
+            shutil.copy(
+                path.absolute().with_suffix(".ins"),
+                str(path.absolute().with_suffix("")) + "_moved.ins"
+            )
+            path.absolute().with_suffix(".ins").unlink()
+
+        if path.absolute().with_suffix(".hkl").exists():
+            shutil.copy(
+                path.absolute().with_suffix(".hkl"),
+                str(path.absolute().with_suffix("")) + "_moved.hkl"
+            )
+            path.absolute().with_suffix(".hkl").unlink()
+
         if len(log_indexes) > 0:
             self._task_id_counter = count(max(log_indexes) + 1)
         else:
@@ -90,20 +104,6 @@ class Olex2Socket(SocketRobot):
         self._send_input(cmd)
 
         self.wait_for_completion(2000, 'startup', cmd)
-
-        if path.absolute().with_suffix(".ins").exists():
-            shutil.copy(
-                path.absolute().with_suffix(".ins"),
-                str(path.absolute().with_suffix("")) + "_moved.ins"
-            )
-            path.absolute().with_suffix(".ins").unlink()
-
-        if path.absolute().with_suffix(".hkl").exists():
-            shutil.copy(
-                path.absolute().with_suffix(".hkl"),
-                str(path.absolute().with_suffix("")) + "_moved.hkl"
-            )
-            path.absolute().with_suffix(".hkl").unlink()
 
         load_cmds = [
             f'file {path.with_suffix(".ins").name}',

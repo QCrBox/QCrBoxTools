@@ -74,8 +74,6 @@ class Olex2Socket(SocketRobot):
 
         working_dir = path.absolute().parents[0]
 
-        log_indexes = [int(filename.name[5:-4]) for filename in working_dir.glob('task_*.log')]
-
         if path.absolute().with_suffix(".ins").exists():
             shutil.copy(
                 path.absolute().with_suffix(".ins"),
@@ -89,6 +87,8 @@ class Olex2Socket(SocketRobot):
                 str(path.absolute().with_suffix("")) + "_moved.hkl"
             )
             path.absolute().with_suffix(".hkl").unlink()
+
+        log_indexes = [int(filename.name[5:-4]) for filename in working_dir.glob('task_*.log')]
 
         if len(log_indexes) > 0:
             self._task_id_counter = count(max(log_indexes) + 1)

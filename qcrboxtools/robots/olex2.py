@@ -110,7 +110,10 @@ class Olex2Socket(SocketRobot):
             f'export {path.with_suffix(".hkl").name}',
             f'reap {path.with_suffix(".ins").name}'
         ]
-        self.send_command('\n'.join(load_cmds))
+        try:
+            self.send_command('\n'.join(load_cmds))
+        except RuntimeError as exc:
+            warnings.warn("There has been an error during loading: " + str(exc))
 
     @property
     def tsc_path(self):

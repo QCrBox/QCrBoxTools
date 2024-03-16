@@ -35,9 +35,7 @@ def entry_to_unified_keyword(old_name: str, custom_categories: List[str]) -> str
     return "_" + aliases.get(cut_name, cut_name)
 
 
-def block_to_unified_keywords(
-    block: model.block, custom_categories: List[str] = None
-) -> model.block:
+def block_to_unified_keywords(block: model.block, custom_categories: List[str] = None) -> model.block:
     """
     Converts entries and loops within a given block to unified names using the
     'to_unified_name' function. Ordering of the entries within the block is
@@ -83,9 +81,7 @@ def block_to_unified_keywords(
                 # add loops only once
                 converted_loops[loop_lookup[entry_name]] = None
             continue
-        converted_block.add_data_item(
-            entry_to_unified_keyword(entry_name, custom_categories), entry_content
-        )
+        converted_block.add_data_item(entry_to_unified_keyword(entry_name, custom_categories), entry_content)
     return converted_block
 
 
@@ -113,10 +109,7 @@ def cif_to_unified_keywords(cif: model.cif, custom_categories=None):
 
     """
     new_cif = model.cif(
-        {
-            block_name: block_to_unified_keywords(block, custom_categories)
-            for block_name, block in cif.items()
-        }
+        {block_name: block_to_unified_keywords(block, custom_categories) for block_name, block in cif.items()}
     )
     return new_cif
 
@@ -158,9 +151,7 @@ def cif_to_requested_keywords(
     """
     new_cif = model.cif(
         {
-            block_name: block_to_requested_keywords(
-                block, compulsory_entries, optional_entries, custom_categories
-            )
+            block_name: block_to_requested_keywords(block, compulsory_entries, optional_entries, custom_categories)
             for block_name, block in cif.items()
         }
     )
@@ -200,9 +191,7 @@ def block_to_requested_keywords(
         A CIF block containing only the requested entries in specified order.
 
     """
-    unified_comp_entries = [
-        entry_to_unified_keyword(entry, custom_categories) for entry in compulsory_entries
-    ]
+    unified_comp_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in compulsory_entries]
     for original_entry, unified_entry in zip(compulsory_entries, unified_comp_entries):
         if unified_entry not in block.keys():
             raise ValueError(
@@ -210,9 +199,7 @@ def block_to_requested_keywords(
                 + f"non-optional entry {original_entry} could not be found in cif block."
             )
 
-    unified_opt_entries = [
-        entry_to_unified_keyword(entry, custom_categories) for entry in optional_entries
-    ]
+    unified_opt_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in optional_entries]
 
     requested_entries = list(compulsory_entries) + list(optional_entries)
 

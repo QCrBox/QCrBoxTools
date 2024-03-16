@@ -196,9 +196,7 @@ def get_su_order(su: float) -> int:
     return int(order)
 
 
-def merge_su_single(
-    value: Union[float, str], su: Union[float, str], n_digits_no_su: Optional[int] = None
-) -> str:
+def merge_su_single(value: Union[float, str], su: Union[float, str], n_digits_no_su: Optional[int] = None) -> str:
     """
     Convert a numerical value and its standard uncertainty to a string representation.
 

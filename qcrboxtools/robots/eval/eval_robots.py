@@ -73,9 +73,7 @@ class EvalBaseRobot:
                 subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj)
         except OSError:
             with open(log_file, "w", encoding="UTF-8") as fobj:
-                subprocess.call(
-                    program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj, shell=True
-                )
+                subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj, shell=True)
 
         if init_existed:
             init_file.write_text(old_init_file, encoding="UTF-8")
@@ -307,9 +305,7 @@ class EvalAnyRobot(EvalBaseRobot):
 
         file_lines += list(cif_dict.keys())
 
-        file_lines += [
-            line_format_string.format(*line_entries) for line_entries in zip(*cif_dict.values())
-        ]
+        file_lines += [line_format_string.format(*line_entries) for line_entries in zip(*cif_dict.values())]
 
         file_lines.append("")
 
@@ -488,15 +484,11 @@ class EvalPeakrefRobot(EvalBaseRobot):
             content = fobj.read()
 
         refined_pattern = (
-            r"\n\s+(a(?:\s+[A-Za-z]+){1,6})\n"
-            + r"refined((?:\s+\d+\.\d+){1,7})\n"
-            + r"sigma((?:\s+\d+\.\d+){1,7})"
+            r"\n\s+(a(?:\s+[A-Za-z]+){1,6})\n" + r"refined((?:\s+\d+\.\d+){1,7})\n" + r"sigma((?:\s+\d+\.\d+){1,7})"
         )
         par_string, val_string, su_string = re.search(refined_pattern, content).groups()
 
-        ref_zip = zip(
-            par_string.strip().split(), val_string.strip().split(), su_string.strip().split()
-        )
+        ref_zip = zip(par_string.strip().split(), val_string.strip().split(), su_string.strip().split())
 
         cell_dict = {name: (float(val), float(su)) for name, val, su in ref_zip}
 
@@ -637,8 +629,7 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
 
         if maximum_res > minimum_res:
             raise ValueError(
-                "The value of the maximum resolution will always"
-                + "be smaller than the minimum resolution."
+                "The value of the maximum resolution will always" + "be smaller than the minimum resolution."
             )
         # builddatcol will not run without scaninfo.txt
         scandb_path = self.work_folder / "scaninfo.txt"
@@ -826,9 +817,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
             "o",
         )
         if polarisation_type not in possible_polarisations:
-            raise ValueError(
-                f'Invalid polarisation, choose one of: {", ".join(possible_polarisations)}'
-            )
+            raise ValueError(f'Invalid polarisation, choose one of: {", ".join(possible_polarisations)}')
 
         if self.p4p_file is None:
             command_base = (
@@ -843,8 +832,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
             command_base = (focus_type, polarisation_type, pointspread_gamma, acdnoise, mosaic)
             # self.p4p_file.to_file(self.work_folder)
             warnings.warn(
-                "Reading and writing p4p files is currently not implemented."
-                + "You need to add the p4p file yourself"
+                "Reading and writing p4p files is currently not implemented." + "You need to add the p4p file yourself"
             )
         command_list = ["" if val is None else str(val) for val in command_base]
         self._run_program_with_commands("buildeval15", command_list)

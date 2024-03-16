@@ -29,9 +29,7 @@ def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
     return cif.reader(input_string=cif_path.read_text(encoding="UTF-8")).model()
 
 
-def cifdata_str_or_index(
-    model: cif.model.cif, dataset: Union[int, str]
-) -> Tuple[cif.model.block, str]:
+def cifdata_str_or_index(model: cif.model.cif, dataset: Union[int, str]) -> Tuple[cif.model.block, str]:
     """
     Retrieve a CIF dataset block from the model using an index or identifier.
 
@@ -56,13 +54,11 @@ def cifdata_str_or_index(
         return model[dataset], dataset
     except ValueError as exc:
         raise ValueError(
-            "Dataset does not exist in cif and cannot be cast into int as index. "
-            + f"Got: {dataset}"
+            "Dataset does not exist in cif and cannot be cast into int as index. " + f"Got: {dataset}"
         ) from exc
     except IndexError as exc:
         raise IndexError(
-            "The given dataset does not exists and integer index is out of range. "
-            + f"Got: {dataset}"
+            "The given dataset does not exists and integer index is out of range. " + f"Got: {dataset}"
         ) from exc
 
 

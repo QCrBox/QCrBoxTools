@@ -31,9 +31,7 @@ class Olex2Socket(SocketRobot):
     _tsc_path = None
     _task_id_counter = count()
 
-    def __init__(
-        self, olex_server: str = "localhost", port: int = 8899, structure_path: str = None
-    ):
+    def __init__(self, olex_server: str = "localhost", port: int = 8899, structure_path: str = None):
         """
         Initializes the Olex2Socket with server details and an optional structure path.
 
@@ -204,9 +202,7 @@ class Olex2Socket(SocketRobot):
                 warnings.warn("TimeOut limit for job reached. Continuing")
                 break
             if "failed" in return_msg:
-                raise RuntimeError(
-                    f"The command {input_str} raised an error during running in olex."
-                )
+                raise RuntimeError(f"The command {input_str} raised an error during running in olex.")
 
     def refine(self, n_cycles=20, refine_starts=5):
         """
@@ -217,8 +213,7 @@ class Olex2Socket(SocketRobot):
         """
         if self.structure_path is None:
             raise ValueError(
-                "No structure loaded to refine. The structure_path attribute needs to be"
-                + " set before refinement."
+                "No structure loaded to refine. The structure_path attribute needs to be" + " set before refinement."
             )
         cmds = [
             "spy.set_refinement_program(olex2.refine, Gauss-Newton)",

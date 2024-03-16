@@ -96,9 +96,7 @@ def cif_iso2aniso(
         loop.update_column(
             f"_atom_site_aniso.u_{ij}",
             [
-                f"{new_values[name][ij_index]:8.8f}"
-                if name in select_names
-                else block[aniso_key][existing.index(name)]
+                f"{new_values[name][ij_index]:8.8f}" if name in select_names else block[aniso_key][existing.index(name)]
                 for name in new_aniso_labels
             ],
         )
@@ -131,15 +129,9 @@ def calc_rec_angle_cosines(alpha: float, beta: float, gamma: float) -> Tuple[flo
     beta_rad = np.radians(beta)
     gamma_rad = np.radians(gamma)
 
-    cos_alpha_star = (np.cos(beta_rad) * np.cos(gamma_rad) - np.cos(alpha_rad)) / (
-        np.sin(beta_rad) * np.sin(gamma_rad)
-    )
-    cos_beta_star = (np.cos(alpha_rad) * np.cos(gamma_rad) - np.cos(beta_rad)) / (
-        np.sin(alpha_rad) * np.sin(gamma_rad)
-    )
-    cos_gamma_star = (np.cos(alpha_rad) * np.cos(beta_rad) - np.cos(gamma_rad)) / (
-        np.sin(alpha_rad) * np.sin(beta_rad)
-    )
+    cos_alpha_star = (np.cos(beta_rad) * np.cos(gamma_rad) - np.cos(alpha_rad)) / (np.sin(beta_rad) * np.sin(gamma_rad))
+    cos_beta_star = (np.cos(alpha_rad) * np.cos(gamma_rad) - np.cos(beta_rad)) / (np.sin(alpha_rad) * np.sin(gamma_rad))
+    cos_gamma_star = (np.cos(alpha_rad) * np.cos(beta_rad) - np.cos(gamma_rad)) / (np.sin(alpha_rad) * np.sin(beta_rad))
 
     return cos_alpha_star, cos_beta_star, cos_gamma_star
 

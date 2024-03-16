@@ -615,9 +615,7 @@ class PicFile(RelativePathFile):
         "shver{}",
     ]
 
-    _eval15_commands += [
-        cmd.format(number) for cmd, number in product(_commands_with_X, range(2, 10))
-    ]
+    _eval15_commands += [cmd.format(number) for cmd, number in product(_commands_with_X, range(2, 10))]
 
     def __init__(
         self,
@@ -634,9 +632,7 @@ class PicFile(RelativePathFile):
         """
         super().__init__(filename=filename, content=content_str)
 
-        line_contents = [
-            line.strip().split() for line in content_str.split("\n") if not line.startswith("!")
-        ]
+        line_contents = [line.strip().split() for line in content_str.split("\n") if not line.startswith("!")]
         self.command_list = []
 
         options = []
@@ -879,9 +875,7 @@ class RmatFile(RelativePathFile, dict):
         str
             Formatted string of the RMAT data.
         """
-        output = [
-            self.value_as_string(key) for key in self if key not in ("CENTRING", "POINTGROUP")
-        ]
+        output = [self.value_as_string(key) for key in self if key not in ("CENTRING", "POINTGROUP")]
         return "\n".join(output)
 
     def to_cif_file(self, cif_path: str, block_name: str) -> None:
@@ -1013,10 +1007,7 @@ class RmatFile(RelativePathFile, dict):
         """
         new = cls(rmat_filename)
         new["RMAT"] = np.array(
-            [
-                [float(cif_dict[f"_diffrn_orient_matrix.ub_{i}{j}"]) for j in range(1, 4)]
-                for i in range(1, 4)
-            ]
+            [[float(cif_dict[f"_diffrn_orient_matrix.ub_{i}{j}"]) for j in range(1, 4)] for i in range(1, 4)]
         )
         if "_space_group.centring_type" in cif_dict:
             new["CENTRING"] = cif_dict["_space_group.centring_type"]
@@ -1033,16 +1024,11 @@ class RmatFile(RelativePathFile, dict):
             else:
                 raise KeyError("No lattice centring found in cif (_space_group.centring_type)")
 
-        tmat_entries = [
-            f"_diffrn_reflns_transf_matrix.{i}{j}" for i, j in product(range(1, 4), repeat=2)
-        ]
+        tmat_entries = [f"_diffrn_reflns_transf_matrix.{i}{j}" for i, j in product(range(1, 4), repeat=2)]
         tmat_entries.append("_space_group.point_group_h-m")
         if all(entry in cif_dict for entry in tmat_entries):
             new["TMAT"] = np.array(
-                [
-                    [float(cif_dict[f"_diffrn_reflns_transf_matrix.{i}{j}"]) for j in range(1, 4)]
-                    for i in range(1, 4)
-                ]
+                [[float(cif_dict[f"_diffrn_reflns_transf_matrix.{i}{j}"]) for j in range(1, 4)] for i in range(1, 4)]
             )
             new["POINTGROUP"] = cif_dict["_space_group.point_group_h-m"]
 

@@ -98,9 +98,7 @@ def test_extract_data():
     assert np.allclose(rmat["CELL"], expected_cell), "CELL values do not match expected values"
 
     # Test SIGMACELL values
-    assert np.allclose(
-        rmat["SIGMACELL"], expected_sigmacell
-    ), "SIGMACELL values do not match expected values"
+    assert np.allclose(rmat["SIGMACELL"], expected_sigmacell), "SIGMACELL values do not match expected values"
 
 
 def test_to_cif_dict():
@@ -108,19 +106,13 @@ def test_to_cif_dict():
     cif_dict = rmat.to_cif_dict()
 
     for key, expected_value in cif_rmat_data.items():
-        assert np.isclose(
-            cif_dict[key], expected_value
-        ), f"CIF entry {key} does not match expected value"
+        assert np.isclose(cif_dict[key], expected_value), f"CIF entry {key} does not match expected value"
 
     for key, expected_value in cif_cell_data.items():
-        assert np.isclose(
-            cif_dict[key], expected_value
-        ), f"CIF entry {key} does not match expected value"
+        assert np.isclose(cif_dict[key], expected_value), f"CIF entry {key} does not match expected value"
 
     for key, expected_value in cif_sigmacell_data.items():
-        assert np.isclose(
-            cif_dict[key], expected_value
-        ), f"CIF entry {key} does not match expected value"
+        assert np.isclose(cif_dict[key], expected_value), f"CIF entry {key} does not match expected value"
 
 
 def test_from_cif_dict_and_file(tmp_path):
@@ -148,19 +140,13 @@ def test_from_cif_dict_and_file(tmp_path):
     )
     for rmat in rmats:
         # Test RMAT values
-        assert np.allclose(
-            rmat["RMAT"], expected_rmat
-        ), "RMAT values do not match expected CIF data"
+        assert np.allclose(rmat["RMAT"], expected_rmat), "RMAT values do not match expected CIF data"
 
         # Test CELL values
-        assert np.allclose(
-            rmat["CELL"], expected_cell
-        ), "CELL values do not match expected CIF data"
+        assert np.allclose(rmat["CELL"], expected_cell), "CELL values do not match expected CIF data"
 
         # Test SIGMACELL values
-        assert np.allclose(
-            rmat["SIGMACELL"], expected_sigmacell
-        ), "SIGMACELL values do not match expected CIF data"
+        assert np.allclose(rmat["SIGMACELL"], expected_sigmacell), "SIGMACELL values do not match expected CIF data"
 
 
 def test_to_rmat_file(tmp_path):
@@ -174,9 +160,7 @@ def test_to_rmat_file(tmp_path):
         content = [line for line in file.readlines() if len(line.strip()) > 0]
 
     # Extract the expected content from the original rmat_content
-    expected_content = [
-        line for line in rmat_content.strip().splitlines(keepends=True) if not line.startswith("#")
-    ]
+    expected_content = [line for line in rmat_content.strip().splitlines(keepends=True) if not line.startswith("#")]
 
     # Compare each line of the file content with the expected content
     for line, expected_line in zip(content, expected_content):

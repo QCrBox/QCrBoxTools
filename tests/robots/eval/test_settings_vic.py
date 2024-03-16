@@ -90,9 +90,7 @@ def test_data_modification():
 
 def test_string_representation_and_file_writing(tmp_path):
     vic_file = SettingsVicFile("beamstop.vic", beamstop_vic)
-    expected_content = "\n".join(
-        line for line in beamstop_vic.split("\n") if not line.startswith("!")
-    )
+    expected_content = "\n".join(line for line in beamstop_vic.split("\n") if not line.startswith("!"))
     vic_file.to_file(tmp_path)
     with open(tmp_path / "beamstop.vic", "r", encoding="UTF-8") as f:
         written_content = f.read()

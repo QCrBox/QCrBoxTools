@@ -144,9 +144,7 @@ def test_cif_file_unified_to_keywords_merge_su(test_cif_file_unmerged, tmp_path)
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
-    assert (
-        "_atom_site_fract_z" not in output_content
-    ), "Included _atom_site.fract_z entry unexpectedly"
+    assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
 def test_cif_file_all_unified_su(test_cif_file_unmerged, tmp_path):
@@ -203,9 +201,7 @@ def test_direct_cif_entries_extraction():
         ]
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
-    assert sorted(compulsory) == sorted(
-        ["_cell_length_a", "_cell_length_b"]
-    ), "Failed to extract compulsory keywords"
+    assert sorted(compulsory) == sorted(["_cell_length_a", "_cell_length_b"]), "Failed to extract compulsory keywords"
     assert sorted(optional) == sorted(["_atom_site.label"]), "Failed to extract optional keywords"
 
 
@@ -297,9 +293,7 @@ def test_unique_optional_cif_entries_from_multiple_sets():
             {
                 "name": "process_cif",
                 "optional_cif_entry_sets": ["set1", "set2"],
-                "required_cif_entries": [
-                    "_cell_length_a"
-                ],  # Ensure exclusion of compulsory from optional
+                "required_cif_entries": ["_cell_length_a"],  # Ensure exclusion of compulsory from optional
             }
         ],
         "cif_entry_sets": [
@@ -369,9 +363,7 @@ def test_cif_file_unified_yml_instr(test_cif_file_unmerged, tmp_path):
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
-    assert (
-        "_atom_site_fract_z" not in output_content
-    ), "Included _atom_site.fract_z entry unexpectedly"
+    assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
 # CLI tests
@@ -399,9 +391,7 @@ def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
 
     # Check for expected patterns in the output content
     for pattern in expected_output_patterns:
-        assert (
-            re.search(pattern, output_content) is not None
-        ), f"Expected pattern not found in output: {pattern}"
+        assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
 
 
 def test_cli_command_unify(test_cif_file_merged, tmp_path):
@@ -426,6 +416,4 @@ def test_cli_command_unify(test_cif_file_merged, tmp_path):
 
     # Check for expected patterns in the output content
     for pattern in expected_output_patterns:
-        assert (
-            re.search(pattern, output_content) is not None
-        ), f"Expected pattern not found in output: {pattern}"
+        assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"

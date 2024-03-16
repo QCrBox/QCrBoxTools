@@ -101,9 +101,7 @@ def test_read_cif_as_unified(cif_path):
     """Test the read_cif_as_unified function for correctness."""
     for dataset in ["test", None]:
         # Test without any processing
-        output = read_cif_as_unified(
-            cif_path, dataset=dataset, split_sus=False, convert_keywords=False
-        )
+        output = read_cif_as_unified(cif_path, dataset=dataset, split_sus=False, convert_keywords=False)
         if dataset is None:
             # also test cif conversion
             output = output["test"]
@@ -111,9 +109,7 @@ def test_read_cif_as_unified(cif_path):
         assert output["_test_value_with_su"] == "1.23(4)"
 
         # Test with standard uncertainties split
-        output = read_cif_as_unified(
-            cif_path, dataset=dataset, split_sus=True, convert_keywords=False
-        )
+        output = read_cif_as_unified(cif_path, dataset=dataset, split_sus=True, convert_keywords=False)
         if dataset is None:
             output = output["test"]
         assert "_test_value_with_su_su" in output

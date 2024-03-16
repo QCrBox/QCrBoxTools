@@ -98,9 +98,7 @@ def replace_structure_from_cif(
 
     new_block, cif_dataset = cifdata_str_or_index(cif_obj, cif_dataset)
 
-    structure_cif_block, structure_cif_dataset = cifdata_str_or_index(
-        structure_cif_obj, structure_cif_dataset
-    )
+    structure_cif_block, structure_cif_dataset = cifdata_str_or_index(structure_cif_obj, structure_cif_dataset)
 
     conditions = (
         del_atom_site_condition,
@@ -296,20 +294,10 @@ def merge_cif_loops(
     if isinstance(merge_on, str):
         merge_on = [merge_on]
 
-    merge_keys = [
-        key
-        for key in loop1.keys()
-        if any(re.match(pattern, key) is not None for pattern in merge_on)
-    ]
-    merge_keys_check = [
-        key
-        for key in loop2.keys()
-        if any(re.match(pattern, key) is not None for pattern in merge_on)
-    ]
+    merge_keys = [key for key in loop1.keys() if any(re.match(pattern, key) is not None for pattern in merge_on)]
+    merge_keys_check = [key for key in loop2.keys() if any(re.match(pattern, key) is not None for pattern in merge_on)]
 
-    keys_identical = all(
-        key1 == key2 for key1, key2 in zip(sorted(merge_keys), sorted(merge_keys_check))
-    )
+    keys_identical = all(key1 == key2 for key1, key2 in zip(sorted(merge_keys), sorted(merge_keys_check)))
 
     if len(merge_keys) == 0 and len(merge_keys_check) == 0:
         raise NonExistingMergeKey("No matching keys found for merging.")
@@ -334,8 +322,7 @@ def merge_cif_loops(
 
     new_dict = {key: val for key, val in zip(merge_keys, zip(*start_dict.keys()))}
     nonmerge_keys = set(
-        [key for key in loop1.keys() if key not in merge_keys]
-        + [key for key in loop2.keys() if key not in merge_keys]
+        [key for key in loop1.keys() if key not in merge_keys] + [key for key in loop2.keys() if key not in merge_keys]
     )
 
     nonmerge_columns = zip(*[[row[key] for key in nonmerge_keys] for row in start_dict.values()])
@@ -410,17 +397,11 @@ def merge_cif_blocks(
             merged_loop = merge_cif_loops(loop1, loop2, merge_on=marker)
             if loop1_name in used_loops1:
                 raise NonUniqueBlockMerging(
-                    (
-                        f"loop1: {loop1_name} merged at least twice. "
-                        + f"Second merge with {loop2_name} of block2"
-                    )
+                    (f"loop1: {loop1_name} merged at least twice. " + f"Second merge with {loop2_name} of block2")
                 )
             if loop2_name in used_loops2:
                 raise NonUniqueBlockMerging(
-                    (
-                        f"loop2: {loop2_name} merged at least twice. "
-                        + f"Second merge with {loop1_name} of block1"
-                    )
+                    (f"loop2: {loop2_name} merged at least twice. " + f"Second merge with {loop1_name} of block1")
                 )
             used_loops1.append(loop1_name)
             used_loops2.append(loop2_name)

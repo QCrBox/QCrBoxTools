@@ -44,9 +44,7 @@ def fixture_cif_with_replacement(
     to_cif_dataset = "105K_P"
     combined_cif_path = tmp_path_factory.mktemp("output") / "output.cif"
 
-    replace_structure_from_cif(
-        to_cif_path, to_cif_dataset, from_cif_path, from_cif_dataset, combined_cif_path
-    )
+    replace_structure_from_cif(to_cif_path, to_cif_dataset, from_cif_path, from_cif_dataset, combined_cif_path)
 
     from_cif = read_cif_safe(from_cif_path)
     to_cif = read_cif_safe(to_cif_path)
@@ -145,9 +143,7 @@ def test_cif_refine_deleted(cif_with_replacement: Tuple[dict, dict, dict]):
     """
     _, _, combined_cif = cif_with_replacement
     exceptions = ("_refine_ls_weighting", "_refine_ls_extinction")
-    assert not any(
-        key.startswith("_refine") and not key.startswith(exceptions) for key in combined_cif.keys()
-    )
+    assert not any(key.startswith("_refine") and not key.startswith(exceptions) for key in combined_cif.keys())
 
 
 def test_cif_refln_calc_deleted(cif_with_replacement: Tuple[dict, dict, dict]):

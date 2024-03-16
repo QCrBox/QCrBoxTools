@@ -116,9 +116,7 @@ def add_cart_pos(
     """
     atom_sites_dict = cell_dict2atom_sites_dict(cell_dict)
     xyz_fract = np.array([atom_site_dict[f"_atom_site.fract_{val}"] for val in ("x", "y", "z")]).T
-    xyz_cartn = np.einsum(
-        "xy, zy -> zx", atom_sites_dict["_atom_sites_cartn_transform.matrix"], xyz_fract
-    )
+    xyz_cartn = np.einsum("xy, zy -> zx", atom_sites_dict["_atom_sites_cartn_transform.matrix"], xyz_fract)
     atom_site_out = atom_site_dict.copy()
     atom_site_out["_atom_site.cartn_x"] = list(xyz_cartn[:, 0])
     atom_site_out["_atom_site.cartn_y"] = list(xyz_cartn[:, 1])
@@ -126,9 +124,7 @@ def add_cart_pos(
     return atom_site_out, atom_sites_dict
 
 
-def position_difference(
-    cif1_path: Path, cif1_dataset: Union[int, str], cif2_path: Path, cif2_dataset: Union[int, str]
-):
+def position_difference(cif1_path: Path, cif1_dataset: Union[int, str], cif2_path: Path, cif2_dataset: Union[int, str]):
     """
     Computes positional differences between datasets in two CIF files.
 
@@ -154,15 +150,11 @@ def position_difference(
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
     positions_sus1 = [split_su_array(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")]
-    atom_site_frac1 = {
-        f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus1)
-    }
+    atom_site_frac1 = {f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus1)}
     frac1 = np.stack([val[0] for val in positions_sus1], axis=1)
     frac1_su = np.stack([val[1] for val in positions_sus1], axis=1)
     positions_sus2 = [split_su_array(block2[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")]
-    atom_site_frac2 = {
-        f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus2)
-    }
+    atom_site_frac2 = {f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus2)}
     frac2 = np.stack([val[0] for val in positions_sus2], axis=1)
     frac2_su = np.stack([val[1] for val in positions_sus2], axis=1)
 
@@ -229,12 +221,8 @@ def anisotropic_adp_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    uij_sus1 = [
-        split_su_array(block1[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)
-    ]
-    uij_sus2 = [
-        split_su_array(block2[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)
-    ]
+    uij_sus1 = [split_su_array(block1[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)]
+    uij_sus2 = [split_su_array(block2[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)]
 
     uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
     uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)

@@ -17,15 +17,10 @@ def test_to_unified_name():
     custom_categories = ["iucr", "olex2", "shelx"]
 
     # Test with a name that should be converted using custom categories
-    assert (
-        entry_to_unified_keyword("_iucr_entry_example", custom_categories) == "_iucr.entry_example"
-    )
+    assert entry_to_unified_keyword("_iucr_entry_example", custom_categories) == "_iucr.entry_example"
 
     # Test with a name that should fall back to the alias mechanism
-    assert (
-        entry_to_unified_keyword("_journal_date_accepted", custom_categories)
-        == "_journal_date.accepted"
-    )
+    assert entry_to_unified_keyword("_journal_date_accepted", custom_categories) == "_journal_date.accepted"
 
     # Test with a name that does not match custom categories or aliases
     assert entry_to_unified_keyword("_unmatched_entry", custom_categories) == "_unmatched_entry"
@@ -41,9 +36,7 @@ def mock_old_block():
     block = model.block()
     # Add mock data items
     block.add_data_item("_mock_entry", "value1")
-    block.add_data_item(
-        "_journal_date_accepted", "2020-01-01"
-    )  # This should get converted based on the alias
+    block.add_data_item("_journal_date_accepted", "2020-01-01")  # This should get converted based on the alias
 
     # Add a mock loop
     loop_data = {
@@ -93,15 +86,11 @@ def test_cif_to_unified_keywords(mock_cif, custom_categories):
     unified_cif = cif_to_unified_keywords(mock_cif, custom_categories)
 
     # Verify that the CIF object contains the same number of blocks as the mock CIF
-    assert len(unified_cif) == len(
-        mock_cif
-    ), "The number of blocks in the unified CIF does not match the original."
+    assert len(unified_cif) == len(mock_cif), "The number of blocks in the unified CIF does not match the original."
 
     # Iterate through each block in the unified CIF to ensure conversions were applied
     for block_name, unified_block in unified_cif.items():
-        assert isinstance(
-            unified_block, model.block
-        ), f"The block '{block_name}' is not a CIF block."
+        assert isinstance(unified_block, model.block), f"The block '{block_name}' is not a CIF block."
 
         # Example verification that entries were converted (specific checks depend on mock data and custom categories)
         expected_names = [
@@ -111,9 +100,7 @@ def test_cif_to_unified_keywords(mock_cif, custom_categories):
             "_mock.loop_entry2",
         ]
         for name in expected_names:
-            assert (
-                name in unified_block
-            ), f"Expected entry '{name}' not found in block '{block_name}'."
+            assert name in unified_block, f"Expected entry '{name}' not found in block '{block_name}'."
 
 
 @pytest.fixture
@@ -153,9 +140,7 @@ def test_block_to_requested_keywords(unified_block, custom_categories):
     optional_entries = ["_nonexistent_entry", "mock_entry"]
 
     # Attempt conversion with a non-existent entry marked as optional
-    converted_block = block_to_requested_keywords(
-        unified_block, requested_entries, optional_entries, custom_categories
-    )
+    converted_block = block_to_requested_keywords(unified_block, requested_entries, optional_entries, custom_categories)
 
     # Ensure all non-optional requested entries are present in the converted block
     for entry_name in requested_entries:
@@ -165,9 +150,7 @@ def test_block_to_requested_keywords(unified_block, custom_categories):
             ), f"Requested entry '{entry_name}' was not found in the converted block."
 
     # Ensure the optional, non-existent entry does not cause an error and is rightly not present
-    assert (
-        "_nonexistent_entry" not in converted_block
-    ), "Optional, non-existent entry was generated from nothing."
+    assert "_nonexistent_entry" not in converted_block, "Optional, non-existent entry was generated from nothing."
 
 
 @pytest.fixture
@@ -186,21 +169,15 @@ def test_cif_to_requested_keywords(unified_cif, custom_categories):
     optional_entries = ["_nonexistent_entry", "mock_entry"]
 
     # Convert using cif_to_requested_keywords
-    new_cif = cif_to_requested_keywords(
-        unified_cif, requested_entries, optional_entries, custom_categories
-    )
+    new_cif = cif_to_requested_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
 
     # Ensure that each block in the new CIF contains only the requested entries
     for _, block in new_cif.items():
         for entry_name in requested_entries:
             if entry_name != "_nonexistent_entry":
-                assert (
-                    entry_name in block
-                ), f"Requested entry '{entry_name}' was not found in the converted block."
+                assert entry_name in block, f"Requested entry '{entry_name}' was not found in the converted block."
 
-        assert (
-            "_nonexistent_entry" not in block
-        ), "Optional, non-existent entry was generated from nothing."
+        assert "_nonexistent_entry" not in block, "Optional, non-existent entry was generated from nothing."
 
 
 @pytest.fixture
@@ -220,11 +197,11 @@ def test_cif_entries_present(mock_block):
     absent_entries = ["_missing_entry"]
 
     # Test with entries that are present
-    assert (
-        cif_entries_present(mock_block, custom_categories, present_entries)
+    assert cif_entries_present(
+        mock_block, custom_categories, present_entries
     ), "Function should return True when all entries are present."
 
     # Test with at least one absent entry
-    assert (
-        not cif_entries_present(mock_block, custom_categories, present_entries + absent_entries)
+    assert not cif_entries_present(
+        mock_block, custom_categories, present_entries + absent_entries
     ), "Function should return False when any specified entry is absent."

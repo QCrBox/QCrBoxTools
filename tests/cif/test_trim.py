@@ -36,18 +36,14 @@ def test_trim_cif_block(mock_cif_block):
     keep_only_regexes = [r"_empty.*", r"_keep.*"]
     delete_regexes = [r"_delete.*"]
 
-    trimmed_block = trim_cif_block(
-        mock_cif_block, keep_only_regexes, delete_regexes, delete_empty_entries=True
-    )
+    trimmed_block = trim_cif_block(mock_cif_block, keep_only_regexes, delete_regexes, delete_empty_entries=True)
 
     assert "_keep_this" in trimmed_block
     assert "_keep_also_this" in trimmed_block
     assert "_delete_this" not in trimmed_block
     assert "_empty_entry" not in trimmed_block
 
-    trimmed_block = trim_cif_block(
-        mock_cif_block, keep_only_regexes, delete_regexes, delete_empty_entries=False
-    )
+    trimmed_block = trim_cif_block(mock_cif_block, keep_only_regexes, delete_regexes, delete_empty_entries=False)
 
     assert "_keep_this" in trimmed_block
     assert "_keep_also_this" in trimmed_block
@@ -67,9 +63,7 @@ def test_trim_cif_file(mock_cif_block):
     # Define your patterns and call the function
     keep_only_regexes = [r"_keep.*"]
     delete_regexes = [r"_delete.*"]
-    trim_cif_file(
-        tmpfile_path, "mock_block", keep_only_regexes, delete_regexes, delete_empty_entries=True
-    )
+    trim_cif_file(tmpfile_path, "mock_block", keep_only_regexes, delete_regexes, delete_empty_entries=True)
 
     # Convert back to cif model to check contents
     trimmed_cif = reader(tmpfile_path).model()

@@ -53,10 +53,7 @@ from .cif2cif import (
 def main():
     """Main CLI function"""
     parser = argparse.ArgumentParser(
-        description=(
-            "Convert cif files from one keyword convention to another."
-            + " Split/Merge SUs as needed."
-        )
+        description=("Convert cif files from one keyword convention to another." + " Split/Merge SUs as needed.")
     )
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
@@ -67,9 +64,7 @@ def main():
     parser_unify_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
     parser_unify_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_unify_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
-    parser_unify_yml.add_argument(
-        "command", type=str, help="Command within the YAML file for processing."
-    )
+    parser_unify_yml.add_argument("command", type=str, help="Command within the YAML file for processing.")
 
     # Parser for cif_file_unified_to_keywords_merge_su
     parser_keywords_merge_su = subparsers.add_parser(
@@ -77,9 +72,7 @@ def main():
         help="Processes a CIF file, optionally merges SUs, and filters by specified keywords.",
     )
     parser_keywords_merge_su.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
-    parser_keywords_merge_su.add_argument(
-        "output_cif_path", type=Path, help="Output CIF file path."
-    )
+    parser_keywords_merge_su.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_keywords_merge_su.add_argument(
         "--compulsory_entries", nargs="*", default=[], help="Compulsory entries to include."
     )
@@ -112,9 +105,7 @@ def main():
         help="Do not convert keywords to a unified format.",
     )
     parser_unify_split.set_defaults(convert_keywords=True)
-    parser_unify_split.add_argument(
-        "--custom_categories", nargs="*", help="Custom categories for keyword conversion."
-    )
+    parser_unify_split.add_argument("--custom_categories", nargs="*", help="Custom categories for keyword conversion.")
     parser_unify_split.add_argument(
         "--split_sus", action="store_true", help="Split values from their SUs in the CIF content."
     )
@@ -130,9 +121,7 @@ def main():
 
     # Handling function calls based on command
     if args.command == "keywords_yml":
-        cif_file_unified_yml_instr(
-            args.input_cif_path, args.output_cif_path, args.yml_path, args.command
-        )
+        cif_file_unified_yml_instr(args.input_cif_path, args.output_cif_path, args.yml_path, args.command)
     elif args.command == "unify":
         cif_file_unify_split(
             args.input_cif_path,

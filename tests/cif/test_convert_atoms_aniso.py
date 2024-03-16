@@ -37,10 +37,7 @@ def uiso_matches_uaniso(atom_name, block):
     uiso_index = list(block["_atom_site.label"]).index(atom_name)
     uiso = split_su_single(block["_atom_site.u_iso_or_equiv"][uiso_index])[0]
     uaniso = np.array(
-        [
-            split_su_single(block[f"_atom_site_aniso.u_{ij}"][aniso_index])[0]
-            for ij in (11, 22, 33, 12, 13, 23)
-        ]
+        [split_su_single(block[f"_atom_site_aniso.u_{ij}"][aniso_index])[0] for ij in (11, 22, 33, 12, 13, 23)]
     )
     u_aniso_comp = single_value_iso2aniso(
         uiso,

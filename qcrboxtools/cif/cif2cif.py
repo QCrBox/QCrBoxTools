@@ -115,9 +115,7 @@ def cif_file_unified_to_keywords_merge_su(
     all_keywords = set(compulsory_entries + optional_entries)
 
     if merge_sus:
-        unified_entries = [
-            entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords
-        ]
+        unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords]
 
         # entries are explicitely requested and therefore should not be merged
         exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith("_su")]
@@ -126,9 +124,7 @@ def cif_file_unified_to_keywords_merge_su(
     if "all_unified" in all_keywords:
         cif_model = cif_to_unified_keywords(cif_model, custom_categories)
     elif len(all_keywords) > 0:
-        cif_model = cif_to_requested_keywords(
-            cif_model, compulsory_entries, optional_entries, custom_categories
-        )
+        cif_model = cif_to_requested_keywords(cif_model, compulsory_entries, optional_entries, custom_categories)
 
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
 
@@ -200,9 +196,7 @@ def cif_entries_from_yml(yml_dict, command):
         "optional_cif_entries",
     )
     if not any(entry in options for entry in possible_entries):
-        raise NoKeywordsError(
-            "Command {command} has no entries defining optional or necessary keywords."
-        )
+        raise NoKeywordsError("Command {command} has no entries defining optional or necessary keywords.")
     compulsory_kws = options.get("required_cif_entries", [])
     optional_kws = options.get("optional_cif_entries", [])
     for kwset in options.get("required_cif_entry_sets", []):
@@ -212,10 +206,7 @@ def cif_entries_from_yml(yml_dict, command):
             raise KeyError(f"Keyword set {kwset} not found.") from exc
         if any(key not in ("name", "required", "optional") for key in kwset_dict):
             raise NameError(
-                (
-                    'Found entry other than "name", "required" or "optional"'
-                    + f"in keyword set {kwset}. Typo?"
-                )
+                ('Found entry other than "name", "required" or "optional"' + f"in keyword set {kwset}. Typo?")
             )
         compulsory_kws += kwset_dict.get("required", [])
         optional_kws += kwset_dict.get("optional", [])
@@ -227,10 +218,7 @@ def cif_entries_from_yml(yml_dict, command):
             raise KeyError(f"Keyword set {kwset} not found.") from exc
         if any(key not in ("name", "required", "optional") for key in kwset_dict):
             raise NameError(
-                (
-                    'Found entry other than "name", "required" or "optional"'
-                    + f"in keyword set {kwset}. Typo?"
-                )
+                ('Found entry other than "name", "required" or "optional"' + f"in keyword set {kwset}. Typo?")
             )
         optional_kws += kwset_dict.get("required", [])
         optional_kws += kwset_dict.get("optional", [])

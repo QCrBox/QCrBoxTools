@@ -94,12 +94,8 @@ def test_merge_block_conflicts():
     assert (
         merged_block["_space_group_symop.test_entry"][0] == "copy this"
     ), "Additional value from block1 (merged by .id) not present"
-    assert (
-        float(merged_block["_cell.length_c"]) == 12.0
-    ), "Block2's cell.length_c does not overwrite block1 as expected"
-    assert (
-        float(merged_block["_cell.volume"]) == 1200.0
-    ), "Block2's unique value cell.volume not copied as expected"
+    assert float(merged_block["_cell.length_c"]) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
+    assert float(merged_block["_cell.volume"]) == 1200.0, "Block2's unique value cell.volume not copied as expected"
     assert (
         merged_block["_space_group.name_h-m_alt"] == "P 1"
     ), "Block1's unique value space_group.name_h-m_alt not correctly copied"
@@ -143,12 +139,8 @@ def test_merge_cif_files(tmp_path):
     assert (
         merged_block["_space_group_symop.test_entry"][0] == "copy this"
     ), "Additional value from block1 (merged by .id) not present"
-    assert (
-        float(merged_block["_cell.length_c"]) == 12.0
-    ), "Block2's cell.length_c does not overwrite block1 as expected"
-    assert (
-        float(merged_block["_cell.volume"]) == 1200.0
-    ), "Block2's unique value cell.volume not copied as expected"
+    assert float(merged_block["_cell.length_c"]) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
+    assert float(merged_block["_cell.volume"]) == 1200.0, "Block2's unique value cell.volume not copied as expected"
     assert (
         merged_block["_space_group.name_h-m_alt"] == "P 1"
     ), "Block1's unique value space_group.name_h-m_alt not correctly copied"

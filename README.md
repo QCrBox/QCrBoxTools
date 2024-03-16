@@ -5,7 +5,7 @@
 The QCrBox project requires the execution of different crystallographic tasks, such as the conversion / handling of cif files and the scripted execution of crystallographic software, which is collected in this python module.
 
 ## QCrBox Project Team
-| Project Member                                       | Contact address                                                   | Role                             | Unit                                                                                |
+| Project Member                                       |Role                             | Unit                                                                                |
 |------------------------------------------------------|-------------------------------------------------------------------|----------------------------------|-------------------------------------------------------------------------------------|
 | Dr. [Paul Niklas Ruth](github.com/Niolon)             |  Research Software Engineer (RSE) | [Advanced Research Computing, Durham University](https://www.durham.ac.uk/research/institutes-and-centres/advanced-research-computing/)                       |
 | [Maximilian Albert](github.com/maxalbert)       |  Research Software Engineer (RSE) | [Research Software Group, University of Southampton ](https://rsgsoton.net/)                       |

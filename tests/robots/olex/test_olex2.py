@@ -11,10 +11,12 @@ import os
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pytest
 from iotbx import cif
-import numpy as np
+
 from qcrboxtools.robots.olex2 import Olex2Socket
+
 
 @pytest.mark.program_dependent
 def test_olex2server():
@@ -25,10 +27,11 @@ def test_olex2server():
     """
     olex2 = Olex2Socket()
     message = (
-        'Server did not respond with ready to status check, are environment variables OLEX2SERVER '
-        + 'and OLEX2PORT available and is the Olex2 socket server started?'
+        "Server did not respond with ready to status check, are environment variables OLEX2SERVER "
+        + "and OLEX2PORT available and is the Olex2 socket server started?"
     )
     assert olex2.check_connection(), message
+
 
 @pytest.mark.program_dependent
 def test_olex2_refine(tmp_path):
@@ -41,38 +44,35 @@ def test_olex2_refine(tmp_path):
     Args:
     - tmp_path: A fixture provided by pytest for temporary directories.
     """
-    work_path = tmp_path / 'work.cif'
-    shutil.copy('./tests/robots/olex/cif_files/refine_nonconv_nonHaniso.cif', work_path)
+    work_path = tmp_path / "work.cif"
+    shutil.copy("./tests/robots/olex/cif_files/refine_nonconv_nonHaniso.cif", work_path)
 
     # create these files to check that loading works if they already exist
-    work_path.with_suffix('.hkl').touch()
-    work_path.with_suffix('.ins').touch()
+    work_path.with_suffix(".hkl").touch()
+    work_path.with_suffix(".ins").touch()
 
     olex2 = Olex2Socket()
     olex2.structure_path = work_path
     _ = olex2.refine()
 
-    target_path = './tests/robots/olex/cif_files/refine_conv_nonHaniso.cif'
-    cif_target = cif.reader(str(target_path)).model()['epoxide']
+    target_path = "./tests/robots/olex/cif_files/refine_conv_nonHaniso.cif"
+    cif_target = cif.reader(str(target_path)).model()["epoxide"]
 
-    cif_refined = cif.reader(str(work_path)).model()['work']
+    cif_refined = cif.reader(str(work_path)).model()["work"]
 
     for ij in (11, 22, 33, 12, 13, 23):
-        key = f'_atom_site_aniso_U_{ij}'
-        refined_vals = np.array(
-            [float(val.split('(')[0]) for val in cif_refined[key]]
-        )
-        target_vals = np.array(
-            [float(val.split('(')[0]) for val in cif_target[key]]
-        )
+        key = f"_atom_site_aniso_U_{ij}"
+        refined_vals = np.array([float(val.split("(")[0]) for val in cif_refined[key]])
+        target_vals = np.array([float(val.split("(")[0]) for val in cif_target[key]])
         assert max(abs(refined_vals - target_vals)) < 1.1e-4
+
 
 @pytest.mark.program_dependent
 def test_olex2_refine_tsc(tmp_path):
-    work_path = os.path.join(tmp_path, 'work.cif')
-    shutil.copy('./tests/robots/olex/cif_files/refine_nonconv_allaniso.cif', work_path)
+    work_path = os.path.join(tmp_path, "work.cif")
+    shutil.copy("./tests/robots/olex/cif_files/refine_nonconv_allaniso.cif", work_path)
 
-    tsc_path = Path('./tests/robots/olex/cif_files/refine_allaniso.tscb').absolute()
+    tsc_path = Path("./tests/robots/olex/cif_files/refine_allaniso.tscb").absolute()
 
     olex2 = Olex2Socket()
     olex2.structure_path = work_path
@@ -80,17 +80,13 @@ def test_olex2_refine_tsc(tmp_path):
     olex2.tsc_path = tsc_path
     _ = olex2.refine()
 
-    target_path = './tests/robots/olex/cif_files/refine_conv_allaniso.cif'
-    cif_target = cif.reader(str(target_path)).model()['epoxide']
+    target_path = "./tests/robots/olex/cif_files/refine_conv_allaniso.cif"
+    cif_target = cif.reader(str(target_path)).model()["epoxide"]
 
-    cif_refined = cif.reader(str(work_path)).model()['work']
+    cif_refined = cif.reader(str(work_path)).model()["work"]
 
     for ij in (11, 22, 33, 12, 13, 23):
-        key = f'_atom_site_aniso_U_{ij}'
-        refined_vals = np.array(
-            [float(val.split('(')[0]) for val in cif_refined[key]]
-        )
-        target_vals = np.array(
-            [float(val.split('(')[0]) for val in cif_target[key]]
-        )
+        key = f"_atom_site_aniso_U_{ij}"
+        refined_vals = np.array([float(val.split("(")[0]) for val in cif_refined[key]])
+        target_vals = np.array([float(val.split("(")[0]) for val in cif_target[key]])
         assert max(abs(refined_vals - target_vals)) < 1.1e-4

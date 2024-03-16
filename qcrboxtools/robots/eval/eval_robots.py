@@ -1,15 +1,16 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
 
-import re
-from typing import Union, List, Optional, Tuple, Dict
 import os
-from pathlib import Path
+import re
 import subprocess
 import textwrap
 import warnings
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
-from .eval_files import PicFile, TextFile, SettingsVicFile, RmatFile
+from .eval_files import PicFile, RmatFile, SettingsVicFile, TextFile
+
 
 class EvalBaseRobot:
     """
@@ -31,6 +32,7 @@ class EvalBaseRobot:
     _run_program_with_commands(self, program_name: str, command_list: List[str])
         Executes a specified program with a list of commands in the work folder.
     """
+
     _work_folder = None
 
     def __init__(self, work_folder: Union[str, Path]):
@@ -59,28 +61,24 @@ class EvalBaseRobot:
             A list of commands to be written to the program's initialization file.
         """
 
-        init_file = self.work_folder / f'{program_name}.init'
+        init_file = self.work_folder / f"{program_name}.init"
 
         init_existed = init_file.exists()
         if init_existed:
-            old_init_file = init_file.read_text(encoding='UTF-8')
-        init_file.write_text('\n'.join(command_list) + '\n', encoding='UTF-8')
-        log_file = self.work_folder / f'{program_name}_output.log'
+            old_init_file = init_file.read_text(encoding="UTF-8")
+        init_file.write_text("\n".join(command_list) + "\n", encoding="UTF-8")
+        log_file = self.work_folder / f"{program_name}_output.log"
         try:
-            with open(log_file, 'w', encoding='UTF-8') as fobj:
+            with open(log_file, "w", encoding="UTF-8") as fobj:
                 subprocess.call(program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj)
         except OSError:
-            with open(log_file, 'w', encoding='UTF-8') as fobj:
+            with open(log_file, "w", encoding="UTF-8") as fobj:
                 subprocess.call(
-                    program_name,
-                    cwd=self.work_folder,
-                    stdout=fobj,
-                    stderr=fobj,
-                    shell=True
+                    program_name, cwd=self.work_folder, stdout=fobj, stderr=fobj, shell=True
                 )
 
         if init_existed:
-            init_file.write_text(old_init_file, encoding='UTF-8')
+            init_file.write_text(old_init_file, encoding="UTF-8")
         else:
             init_file.unlink()
 
@@ -91,6 +89,7 @@ class EvalBaseRobot:
         @work_folder.setter
         def work_folder(self, path):
             self._work_folder = Path(path)
+
 
 class Eval15AllRobot(EvalBaseRobot):
     """
@@ -113,11 +112,8 @@ class Eval15AllRobot(EvalBaseRobot):
     integrate_shoes()
         Executes the integration process using 'eval15all'.
     """
-    def __init__(
-            self,
-            work_folder: Union[str, Path],
-            file_list: List[PicFile]
-        ):
+
+    def __init__(self, work_folder: Union[str, Path], file_list: List[PicFile]):
         """
         Initializes the Eval15AllRobot with a specified work folder and a list of files.
 
@@ -142,17 +138,17 @@ class Eval15AllRobot(EvalBaseRobot):
         for file in self.file_list:
             file.to_file(self.work_folder)
 
-        eval15_init_command_list = [f'@{file.filename}' for file in self.file_list]
-        eval15_init_command_list.append('markdefault')
-        eval15_init_path = self.work_folder / 'eval15.init'
+        eval15_init_command_list = [f"@{file.filename}" for file in self.file_list]
+        eval15_init_command_list.append("markdefault")
+        eval15_init_path = self.work_folder / "eval15.init"
         previous_file_existed = eval15_init_path.exists()
         if previous_file_existed:
-            eval15content = eval15_init_path.read_text(encoding='UTF-8')
-        eval15_init_path.write_text('\n'.join(eval15_init_command_list) + '\n', encoding='UTF-8')
-        self._run_program_with_commands('eval15all', [''] * 10)
+            eval15content = eval15_init_path.read_text(encoding="UTF-8")
+        eval15_init_path.write_text("\n".join(eval15_init_command_list) + "\n", encoding="UTF-8")
+        self._run_program_with_commands("eval15all", [""] * 10)
         eval15_init_path.unlink()
         if previous_file_existed:
-            eval15_init_path.write_text(eval15content, encoding='UTF-8')
+            eval15_init_path.write_text(eval15content, encoding="UTF-8")
 
 
 class EvalViewRobot(EvalBaseRobot):
@@ -177,11 +173,12 @@ class EvalViewRobot(EvalBaseRobot):
     create_shoes()
         Prepares and executes the visualization process using 'view'.
     """
+
     def __init__(
-            self,
-            work_folder: Union[str, Path],
-            file_list: List[Union[TextFile, PicFile, SettingsVicFile, RmatFile]]
-        ):
+        self,
+        work_folder: Union[str, Path],
+        file_list: List[Union[TextFile, PicFile, SettingsVicFile, RmatFile]],
+    ):
         """
         Initializes the EvalViewRobot with a specified work folder and a list of files.
 
@@ -202,12 +199,13 @@ class EvalViewRobot(EvalBaseRobot):
         This method writes the files in the file list to the work directory,
         creates an initialization file for 'view', and runs the visualization process.
         """
-        command_list = ['@datcol', 'exit']
+        command_list = ["@datcol", "exit"]
 
         for file in self.file_list:
             file.to_file(self.work_folder)
 
-        self._run_program_with_commands('view', command_list)
+        self._run_program_with_commands("view", command_list)
+
 
 class EvalAnyRobot(EvalBaseRobot):
     """
@@ -234,26 +232,25 @@ class EvalAnyRobot(EvalBaseRobot):
         Generates a CIF file at the specified file path via any export
     """
 
-
     _abs_columns = (
         # name, type, n_chars, format_str
-        ('_diffrn_refln.index_h', int, 4, ' 4d'),
-        ('_diffrn_refln.index_k', int, 4, ' 4d'),
-        ('_diffrn_refln.index_l', int, 4, ' 4d'),
-        ('_diffrn_refln.intensity_net', float, 8, ' 11.2f'),
-        ('_diffrn_refln.intensity_net_su', float, 8, ' 9.2f'),
-        ('_diffrn_refln.class_code', int, 4, ' 4d'),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_x', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_y', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.direction_cosine_incid_z', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_x', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_y', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.direction_cosine_diffrn_z', float, 8, ' 9.5f'),
-        ('_qcrbox.diffrn_refln.detector_px_x_obs', float, 7, ' 8.2f'),
-        ('_qcrbox.diffrn_refln.detector_px_y_obs', float, 7, ' 8.2f'),
-        ('_qcrbox.diffrn_refln.detector_frame_obs', float, 8, ' 9.2f'),
-        ('_qcrbox.diffrn_refln.evalsad_mystery_val1', float, 7, ' 8.2f'),
-        ('_qcrbox.diffrn_refln.evalsad_mystery_val2', int, 5, ' 5d')
+        ("_diffrn_refln.index_h", int, 4, " 4d"),
+        ("_diffrn_refln.index_k", int, 4, " 4d"),
+        ("_diffrn_refln.index_l", int, 4, " 4d"),
+        ("_diffrn_refln.intensity_net", float, 8, " 11.2f"),
+        ("_diffrn_refln.intensity_net_su", float, 8, " 9.2f"),
+        ("_diffrn_refln.class_code", int, 4, " 4d"),
+        ("_qcrbox.diffrn_refln.direction_cosine_incid_x", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.direction_cosine_incid_y", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.direction_cosine_incid_z", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.direction_cosine_diffrn_x", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.direction_cosine_diffrn_y", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.direction_cosine_diffrn_z", float, 8, " 9.5f"),
+        ("_qcrbox.diffrn_refln.detector_px_x_obs", float, 7, " 8.2f"),
+        ("_qcrbox.diffrn_refln.detector_px_y_obs", float, 7, " 8.2f"),
+        ("_qcrbox.diffrn_refln.detector_frame_obs", float, 8, " 9.2f"),
+        ("_qcrbox.diffrn_refln.evalsad_mystery_val1", float, 7, " 8.2f"),
+        ("_qcrbox.diffrn_refln.evalsad_mystery_val2", int, 5, " 5d"),
     )
 
     def create_abs(self):
@@ -261,8 +258,8 @@ class EvalAnyRobot(EvalBaseRobot):
         Executes the 'any' command to generate data necessary for subsequent processing with
         SADABS.
         """
-        command_list = ['read final', 'sadabs', 'exit']
-        self._run_program_with_commands('any', command_list)
+        command_list = ["read final", "sadabs", "exit"]
+        self._run_program_with_commands("any", command_list)
 
     def create_cif_dict(self):
         """
@@ -276,8 +273,8 @@ class EvalAnyRobot(EvalBaseRobot):
         """
         self.create_abs()
 
-        sad_path = self.work_folder / 'shelx.sad'
-        with open(sad_path, encoding='UTF-8') as fobj:
+        sad_path = self.work_folder / "shelx.sad"
+        with open(sad_path, encoding="UTF-8") as fobj:
             content = fobj.read()
 
         column_names, types, widthes, _ = zip(*self._abs_columns)
@@ -285,14 +282,12 @@ class EvalAnyRobot(EvalBaseRobot):
         ends = [sum(widthes[:index]) for index in range(len(widthes) + 1)]
 
         cast_values = [
-            [
-                type(line[start:stop]) for start, stop, type in zip(ends[:-1], ends[1:], types)
-            ] for line in content.split('\n') if len(line) >= ends[-1]
+            [type(line[start:stop]) for start, stop, type in zip(ends[:-1], ends[1:], types)]
+            for line in content.split("\n")
+            if len(line) >= ends[-1]
         ]
 
-        cif_dict = {
-            key: values for key, values in zip(column_names, zip(*cast_values))
-        }
+        cif_dict = {key: values for key, values in zip(column_names, zip(*cast_values))}
         return cif_dict
 
     def create_cif_file(self, file_path: Union[str, Path]):
@@ -306,11 +301,9 @@ class EvalAnyRobot(EvalBaseRobot):
         """
         cif_dict = self.create_cif_dict()
 
-        line_format_string = ' '.join(f'{{:{entry[3]}}}' for entry in self._abs_columns)
+        line_format_string = " ".join(f"{{:{entry[3]}}}" for entry in self._abs_columns)
 
-        file_lines = [
-            r'#\#CIF_2.0', '', 'data_eval_output', '', 'loop_'
-        ]
+        file_lines = [r"#\#CIF_2.0", "", "data_eval_output", "", "loop_"]
 
         file_lines += list(cif_dict.keys())
 
@@ -318,18 +311,19 @@ class EvalAnyRobot(EvalBaseRobot):
             line_format_string.format(*line_entries) for line_entries in zip(*cif_dict.values())
         ]
 
-        file_lines.append('')
+        file_lines.append("")
 
-        with open(file_path, 'w', encoding='UTF-8') as fobj:
-            fobj.write('\n'.join(file_lines))
+        with open(file_path, "w", encoding="UTF-8") as fobj:
+            fobj.write("\n".join(file_lines))
 
     def create_pk(self):
         """
         Creates a final.pk file containing the peak information from the integration.
         Needed for final cell refinement in peakref
         """
-        command_list = ['read final', 'pkrestfrac 0.2', 'pk', 'exit']
-        self._run_program_with_commands('any', command_list)
+        command_list = ["read final", "pkrestfrac 0.2", "pk", "exit"]
+        self._run_program_with_commands("any", command_list)
+
 
 class EvalPeakrefRobot(EvalBaseRobot):
     """
@@ -366,11 +360,7 @@ class EvalPeakrefRobot(EvalBaseRobot):
         Consolidates RMAT and cell parameter data into a CIF format dictionary.
     """
 
-    def __init__(
-        self,
-        work_folder: Union[str, Path],
-        rmat_file: Union[RmatFile, str]
-    ):
+    def __init__(self, work_folder: Union[str, Path], rmat_file: Union[RmatFile, str]):
         """
         Initializes the EvalPeakrefRobot with a specified work folder and RmatFile.
 
@@ -387,16 +377,15 @@ class EvalPeakrefRobot(EvalBaseRobot):
         else:
             self.rmat_file = RmatFile.from_file(rmat_file)
 
-
     def refine_parameters(
         self,
         peakfile_path: str,
-        refinement_strategy: Union[Tuple[Tuple[str]], str] = 'default',
+        refinement_strategy: Union[Tuple[Tuple[str]], str] = "default",
         point_group_tolerance: Optional[Tuple[float, ...]] = None,
         end_with_cell: bool = True,
         new_rmat_filename: Optional[str] = None,
         rewrite_detalign: bool = True,
-        rewrite_goniostat: bool = True
+        rewrite_goniostat: bool = True,
     ):
         """
         Executes the refinement process using the 'peakref' command with specified parameters.
@@ -423,57 +412,52 @@ class EvalPeakrefRobot(EvalBaseRobot):
         rewrite_goniostat : bool, default True
             Whether to save the updated goniostat settings to 'goniostat.vic'.
         """
-        if refinement_strategy == 'default':
-            refinement_strategy = (
-                ('zerohor', 'zerover'),
-                ('rmat',),
-                ('detrot',),
-                ('zerodist',)
-            )
+        if refinement_strategy == "default":
+            refinement_strategy = (("zerohor", "zerover"), ("rmat",), ("detrot",), ("zerodist",))
         command_list = []
 
         if new_rmat_filename is None:
             new_rmat_filename = self.rmat_file.filename
-        self.rmat_file.filename = 'transfer.rmat'
+        self.rmat_file.filename = "transfer.rmat"
         self.rmat_file.to_file(self.work_folder)
 
-        command_list.append(f'rmat {self.rmat_file.filename}')
-        command_list.append(f'pk {peakfile_path}')
+        command_list.append(f"rmat {self.rmat_file.filename}")
+        command_list.append(f"pk {peakfile_path}")
 
         # fix everything
-        command_list.append('fix all')
+        command_list.append("fix all")
 
         # for each entry in refinement state
         for step in refinement_strategy:
             for variable in step:
-                command_list.append(f'free {variable}')
-            command_list.append('gox')
+                command_list.append(f"free {variable}")
+            command_list.append("gox")
 
         if point_group_tolerance is not None:
-            number_string = ' '.join(str(val) for val in point_group_tolerance)
-            command_list.append(f'pgzero {number_string}')
-            command_list.append('gox')
-            command_list.append('reind')
-            command_list.append('gox')
+            number_string = " ".join(str(val) for val in point_group_tolerance)
+            command_list.append(f"pgzero {number_string}")
+            command_list.append("gox")
+            command_list.append("reind")
+            command_list.append("gox")
 
         if end_with_cell:
-            command_list.append('fix all')
-            command_list.append('free cell')
-            command_list.append('sigrnd 0.1 50')
+            command_list.append("fix all")
+            command_list.append("free cell")
+            command_list.append("sigrnd 0.1 50")
 
         if rewrite_detalign:
-            command_list.append('save detalign.vic')
+            command_list.append("save detalign.vic")
 
         if rewrite_goniostat:
-            command_list.append('savegonio goniostat.vic')
+            command_list.append("savegonio goniostat.vic")
 
-        command_list.append(f'savermat {new_rmat_filename}')
+        command_list.append(f"savermat {new_rmat_filename}")
 
-        command_list.append('exit')
+        command_list.append("exit")
 
-        self._run_program_with_commands('peakref', command_list)
+        self._run_program_with_commands("peakref", command_list)
 
-        os.remove(self.work_folder / 'transfer.rmat')
+        os.remove(self.work_folder / "transfer.rmat")
 
         self.rmat_file = RmatFile.from_file(self.work_folder / new_rmat_filename)
 
@@ -495,33 +479,31 @@ class EvalPeakrefRobot(EvalBaseRobot):
         FileNotFoundError
             If the 'peakref_output.log' file does not exist in the working directory.
         """
-        log_file = self.work_folder / 'peakref_output.log'
+        log_file = self.work_folder / "peakref_output.log"
 
         if not log_file.exists():
-            raise FileNotFoundError('You need to run refine_parameters with end_with_cell first')
+            raise FileNotFoundError("You need to run refine_parameters with end_with_cell first")
 
-        with log_file.open('r', encoding='UTF-8') as fobj:
+        with log_file.open("r", encoding="UTF-8") as fobj:
             content = fobj.read()
 
         refined_pattern = (
-            r'\n\s+(a(?:\s+[A-Za-z]+){1,6})\n'
-            + r'refined((?:\s+\d+\.\d+){1,7})\n'
-            + r'sigma((?:\s+\d+\.\d+){1,7})'
+            r"\n\s+(a(?:\s+[A-Za-z]+){1,6})\n"
+            + r"refined((?:\s+\d+\.\d+){1,7})\n"
+            + r"sigma((?:\s+\d+\.\d+){1,7})"
         )
         par_string, val_string, su_string = re.search(refined_pattern, content).groups()
 
         ref_zip = zip(
-            par_string.strip().split(),
-            val_string.strip().split(),
-            su_string.strip().split()
+            par_string.strip().split(), val_string.strip().split(), su_string.strip().split()
         )
 
         cell_dict = {name: (float(val), float(su)) for name, val, su in ref_zip}
 
-        cell_parameters = ('a', 'b', 'c', 'alpha', 'beta', 'gamma', 'Volume')
+        cell_parameters = ("a", "b", "c", "alpha", "beta", "gamma", "Volume")
 
         for par in cell_parameters:
-            pattern = rf'{par} constrained to \[([A-Za-z]+)\]\.'
+            pattern = rf"{par} constrained to \[([A-Za-z]+)\]\."
             search_result = re.search(pattern, content)
             if search_result is not None:
                 lookup = search_result.group(1)
@@ -529,24 +511,24 @@ class EvalPeakrefRobot(EvalBaseRobot):
 
         fixed_parameters = (par for par in cell_parameters if par not in cell_dict)
         for par in fixed_parameters:
-            pattern = rf'{par}\s+Fix\s+(\d+\.\d+)'
+            pattern = rf"{par}\s+Fix\s+(\d+\.\d+)"
             cell_dict[par] = (float(re.findall(pattern, content)[-1]), 0.0)
 
         cif_names = {
-            '_cell.length_a': 'a',
-            '_cell.length_b': 'b',
-            '_cell.length_c': 'c',
-            '_cell.angle_alpha': 'alpha',
-            '_cell.angle_beta': 'beta',
-            '_cell.angle_gamma': 'gamma',
-            '_cell.volume': 'Volume'
+            "_cell.length_a": "a",
+            "_cell.length_b": "b",
+            "_cell.length_c": "c",
+            "_cell.angle_alpha": "alpha",
+            "_cell.angle_beta": "beta",
+            "_cell.angle_gamma": "gamma",
+            "_cell.volume": "Volume",
         }
 
         cif_dict = {}
         for cif_name, eval_name in cif_names.items():
             eval_val, eval_su = cell_dict[eval_name]
             cif_dict[cif_name] = eval_val
-            cif_dict[cif_name + '_su'] = eval_su
+            cif_dict[cif_name + "_su"] = eval_su
 
         return cif_dict
 
@@ -567,15 +549,12 @@ class EvalPeakrefRobot(EvalBaseRobot):
         cif_dict = self.rmat_file.to_cif_dict()
         cif_dict.update(self.cell_cif_from_log())
 
-        file_lines = [
-            r'#\#CIF_2.0', '', 'data_eval_output', ''
-        ]
-        file_lines += [
-            f'{key} {str(val)}' for key, val in cif_dict.items()
-        ]
+        file_lines = [r"#\#CIF_2.0", "", "data_eval_output", ""]
+        file_lines += [f"{key} {str(val)}" for key, val in cif_dict.items()]
         cif_path = self.work_folder / cif_filename
 
-        cif_path.write_text('\n'.join(file_lines))
+        cif_path.write_text("\n".join(file_lines))
+
 
 class EvalScandbRobot(EvalBaseRobot):
     """
@@ -595,18 +574,19 @@ class EvalScandbRobot(EvalBaseRobot):
         If such a file exists, it is temporarily removed before running 'scandb' to avoid
         interference, and then restored after 'scandb' execution completes.
         """
-        view_init_path = self.work_folder / 'view.init'
+        view_init_path = self.work_folder / "view.init"
         view_init_existed = view_init_path.exists()
 
         # as scandb itself is a wrapper around view, a view.init might interfere
         if view_init_existed:
-            view_init_content = view_init_path.read_text(encoding='UTF-8')
+            view_init_content = view_init_path.read_text(encoding="UTF-8")
             view_init_path.unlink()
 
-        self._run_program_with_commands('scandb', [])
+        self._run_program_with_commands("scandb", [])
 
         if view_init_existed:
-            view_init_path.write_text(view_init_content, encoding='UTF-8')
+            view_init_path.write_text(view_init_content, encoding="UTF-8")
+
 
 class EvalBuilddatcolRobot(EvalBaseRobot):
     """
@@ -618,6 +598,7 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
     work_folder : Path
         The working directory where the 'builddatcol' command will be or has been executed.
     """
+
     def create_datcol_files(
         self,
         rmat_file: RmatFile,
@@ -626,7 +607,7 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
         box_size: float,
         box_depth: float,
         maximum_duration: int,
-        min_refln_in_box: int
+        min_refln_in_box: int,
     ) -> None:
         """
         Creates the configuration file for 'builddatcol' and executes the command.
@@ -656,11 +637,11 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
 
         if maximum_res > minimum_res:
             raise ValueError(
-                'The value of the maximum resolution will always'
-                + 'be smaller than the minimum resolution.'
+                "The value of the maximum resolution will always"
+                + "be smaller than the minimum resolution."
             )
         # builddatcol will not run without scaninfo.txt
-        scandb_path = self.work_folder / 'scaninfo.txt'
+        scandb_path = self.work_folder / "scaninfo.txt"
         if not scandb_path.exists():
             scandb = EvalScandbRobot(self.work_folder)
             scandb.run()
@@ -689,12 +670,12 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
             output none
         """)
 
-        datcolsetup_file = self.work_folder / 'datcolsetup.vic'
+        datcolsetup_file = self.work_folder / "datcolsetup.vic"
         datcolsetup_file.write_text(datcolsetup)
 
         rmat_file.to_file(self.work_folder)
 
-        self._run_program_with_commands('builddatcol', [''] * 10)
+        self._run_program_with_commands("builddatcol", [""] * 10)
 
     def extract_vars(self) -> Dict[str, Union[float, int]]:
         """
@@ -719,23 +700,23 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
             indicating a potential issue with file content or format.
         """
 
-        datcolsetup = self.work_folder / 'datcolsetup.vic'
+        datcolsetup = self.work_folder / "datcolsetup.vic"
         content = datcolsetup.read_text()
         searches = (
-            ('minimum_res', 'resomin', float),
-            ('maximum_res', 'resomax', float),
-            ('box_size', 'boxsizemm', float),
-            ('box_depth', 'boxdepth', int),
-            ('maximum_duration', 'durationmax', float),
-            ('min_refln_in_box', 'boxrefl', float)
+            ("minimum_res", "resomin", float),
+            ("maximum_res", "resomax", float),
+            ("box_size", "boxsizemm", float),
+            ("box_depth", "boxdepth", int),
+            ("maximum_duration", "durationmax", float),
+            ("min_refln_in_box", "boxrefl", float),
         )
         results = {}
-        number_pattern = r'(\d+\.?\d*)'
+        number_pattern = r"(\d+\.?\d*)"
         for name, internal_name, output_type in searches:
-            search_pattern = rf'{internal_name}\s+{number_pattern}'
+            search_pattern = rf"{internal_name}\s+{number_pattern}"
             search = re.search(search_pattern, content)
             if search is None:
-                raise KeyError(f'Could not find {name}/{internal_name} in datcolsetup.vic')
+                raise KeyError(f"Could not find {name}/{internal_name} in datcolsetup.vic")
             results[name] = output_type(search.group(1))
 
         return results
@@ -766,11 +747,8 @@ class EvalBuildeval15Robot(EvalBaseRobot):
     )
         Executes the 'buildeval15' command with specified configuration parameters.
     """
-    def __init__(
-        self,
-        work_folder: Union[str, Path],
-        p4p_file: Optional[str] = None
-    ):
+
+    def __init__(self, work_folder: Union[str, Path], p4p_file: Optional[str] = None):
         """
         Initializes the EvalBuildeval15Robot with a specified work folder and
         an optional '.p4p' file.
@@ -787,7 +765,6 @@ class EvalBuildeval15Robot(EvalBaseRobot):
 
         self.p4p_file = p4p_file
 
-
     def run(
         self,
         focus_type: Optional[str] = None,
@@ -795,7 +772,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
         pointspread_gamma: Optional[float] = None,
         acdnoise: Optional[float] = None,
         crystal_dimension: Optional[Tuple[float, float, float]] = None,
-        mosaic: Optional[float] = None
+        mosaic: Optional[float] = None,
     ):
         """
         Executes the 'buildeval15' command with specified configuration parameters. If values
@@ -825,20 +802,28 @@ class EvalBuildeval15Robot(EvalBaseRobot):
         ValueError
             If an invalid focus type or polarisation type is specified.
         """
-        possible_focusses = (
-            'unknown', 'tube', 'rotating', 'mirror', 'synchrotron', 'file'
-        )
+        possible_focusses = ("unknown", "tube", "rotating", "mirror", "synchrotron", "file")
         if focus_type not in possible_focusses:
-            raise ValueError(
-                f'Invalid focus type, choose one of: {", ".join(possible_focusses)}'
-            )
+            raise ValueError(f'Invalid focus type, choose one of: {", ".join(possible_focusses)}')
 
         if polarisation_type is None:
-            polarisation_type='none'
+            polarisation_type = "none"
 
         possible_polarisations = (
-            'perpendicular', 'parallel', 'antiparallel', 'none', 'synchrotron',
-            'synchrotronz', 'osmic', 'pe', 'pa', 'ap', 'n', 's', 'sz', 'o'
+            "perpendicular",
+            "parallel",
+            "antiparallel",
+            "none",
+            "synchrotron",
+            "synchrotronz",
+            "osmic",
+            "pe",
+            "pa",
+            "ap",
+            "n",
+            "s",
+            "sz",
+            "o",
         )
         if polarisation_type not in possible_polarisations:
             raise ValueError(
@@ -847,17 +832,19 @@ class EvalBuildeval15Robot(EvalBaseRobot):
 
         if self.p4p_file is None:
             command_base = (
-                focus_type, polarisation_type, pointspread_gamma,
-                acdnoise, crystal_dimension, mosaic
+                focus_type,
+                polarisation_type,
+                pointspread_gamma,
+                acdnoise,
+                crystal_dimension,
+                mosaic,
             )
         else:
-            command_base = (
-                focus_type, polarisation_type, pointspread_gamma, acdnoise, mosaic
-            )
-            #self.p4p_file.to_file(self.work_folder)
+            command_base = (focus_type, polarisation_type, pointspread_gamma, acdnoise, mosaic)
+            # self.p4p_file.to_file(self.work_folder)
             warnings.warn(
-                'Reading and writing p4p files is currently not implemented.'
-                + 'You need to add the p4p file yourself'
-                )
-        command_list = ['' if val is None else str(val) for val in command_base]
-        self._run_program_with_commands('buildeval15', command_list)
+                "Reading and writing p4p files is currently not implemented."
+                + "You need to add the p4p file yourself"
+            )
+        command_list = ["" if val is None else str(val) for val in command_base]
+        self._run_program_with_commands("buildeval15", command_list)

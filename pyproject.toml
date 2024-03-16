@@ -40,6 +40,23 @@ markers = [
 ]
 
 [tool.ruff]
-ignore-init-module-imports = true
 indent-width = 4
 line-length = 100
+
+[tool.ruff.lint]
+ignore-init-module-imports = true
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+#    # pyupgrade
+#    "UP",
+#    # flake8-bugbear
+#    "B",
+#    # flake8-simplify
+#    "SIM",
+    # isort
+    "I",
+]
+

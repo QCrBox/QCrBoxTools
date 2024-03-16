@@ -7,10 +7,8 @@ from iotbx.cif import model
 
 from .entry_lookup import load_aliases
 
-def entry_to_unified_keyword(
-    old_name: str,
-    custom_categories: List[str]
-) -> str:
+
+def entry_to_unified_keyword(old_name: str, custom_categories: List[str]) -> str:
     """
     Convert a cif entry to one common name for all aliases and some deprecated values
     where possible. With custom categories user defined categories (e.g. 'iucr', 'olex2'
@@ -33,13 +31,12 @@ def entry_to_unified_keyword(
     cut_name = old_name[1:]
     for category in custom_categories:
         if cut_name.startswith(category):
-            return f'_{category}.{cut_name[len(category)+1:]}'
-    return '_' + aliases.get(cut_name, cut_name)
+            return f"_{category}.{cut_name[len(category)+1:]}"
+    return "_" + aliases.get(cut_name, cut_name)
 
 
 def block_to_unified_keywords(
-    block: model.block,
-    custom_categories: List[str] = None
+    block: model.block, custom_categories: List[str] = None
 ) -> model.block:
     """
     Converts entries and loops within a given block to unified names using the
@@ -69,10 +66,12 @@ def block_to_unified_keywords(
     converted_loops = {}
 
     for _, loop in block.loops.items():
-        new_loop = model.loop(data={
-             entry_to_unified_keyword(entry_name, custom_categories): entry_data
-             for entry_name, entry_data in loop.items()
-        })
+        new_loop = model.loop(
+            data={
+                entry_to_unified_keyword(entry_name, custom_categories): entry_data
+                for entry_name, entry_data in loop.items()
+            }
+        )
         loop_lookup.update({entry: new_loop.name() for entry in list(loop)})
         converted_loops[new_loop.name()] = new_loop
 
@@ -84,8 +83,11 @@ def block_to_unified_keywords(
                 # add loops only once
                 converted_loops[loop_lookup[entry_name]] = None
             continue
-        converted_block.add_data_item(entry_to_unified_keyword(entry_name, custom_categories), entry_content)
+        converted_block.add_data_item(
+            entry_to_unified_keyword(entry_name, custom_categories), entry_content
+        )
     return converted_block
+
 
 def cif_to_unified_keywords(cif: model.cif, custom_categories=None):
     """
@@ -110,17 +112,20 @@ def cif_to_unified_keywords(cif: model.cif, custom_categories=None):
         A new CIF file with all blocks converted to common keywords.
 
     """
-    new_cif = model.cif({
-        block_name: block_to_unified_keywords(block, custom_categories)
-        for block_name, block in cif.items()
-    })
+    new_cif = model.cif(
+        {
+            block_name: block_to_unified_keywords(block, custom_categories)
+            for block_name, block in cif.items()
+        }
+    )
     return new_cif
+
 
 def cif_to_requested_keywords(
     cif: model.cif,
     compulsory_entries: List[str],
     optional_entries: List[str],
-    custom_categories: List[str]
+    custom_categories: List[str],
 ) -> model.cif:
     """
     Converts CIF file entries to match a set of requested entries from a cif file that has
@@ -151,22 +156,23 @@ def cif_to_requested_keywords(
         A new CIF object containing only the requested entries.
 
     """
-    new_cif = model.cif({
-        block_name: block_to_requested_keywords(
-            block,
-            compulsory_entries,
-            optional_entries,
-            custom_categories
-        ) for block_name, block in cif.items()
-    })
+    new_cif = model.cif(
+        {
+            block_name: block_to_requested_keywords(
+                block, compulsory_entries, optional_entries, custom_categories
+            )
+            for block_name, block in cif.items()
+        }
+    )
 
     return new_cif
+
 
 def block_to_requested_keywords(
     block: model.block,
     compulsory_entries: List[str],
     optional_entries: List[str],
-    custom_categories: List[str]
+    custom_categories: List[str],
 ) -> model.block:
     """
     Converts a CIF block's entries to match a set of requested entries, from a cif block
@@ -201,10 +207,10 @@ def block_to_requested_keywords(
         if unified_entry not in block.keys():
             raise ValueError(
                 f'The corresponding entry "{unified_entry}" for the requested '
-                + f'non-optional entry {original_entry} could not be found in cif block.'
+                + f"non-optional entry {original_entry} could not be found in cif block."
             )
 
-    unified_opt_entries =  [
+    unified_opt_entries = [
         entry_to_unified_keyword(entry, custom_categories) for entry in optional_entries
     ]
 
@@ -212,9 +218,7 @@ def block_to_requested_keywords(
 
     entry_dict = dict(zip(unified_comp_entries + unified_opt_entries, requested_entries))
 
-    output_entries = [
-        (val, entry_dict[val]) for val in block if val in entry_dict
-    ]
+    output_entries = [(val, entry_dict[val]) for val in block if val in entry_dict]
 
     entry2loop_name = {}
     for loop_name, loop_entries in block.loops.items():
@@ -223,15 +227,15 @@ def block_to_requested_keywords(
 
     new_loops = defaultdict(dict)
     for lookup_name, entry in output_entries:
-        #lookup_name = entry_to_unified_keyword(entry, custom_categories)
+        # lookup_name = entry_to_unified_keyword(entry, custom_categories)
         if lookup_name in entry2loop_name:
             new_loops[entry2loop_name[lookup_name]][entry] = block[lookup_name]
 
     converted_block = model.block()
 
     for lookup_name, entry in output_entries:
-        #lookup_name = entry_to_unified_keyword(entry, custom_categories)
-        #if lookup_name not in block and entry in optional_entries:
+        # lookup_name = entry_to_unified_keyword(entry, custom_categories)
+        # if lookup_name not in block and entry in optional_entries:
         #    continue
         if lookup_name in entry2loop_name:
             new_loop = new_loops[entry2loop_name[lookup_name]]

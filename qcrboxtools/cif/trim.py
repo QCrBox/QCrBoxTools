@@ -1,18 +1,19 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
+import re
 from collections import defaultdict
 from pathlib import Path
-import re
 from typing import List
 
 from iotbx.cif import model, reader
+
 
 def trim_cif_file(
     file_path: Path,
     block_name: str,
     keep_only_regexes: List[str],
     delete_regexes: List[str],
-    delete_empty_entries: bool = True
+    delete_empty_entries: bool = True,
 ) -> None:
     """
     Trims entries in a specified CIF block of a file based on regex patterns.
@@ -40,22 +41,14 @@ def trim_cif_file(
 
     block = cif[block_name]
 
-    new_block = trim_cif_block(
-        block,
-        keep_only_regexes,
-        delete_regexes,
-        delete_empty_entries
-    )
+    new_block = trim_cif_block(block, keep_only_regexes, delete_regexes, delete_empty_entries)
 
     cif[block_name] = new_block
 
-    Path(file_path).write_text(str(cif), encoding='UTF-8')
+    Path(file_path).write_text(str(cif), encoding="UTF-8")
 
-def keep_single_kw(
-    name: str,
-    keep_only_regexes: List[str],
-    delete_regexes: List[str]
-) -> bool:
+
+def keep_single_kw(name: str, keep_only_regexes: List[str], delete_regexes: List[str]) -> bool:
     """
     Determines if a CIF entry name should be kept based on regex patterns.
 
@@ -82,20 +75,17 @@ def keep_single_kw(
     if len(keep_only_regexes) == 0:
         condition1 = True
     else:
-        condition1 = any(
-            re.match(pattern, name) is not None for pattern in keep_only_regexes
-        )
+        condition1 = any(re.match(pattern, name) is not None for pattern in keep_only_regexes)
 
-    condition2 = all(
-        re.match(pattern, name) is None for pattern in delete_regexes
-    )
+    condition2 = all(re.match(pattern, name) is None for pattern in delete_regexes)
     return condition1 and condition2
+
 
 def trim_cif_block(
     old_block: model.block,
     keep_only_regexes: List[str],
     delete_regexes: List[str],
-    delete_empty_entries: bool = True
+    delete_empty_entries: bool = True,
 ) -> model.block:
     """
     Trims entries from a CIF block based on regex patterns.
@@ -144,7 +134,7 @@ def trim_cif_block(
             if new_loop is not None:
                 converted_block.add_loop(model.loop(data=new_loop))
                 new_loops[entry2loop_name[entry]] = None
-        elif old_block[entry] == '?' and delete_empty_entries:
+        elif old_block[entry] == "?" and delete_empty_entries:
             continue
         else:
             converted_block.add_data_item(entry, old_block[entry])

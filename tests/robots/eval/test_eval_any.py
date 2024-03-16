@@ -21,12 +21,15 @@ mock_sad_content = """
    1   2  13 1211.48   55.96   1-0.81347 0.93044-0.20796 0.36412 0.54315-0.04109 307.32 151.79    2.62 -18.62 3793
 """[1:-1]
 
-@pytest.fixture(name='robot')
+
+@pytest.fixture(name="robot")
 def fixture_robot(tmp_path):
     return EvalAnyRobot(tmp_path)
 
+
 def test_init(robot, tmp_path):
     assert robot.work_folder == tmp_path
+
 
 def test_create_abs_with_monkeypatch(monkeypatch, robot):
     # Replace subprocess.call with a dummy function that does nothing
@@ -35,51 +38,53 @@ def test_create_abs_with_monkeypatch(monkeypatch, robot):
     robot.create_abs()
 
     # Check if the expected file is created
-    assert (robot.work_folder / 'any_output.log').exists()
+    assert (robot.work_folder / "any_output.log").exists()
+
 
 def test_create_cif_dict(monkeypatch, robot, tmp_path):
     # Replace the create_abs method with a dummy function
-    monkeypatch.setattr(robot, 'create_abs', lambda: None)
+    monkeypatch.setattr(robot, "create_abs", lambda: None)
 
     # Write mock_sad_content to a temporary file
-    sad_path = tmp_path / 'shelx.sad'
-    with open(sad_path, 'w', encoding='UTF-8') as f:
+    sad_path = tmp_path / "shelx.sad"
+    with open(sad_path, "w", encoding="UTF-8") as f:
         f.write(mock_sad_content)
 
     # Execute the method and validate the output
     result = robot.create_cif_dict()
 
     # Verify the returned dictionary
-    assert result['_diffrn_refln.index_h'][0] == 0
-    assert result['_diffrn_refln.index_k'][1] == 6
-    assert result['_diffrn_refln.index_l'][2] == 6
-    assert result['_diffrn_refln.intensity_net'][3] == 2382.12
-    assert result['_diffrn_refln.intensity_net_su'][4] == 27.14
-    assert result['_diffrn_refln.class_code'][4] == 1
-    assert result['_qcrbox.diffrn_refln.direction_cosine_incid_x'][6] == -0.81282
-    assert result['_qcrbox.diffrn_refln.direction_cosine_incid_y'][7] == 0.93012
-    assert result['_qcrbox.diffrn_refln.direction_cosine_incid_z'][8] == -0.20880
-    assert result['_qcrbox.diffrn_refln.direction_cosine_diffrn_x'][9] == 0.36540
-    assert result['_qcrbox.diffrn_refln.direction_cosine_diffrn_y'][10] == 0.54315
-    assert result['_qcrbox.diffrn_refln.direction_cosine_diffrn_z'][10] == -0.04109
-    assert result['_qcrbox.diffrn_refln.detector_px_x_obs'][9] == 331.44
-    assert result['_qcrbox.diffrn_refln.detector_px_y_obs'][8] == 121.06
-    assert result['_qcrbox.diffrn_refln.detector_frame_obs'][7] == 2.53
-    assert result['_qcrbox.diffrn_refln.evalsad_mystery_val1'][6] == -18.62
-    assert result['_qcrbox.diffrn_refln.evalsad_mystery_val2'][5] == 4047
+    assert result["_diffrn_refln.index_h"][0] == 0
+    assert result["_diffrn_refln.index_k"][1] == 6
+    assert result["_diffrn_refln.index_l"][2] == 6
+    assert result["_diffrn_refln.intensity_net"][3] == 2382.12
+    assert result["_diffrn_refln.intensity_net_su"][4] == 27.14
+    assert result["_diffrn_refln.class_code"][4] == 1
+    assert result["_qcrbox.diffrn_refln.direction_cosine_incid_x"][6] == -0.81282
+    assert result["_qcrbox.diffrn_refln.direction_cosine_incid_y"][7] == 0.93012
+    assert result["_qcrbox.diffrn_refln.direction_cosine_incid_z"][8] == -0.20880
+    assert result["_qcrbox.diffrn_refln.direction_cosine_diffrn_x"][9] == 0.36540
+    assert result["_qcrbox.diffrn_refln.direction_cosine_diffrn_y"][10] == 0.54315
+    assert result["_qcrbox.diffrn_refln.direction_cosine_diffrn_z"][10] == -0.04109
+    assert result["_qcrbox.diffrn_refln.detector_px_x_obs"][9] == 331.44
+    assert result["_qcrbox.diffrn_refln.detector_px_y_obs"][8] == 121.06
+    assert result["_qcrbox.diffrn_refln.detector_frame_obs"][7] == 2.53
+    assert result["_qcrbox.diffrn_refln.evalsad_mystery_val1"][6] == -18.62
+    assert result["_qcrbox.diffrn_refln.evalsad_mystery_val2"][5] == 4047
+
 
 def test_create_cif_file(monkeypatch, robot, tmp_path):
     # Mock the data returned by create_abs
-    monkeypatch.setattr(robot, 'create_abs', lambda: None)
+    monkeypatch.setattr(robot, "create_abs", lambda: None)
 
     # Write mock_sad_content to a temporary file
-    sad_path = tmp_path / 'shelx.sad'
-    with open(sad_path, 'w', encoding='UTF-8') as f:
+    sad_path = tmp_path / "shelx.sad"
+    with open(sad_path, "w", encoding="UTF-8") as f:
         f.write(mock_sad_content)
 
-    file_path = tmp_path / 'output.cif'
+    file_path = tmp_path / "output.cif"
     robot.create_cif_file(file_path)
 
     assert file_path.exists()
 
-    #TODO add more verification
+    # TODO add more verification

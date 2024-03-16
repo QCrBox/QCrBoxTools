@@ -4,6 +4,7 @@
 """
 This module provides utilities for the conversion of CIF data to the SHELX HKL format
 """
+
 from typing import Union
 
 import numpy as np
@@ -23,9 +24,9 @@ def format_floats(val: float) -> str:
     - str: The formatted string representation of the input float.
     """
     if val < 0:
-        return f'{val: .8f}'[:8]
+        return f"{val: .8f}"[:8]
     else:
-        return f' {val:.8f}'[:8]
+        return f" {val:.8f}"[:8]
 
 
 def cif2hkl4(cif_path: str, cif_dataset: Union[int, str], hkl_path: str) -> None:
@@ -40,36 +41,33 @@ def cif2hkl4(cif_path: str, cif_dataset: Union[int, str], hkl_path: str) -> None
     Returns:
     - None
     """
-    with open(cif_path, 'r', encoding='UTF-8') as fo:
+    with open(cif_path, "r", encoding="UTF-8") as fo:
         cif_content = fo.read()
 
-    cif_data, _ = cifdata_str_or_index(
-        cif.reader(input_string=cif_content).model(),
-        cif_dataset
-    )
+    cif_data, _ = cifdata_str_or_index(cif.reader(input_string=cif_content).model(), cif_dataset)
 
-    if '_shelx.hkl_file' in cif_data:
-        hkl_content = cif_data['_shelx.hkl_file']
+    if "_shelx.hkl_file" in cif_data:
+        hkl_content = cif_data["_shelx.hkl_file"]
     else:
-        if '_diffrn_refln.scale_group_code' in cif_data:
+        if "_diffrn_refln.scale_group_code" in cif_data:
             use_entries = [
-                np.array(cif_data['_diffrn_refln.index_h'], dtype=np.int64),
-                np.array(cif_data['_diffrn_refln.index_k'], dtype=np.int64),
-                np.array(cif_data['_diffrn_refln.index_l'], dtype=np.int64),
-                [format_floats(float(val)) for val in cif_data['_diffrn_refln.intensity_net']],
-                [format_floats(float(val)) for val in cif_data['_diffrn_refln.intensity_net_su']],
-                np.array(cif_data['_diffrn_refln.scale_group_code'], dtype=np.int64),
+                np.array(cif_data["_diffrn_refln.index_h"], dtype=np.int64),
+                np.array(cif_data["_diffrn_refln.index_k"], dtype=np.int64),
+                np.array(cif_data["_diffrn_refln.index_l"], dtype=np.int64),
+                [format_floats(float(val)) for val in cif_data["_diffrn_refln.intensity_net"]],
+                [format_floats(float(val)) for val in cif_data["_diffrn_refln.intensity_net_su"]],
+                np.array(cif_data["_diffrn_refln.scale_group_code"], dtype=np.int64),
             ]
-            line_format = '{:4d}{:4d}{:4d}{}{}{:4d}'
+            line_format = "{:4d}{:4d}{:4d}{}{}{:4d}"
         else:
             use_entries = [
-                np.array(cif_data['_diffrn_refln.index_h'], dtype=np.int64),
-                np.array(cif_data['_diffrn_refln.index_k'], dtype=np.int64),
-                np.array(cif_data['_diffrn_refln.index_l'], dtype=np.int64),
-                [format_floats(float(val)) for val in cif_data['_diffrn_refln.intensity_net']],
-                [format_floats(float(val)) for val in cif_data['_diffrn_refln.intensity_net_su']]
+                np.array(cif_data["_diffrn_refln.index_h"], dtype=np.int64),
+                np.array(cif_data["_diffrn_refln.index_k"], dtype=np.int64),
+                np.array(cif_data["_diffrn_refln.index_l"], dtype=np.int64),
+                [format_floats(float(val)) for val in cif_data["_diffrn_refln.intensity_net"]],
+                [format_floats(float(val)) for val in cif_data["_diffrn_refln.intensity_net_su"]],
             ]
-            line_format = '{:4d}{:4d}{:4d}{}{}'
-        hkl_content = '\n'.join(line_format.format(*entryset) for entryset in zip(*use_entries))
-    with open(hkl_path, 'w', encoding='ASCII') as fo:
+            line_format = "{:4d}{:4d}{:4d}{}{}"
+        hkl_content = "\n".join(line_format.format(*entryset) for entryset in zip(*use_entries))
+    with open(hkl_path, "w", encoding="ASCII") as fo:
         fo.write(hkl_content)

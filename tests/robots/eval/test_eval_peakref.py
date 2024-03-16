@@ -4,6 +4,7 @@
 import textwrap
 
 import pytest
+
 from qcrboxtools.robots.eval import EvalPeakrefRobot, RmatFile
 
 mock_peakref_output = textwrap.dedent("""\
@@ -68,26 +69,29 @@ mock_rmat = textwrap.dedent("""\
     SIGMACELL 0.02070 0.03351 0.02659 0.18847 0.30094 0.22203 4.65000
 """)
 
-@pytest.fixture(name='robot')
+
+@pytest.fixture(name="robot")
 def fixture_robot(tmp_path):
     rmat_file = tmp_path / "example.rmat"
     rmat_file.write_text(mock_rmat)
     return EvalPeakrefRobot(tmp_path, rmat_file)
 
+
 def test_init(robot, tmp_path):
     assert robot.work_folder == tmp_path
     assert isinstance(robot.rmat_file, RmatFile)
 
+
 def test_cell_cif_from_log(robot, tmp_path):
     # Create a mock peakref_output.log file with sample data
-    log_file = tmp_path / 'peakref_output.log'
+    log_file = tmp_path / "peakref_output.log"
     log_file.write_text(mock_peakref_output)
 
     # Test the method
     result = robot.cell_cif_from_log()
 
     # Add assertions here to verify the returned dictionary
-    assert result['_cell.length_a'] == result['_cell.length_b']
-    assert result['_cell.angle_gamma_su'] == 0.0
-    assert result['_cell.length_a'] == 57.68429
-    assert result['_cell.volume_su'] == 7.0
+    assert result["_cell.length_a"] == result["_cell.length_b"]
+    assert result["_cell.angle_gamma_su"] == 0.0
+    assert result["_cell.length_a"] == 57.68429
+    assert result["_cell.volume_su"] == 7.0

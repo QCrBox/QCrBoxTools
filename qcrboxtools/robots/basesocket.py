@@ -5,6 +5,7 @@
 
 import socket
 
+
 class SocketRobot:
     """
     Represents a simple socket robot that can send input to a server and can be
@@ -43,9 +44,9 @@ class SocketRobot:
         Returns:
         - str: The server's response.
         """
-        input_str += '\n'
+        input_str += "\n"
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self.server, self.port))
-            s.sendall(input_str.encode('UTF-8'))
+            s.sendall(input_str.encode("UTF-8"))
             data = s.recv(1024)
         return data.decode()

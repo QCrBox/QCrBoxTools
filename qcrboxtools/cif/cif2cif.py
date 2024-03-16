@@ -2,14 +2,14 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
-from typing import Union, Optional, List
+from typing import List, Optional, Union
 
 import yaml
 
-from .read import read_cif_as_unified, read_cif_safe
-from .uncertainties import merge_su_cif
 from .entries import cif_to_requested_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
+from .read import read_cif_as_unified, read_cif_safe
+from .uncertainties import merge_su_cif
 
 
 def cif_file_unify_split(
@@ -17,7 +17,7 @@ def cif_file_unify_split(
     output_cif_path: Union[str, Path],
     convert_keywords: bool = True,
     custom_categories: Optional[List[str]] = None,
-    split_sus: bool = True
+    split_sus: bool = True,
 ) -> None:
     """
     Reads, processes, and writes a CIF file with optional modifications.
@@ -46,11 +46,11 @@ def cif_file_unify_split(
         input_cif_path,
         convert_keywords=convert_keywords,
         custom_categories=custom_categories,
-        split_sus=split_sus
+        split_sus=split_sus,
     )
 
     # Write the modified CIF model to the specified output file.
-    Path(output_cif_path).write_text(str(cif_model), encoding='UTF-8')
+    Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
 
 
 def cif_file_unified_to_keywords_merge_su(
@@ -59,7 +59,7 @@ def cif_file_unified_to_keywords_merge_su(
     compulsory_entries: List[str] = None,
     optional_entries: List[str] = None,
     custom_categories: List[str] = None,
-    merge_sus: bool = False
+    merge_sus: bool = False,
 ):
     """
     Processes a CIF file, optionally merges standard uncertainties, and filters by specified
@@ -116,24 +116,22 @@ def cif_file_unified_to_keywords_merge_su(
 
     if merge_sus:
         unified_entries = [
-            entry_to_unified_keyword(entry, custom_categories)
-            for entry in all_keywords
+            entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords
         ]
 
         # entries are explicitely requested and therefore should not be merged
-        exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith('_su')]
+        exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith("_su")]
         cif_model = merge_su_cif(cif_model, exclude=exclude_entries)
 
-    if 'all_unified' in all_keywords:
-        cif_model = cif_to_unified_keywords(
-            cif_model, custom_categories
-        )
+    if "all_unified" in all_keywords:
+        cif_model = cif_to_unified_keywords(cif_model, custom_categories)
     elif len(all_keywords) > 0:
         cif_model = cif_to_requested_keywords(
             cif_model, compulsory_entries, optional_entries, custom_categories
         )
 
-    Path(output_cif_path).write_text(str(cif_model), encoding='UTF-8')
+    Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
+
 
 class NoKeywordsError(BaseException):
     """
@@ -144,6 +142,7 @@ class NoKeywordsError(BaseException):
     message : str
         Explanation of the error
     """
+
 
 def cif_entries_from_yml(yml_dict, command):
     """
@@ -189,55 +188,62 @@ def cif_entries_from_yml(yml_dict, command):
     >>> cif_entries_from_yml(yml_dict, "process_cif")
     (['_cell_length_a'], ['_atom_site_label'])
     """
-    entry_sets = {eset['name']: eset for eset in yml_dict.get('cif_entry_sets', [])}
+    entry_sets = {eset["name"]: eset for eset in yml_dict.get("cif_entry_sets", [])}
     try:
-        options = next(cmd for cmd in yml_dict['commands'] if cmd['name'] == command)
+        options = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except StopIteration as exc:
-        raise KeyError(f'Command {command} not found in yml_dict.') from exc
+        raise KeyError(f"Command {command} not found in yml_dict.") from exc
     possible_entries = (
-        'required_cif_entry_sets', 'required_cif_entries', 'optional_cif_entry_sets',
-        'optional_cif_entries'
+        "required_cif_entry_sets",
+        "required_cif_entries",
+        "optional_cif_entry_sets",
+        "optional_cif_entries",
     )
     if not any(entry in options for entry in possible_entries):
         raise NoKeywordsError(
-            'Command {command} has no entries defining optional or necessary keywords.'
+            "Command {command} has no entries defining optional or necessary keywords."
         )
-    compulsory_kws = options.get('required_cif_entries', [])
-    optional_kws = options.get('optional_cif_entries', [])
-    for kwset in options.get('required_cif_entry_sets', []):
+    compulsory_kws = options.get("required_cif_entries", [])
+    optional_kws = options.get("optional_cif_entries", [])
+    for kwset in options.get("required_cif_entry_sets", []):
         try:
             kwset_dict = entry_sets[kwset]
         except KeyError as exc:
-            raise KeyError(f'Keyword set {kwset} not found.') from exc
-        if any(key not in ('name', 'required', 'optional') for key in kwset_dict):
-            raise NameError((
-                'Found entry other than "name", "required" or "optional"'
-                + f'in keyword set {kwset}. Typo?'
-            ))
-        compulsory_kws += kwset_dict.get('required', [])
-        optional_kws += kwset_dict.get('optional', [])
+            raise KeyError(f"Keyword set {kwset} not found.") from exc
+        if any(key not in ("name", "required", "optional") for key in kwset_dict):
+            raise NameError(
+                (
+                    'Found entry other than "name", "required" or "optional"'
+                    + f"in keyword set {kwset}. Typo?"
+                )
+            )
+        compulsory_kws += kwset_dict.get("required", [])
+        optional_kws += kwset_dict.get("optional", [])
 
-    for kwset in options.get('optional_cif_entry_sets', []):
+    for kwset in options.get("optional_cif_entry_sets", []):
         try:
             kwset_dict = entry_sets[kwset]
         except KeyError as exc:
-            raise KeyError(f'Keyword set {kwset} not found.') from exc
-        if any(key not in ('name', 'required', 'optional') for key in kwset_dict):
-            raise NameError((
-                'Found entry other than "name", "required" or "optional"'
-                + f'in keyword set {kwset}. Typo?'
-            ))
-        optional_kws += kwset_dict.get('required', [])
-        optional_kws += kwset_dict.get('optional', [])
+            raise KeyError(f"Keyword set {kwset} not found.") from exc
+        if any(key not in ("name", "required", "optional") for key in kwset_dict):
+            raise NameError(
+                (
+                    'Found entry other than "name", "required" or "optional"'
+                    + f"in keyword set {kwset}. Typo?"
+                )
+            )
+        optional_kws += kwset_dict.get("required", [])
+        optional_kws += kwset_dict.get("optional", [])
     compulsory_kws = list(set(compulsory_kws))
     optional_kws = list(set(kw for kw in optional_kws if kw not in compulsory_kws))
     return compulsory_kws, optional_kws
+
 
 def cif_file_unified_yml_instr(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
     yml_path: Union[str, Path],
-    command: str
+    command: str,
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, applying
@@ -270,17 +276,17 @@ def cif_file_unified_yml_instr(
     This file was developed for exposeing commands within QCrBox. See this project or the
     test of this function for an example of how such a yml file might look like.
     """
-    with open(yml_path, 'r', encoding='UTF-8') as fobj:
+    with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
 
     try:
-        options = next(cmd for cmd in yml_dict['commands'] if cmd['name'] == command)
+        options = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except StopIteration as exc:
-        raise KeyError(f'Command {command} not found in {yml_path}.') from exc
+        raise KeyError(f"Command {command} not found in {yml_path}.") from exc
 
     compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command)
-    merge_sus = options.get('merge_cif_su', False)
-    custom_categories = options.get('custom_cif_categories', [])
+    merge_sus = options.get("merge_cif_su", False)
+    custom_categories = options.get("custom_cif_categories", [])
 
     cif_file_unified_to_keywords_merge_su(
         input_cif_path,
@@ -288,5 +294,5 @@ def cif_file_unified_yml_instr(
         compulsory_entries,
         optional_entries,
         custom_categories,
-        merge_sus
+        merge_sus,
     )

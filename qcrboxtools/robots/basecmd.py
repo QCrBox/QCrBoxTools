@@ -9,7 +9,7 @@ from typing import List
 class CmdAppRobot:
     _popen = None
 
-    def __init__(self, call_args: List[str], cwd: Path = '.', env=None):
+    def __init__(self, call_args: List[str], cwd: Path = ".", env=None):
         if env is None:
             env = {}
         self._popen = subprocess.Popen(
@@ -21,7 +21,7 @@ class CmdAppRobot:
             # text=True,
             universal_newlines=True,
             env=env,
-            cwd=cwd
+            cwd=cwd,
         )
 
     def __del__(self):
@@ -29,4 +29,4 @@ class CmdAppRobot:
             self._popen.kill()
 
     def _send_input(self, input_str: str):
-        return self._popen.communicate(input_str + '\n')
+        return self._popen.communicate(input_str + "\n")

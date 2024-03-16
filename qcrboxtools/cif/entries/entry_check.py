@@ -5,12 +5,11 @@ from typing import List
 
 from iotbx.cif import model
 
-from .entry_conversion import entry_to_unified_keyword, block_to_unified_keywords
+from .entry_conversion import block_to_unified_keywords, entry_to_unified_keyword
+
 
 def cif_entries_present(
-    block: model.block,
-    custom_categories: List[str],
-    cif_entries: List[str]
+    block: model.block, custom_categories: List[str], cif_entries: List[str]
 ) -> bool:
     """
     Determine if all given CIF entries or one of their aliases are present in a
@@ -32,10 +31,7 @@ def cif_entries_present(
     bool
         True if all entries are present in the unified block, False otherwise.
     """
-    unified_block = block_to_unified_keywords(
-        block,
-        custom_categories
-    )
+    unified_block = block_to_unified_keywords(block, custom_categories)
 
     unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in cif_entries]
 

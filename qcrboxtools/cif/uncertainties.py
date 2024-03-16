@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import re
-from typing import Tuple, Iterable, Optional, Union, List
 from collections import defaultdict
+from typing import Iterable, List, Optional, Tuple, Union
+
 import numpy as np
 from iotbx.cif import model
+
 
 def is_num_su(string: str, allow_brackets_missing: bool = True) -> bool:
     """
@@ -24,8 +26,8 @@ def is_num_su(string: str, allow_brackets_missing: bool = True) -> bool:
         True if the string only contains characters valid for numerical values
         and standard uncertainties, False otherwise.
     """
-    contains_brackets = '(' in string and ')' in string
-    only_num_and_brackets = re.search(r'[^\d\.\-\+\(\)]', string) is None
+    contains_brackets = "(" in string and ")" in string
+    only_num_and_brackets = re.search(r"[^\d\.\-\+\(\)]", string) is None
     return (contains_brackets or allow_brackets_missing) and only_num_and_brackets
 
 
@@ -46,21 +48,21 @@ def split_su_single(input_string: str) -> Tuple[float, float]:
     input_string = str(input_string)
 
     if not is_num_su(input_string, allow_brackets_missing=True):
-        raise ValueError(f'{input_string} is not a valid string to split into value(su)')
-    su_pattern = r'([^\.]+)\.?(.*?)\(([\d\.]+)\)'
+        raise ValueError(f"{input_string} is not a valid string to split into value(su)")
+    su_pattern = r"([^\.]+)\.?(.*?)\(([\d\.]+)\)"
     match = re.match(su_pattern, input_string)
     if match is None:
         return float(input_string), 0.0
     if len(match.group(2)) == 0:
         return float(match.group(1)), float(match.group(3))
-    magnitude = 10.0**(-len(match.group(2)))
-    if match.group(1).startswith('-'):
+    magnitude = 10.0 ** (-len(match.group(2)))
+    if match.group(1).startswith("-"):
         sign = -1
     else:
         sign = 1
     # append the strings to reduce floating point errors (do not use magnitude)
-    value = float(match.group(1)) + sign * float('0.' + match.group(2))
-    su = magnitude * float(match.group(3).replace('.', ''))
+    value = float(match.group(1)) + sign * float("0." + match.group(2))
+    su = magnitude * float(match.group(3).replace(".", ""))
     return value, su
 
 
@@ -80,6 +82,7 @@ def split_su_array(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray
     """
     values, sus = zip(*map(split_su_single, input_strings))
     return list(values), list(sus)
+
 
 def split_su_block(block: model.block) -> model.block:
     """
@@ -103,14 +106,14 @@ def split_su_block(block: model.block) -> model.block:
     """
     entry2loop_name = {}
     new_loops = defaultdict(dict)
-    #handle loops first to reconstruct them
+    # handle loops first to reconstruct them
     for loop_name, loop_entries in block.loops.items():
         for entry_name, entry_vals in loop_entries.items():
             entry2loop_name[entry_name] = loop_name
             if any(is_num_su(val, allow_brackets_missing=False) for val in entry_vals):
                 non_su_vals, su_vals = split_su_array(entry_vals)
                 new_loops[loop_name][entry_name] = non_su_vals
-                new_loops[loop_name][entry_name + '_su'] = su_vals
+                new_loops[loop_name][entry_name + "_su"] = su_vals
             else:
                 new_loops[loop_name][entry_name] = entry_vals
 
@@ -125,11 +128,12 @@ def split_su_block(block: model.block) -> model.block:
         elif is_num_su(entry_val, allow_brackets_missing=False):
             non_su_val, su_val = split_su_single(entry_val)
             converted_block.add_data_item(entry, non_su_val)
-            converted_block.add_data_item(entry + '_su', su_val)
+            converted_block.add_data_item(entry + "_su", su_val)
         else:
             converted_block.add_data_item(entry, entry_val)
 
     return converted_block
+
 
 def split_su_cif(cif: model.cif) -> model.cif:
     """
@@ -158,6 +162,7 @@ def split_su_cif(cif: model.cif) -> model.cif:
 
     return processed_cif
 
+
 def get_su_order(su: float) -> int:
     """
     Calculate the order of magnitude of the standard uncertainty (SU).
@@ -184,17 +189,15 @@ def get_su_order(su: float) -> int:
     -3
     """
     if su <= 0.0:
-        raise ValueError(f'Received a zero or negative value for SU: {su}')
+        raise ValueError(f"Received a zero or negative value for SU: {su}")
     order = np.floor(np.log10(su))
-    if su < 2 * 10**(order):
+    if su < 2 * 10 ** (order):
         order -= 1
     return int(order)
 
 
 def merge_su_single(
-    value: Union[float, str],
-    su: Union[float, str],
-    n_digits_no_su: Optional[int] = None
+    value: Union[float, str], su: Union[float, str], n_digits_no_su: Optional[int] = None
 ) -> str:
     """
     Convert a numerical value and its standard uncertainty to a string representation.
@@ -235,24 +238,22 @@ def merge_su_single(
     value = float(value)
     su = float(su)
     if su < 1e-30:
-        assert n_digits_no_su is not None, 'Encountered su=0, but n_digits_no_su not set.'
-        return f'{np.round(value, n_digits_no_su)}'
+        assert n_digits_no_su is not None, "Encountered su=0, but n_digits_no_su not set."
+        return f"{np.round(value, n_digits_no_su)}"
     order = get_su_order(su)
     if order <= 0:
         format_dict = {
-            'val': np.round(value, -order),
-            'su_val': np.round(su, -order) / 10**(order)
+            "val": np.round(value, -order),
+            "su_val": np.round(su, -order) / 10 ** (order),
         }
         n_prec_digits = -order
     else:
-        format_dict = {
-            'val': np.round(value, -order),
-            'su_val': np.round(su, -order)
-        }
+        format_dict = {"val": np.round(value, -order), "su_val": np.round(su, -order)}
         n_prec_digits = 0
-    string = f'{{val:0.{n_prec_digits}f}}({{su_val:0.0f}})'
+    string = f"{{val:0.{n_prec_digits}f}}({{su_val:0.0f}})"
 
     return string.format(**format_dict)
+
 
 def merge_su_array(values: List[float], sus: List[float]) -> List[str]:
     """
@@ -298,11 +299,11 @@ def merge_su_array(values: List[float], sus: List[float]) -> List[str]:
     n_prec_digits = -get_su_order(min_abs_val) + 5
     if n_prec_digits < 0:
         n_prec_digits = 0
-    format_string = f'{{val:0.{n_prec_digits}f}}'
+    format_string = f"{{val:0.{n_prec_digits}f}}"
     return [format_string.format(val=val) for val in values]
 
 
-def merge_su_block(block: model.block, exclude: Optional[List[str]]=None) -> model.block:
+def merge_su_block(block: model.block, exclude: Optional[List[str]] = None) -> model.block:
     """
     Merge numerical values with their standard uncertainties within a CIF block
     according to the crystallographic information framework (CIF)
@@ -360,15 +361,17 @@ def merge_su_block(block: model.block, exclude: Optional[List[str]]=None) -> mod
     for loop_name, loop_entries in block.loops.items():
         for entry_name, entry_vals in loop_entries.items():
             entry2loop_name[entry_name] = loop_name
-            is_merged_su = all((
-                entry_name.endswith('_su'),
-                entry_name[:-3] in loop_entries,
-                entry_name[:-3] not in exclude
-            ))
+            is_merged_su = all(
+                (
+                    entry_name.endswith("_su"),
+                    entry_name[:-3] in loop_entries,
+                    entry_name[:-3] not in exclude,
+                )
+            )
             if is_merged_su:
                 continue
-            if entry_name + '_su' in loop_entries and entry_name not in exclude:
-                merged_vals = merge_su_array(entry_vals, loop_entries[entry_name + '_su'])
+            if entry_name + "_su" in loop_entries and entry_name not in exclude:
+                merged_vals = merge_su_array(entry_vals, loop_entries[entry_name + "_su"])
                 new_loops[loop_name][entry_name] = merged_vals
             else:
                 new_loops[loop_name][entry_name] = entry_vals
@@ -381,10 +384,10 @@ def merge_su_block(block: model.block, exclude: Optional[List[str]]=None) -> mod
             if new_loop is not None:
                 converted_block.add_loop(model.loop(data=new_loop))
                 new_loops[entry2loop_name[entry]] = None
-        elif all((entry.endswith('_su'), entry[:-3] in block, entry[:-3] not in exclude)):
+        elif all((entry.endswith("_su"), entry[:-3] in block, entry[:-3] not in exclude)):
             continue
-        elif entry + '_su' in block and entry not in exclude:
-            merged_entry_val = merge_su_single(entry_val, block[entry + '_su'])
+        elif entry + "_su" in block and entry not in exclude:
+            merged_entry_val = merge_su_single(entry_val, block[entry + "_su"])
             converted_block.add_data_item(entry, merged_entry_val)
         else:
             converted_block.add_data_item(entry, entry_val)
@@ -392,7 +395,7 @@ def merge_su_block(block: model.block, exclude: Optional[List[str]]=None) -> mod
     return converted_block
 
 
-def merge_su_cif(cif: model.cif, exclude: Optional[List[str]]=None) -> model.cif:
+def merge_su_cif(cif: model.cif, exclude: Optional[List[str]] = None) -> model.cif:
     """
     Merges numerical values with their standard uncertainties (SUs) across all blocks
     in a CIF model for both single data items and entries within loops adhering to the

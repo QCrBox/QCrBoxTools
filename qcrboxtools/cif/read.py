@@ -1,12 +1,13 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
 from pathlib import Path
-from typing import List, Union, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 
 from iotbx import cif
 
-from .uncertainties import split_su_block, split_su_cif
 from .entries import block_to_unified_keywords, cif_to_unified_keywords
+from .uncertainties import split_su_block, split_su_cif
+
 
 def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
     """
@@ -25,12 +26,11 @@ def read_cif_safe(cif_path: Union[str, Path]) -> cif.model.cif:
     """
     cif_path = Path(cif_path)
 
-    return cif.reader(input_string=cif_path.read_text(encoding='UTF-8')).model()
+    return cif.reader(input_string=cif_path.read_text(encoding="UTF-8")).model()
 
 
 def cifdata_str_or_index(
-    model: cif.model.cif,
-    dataset: Union[int, str]
+    model: cif.model.cif, dataset: Union[int, str]
 ) -> Tuple[cif.model.block, str]:
     """
     Retrieve a CIF dataset block from the model using an index or identifier.
@@ -56,21 +56,22 @@ def cifdata_str_or_index(
         return model[dataset], dataset
     except ValueError as exc:
         raise ValueError(
-            'Dataset does not exist in cif and cannot be cast into int as index. '
-            + f'Got: {dataset}'
+            "Dataset does not exist in cif and cannot be cast into int as index. "
+            + f"Got: {dataset}"
         ) from exc
     except IndexError as exc:
         raise IndexError(
-            'The given dataset does not exists and integer index is out of range. '
-            + f'Got: {dataset}'
+            "The given dataset does not exists and integer index is out of range. "
+            + f"Got: {dataset}"
         ) from exc
+
 
 def read_cif_as_unified(
     cif_path: Union[str, Path],
     dataset: Optional[str] = None,
     convert_keywords: bool = True,
     custom_categories: Optional[List[str]] = None,
-    split_sus: bool = True
+    split_sus: bool = True,
 ) -> Union[cif.model.block, cif.model.cif]:
     """
     Read a CIF file, optionally process it for unified keywords and split standard

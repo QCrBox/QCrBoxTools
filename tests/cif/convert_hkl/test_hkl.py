@@ -1,17 +1,19 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
-from pathlib import Path
 import re
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from qcrboxtools.cif.file_converter.hkl import cif2hkl4
 
-test_file_dir = Path('./tests/cif/convert_hkl/test_files')
+test_file_dir = Path("./tests/cif/convert_hkl/test_files")
+
 
 def valid_hkl_line(line):
-    return re.search(r'[^\d\s\.\-]', line) is None and len(line.strip()) > 0
+    return re.search(r"[^\d\s\.\-]", line) is None and len(line.strip()) > 0
+
 
 def read_hkl_line(line):
     if len(line) > 28:
@@ -21,7 +23,7 @@ def read_hkl_line(line):
             int(line[8:12]),
             float(line[12:20]),
             float(line[20:28]),
-            int(line[28:])
+            int(line[28:]),
         ]
     else:
         return [
@@ -29,11 +31,12 @@ def read_hkl_line(line):
             int(line[4:8]),
             int(line[8:12]),
             float(line[12:20]),
-            float(line[20:28])
+            float(line[20:28]),
         ]
 
+
 def read_hkl_as_np(hkl_path, sort=False):
-    with open(hkl_path, encoding='ASCII') as fo:
+    with open(hkl_path, encoding="ASCII") as fo:
         hkl_lines = [read_hkl_line(line) for line in fo.readlines() if valid_hkl_line(line)]
     pivot = list(zip(*hkl_lines))
     if len(pivot) == 5:
@@ -43,8 +46,15 @@ def read_hkl_as_np(hkl_path, sort=False):
         miller_h, miller_k, miller_l, i, su_i, number = pivot
         number = np.array([int(val) for val in number])
     else:
-        raise ValueError(f'len(pivot) was {len(pivot)} {str(pivot)}')
-    hkl = np.stack((miller_h, miller_k, miller_l,), axis=-1)
+        raise ValueError(f"len(pivot) was {len(pivot)} {str(pivot)}")
+    hkl = np.stack(
+        (
+            miller_h,
+            miller_k,
+            miller_l,
+        ),
+        axis=-1,
+    )
     i = np.array(i)
     su_i = np.array(su_i)
     remove_zero_mask = np.logical_not(np.all(hkl == 0, axis=-1))
@@ -55,7 +65,7 @@ def read_hkl_as_np(hkl_path, sort=False):
         number = number[remove_zero_mask].copy()
 
     if sort:
-        sort_mask = np.argsort(hkl[:,0] * 1e8 + hkl[:,1] * 1e4 + hkl[:,2])
+        sort_mask = np.argsort(hkl[:, 0] * 1e8 + hkl[:, 1] * 1e4 + hkl[:, 2])
         hkl = hkl[sort_mask, :].copy()
         i = i[sort_mask].copy()
         su_i = su_i[sort_mask].copy()
@@ -66,14 +76,10 @@ def read_hkl_as_np(hkl_path, sort=False):
     return hkl, i, su_i, number
 
 
-@pytest.mark.parametrize('cif_path', [
-    test_file_dir / 'olex.cif',
-    test_file_dir / 'shelx.cif'
-])
+@pytest.mark.parametrize("cif_path", [test_file_dir / "olex.cif", test_file_dir / "shelx.cif"])
 def test_cif_2_shelx_hkl(cif_path, tmp_path):
-
     # read shelxl hkl (created by olex)
-    target_path = test_file_dir / 'target.hkl'
+    target_path = test_file_dir / "target.hkl"
     # convert into numpy arrays hkl, intensity, su
     # sort arrays by h, k, l
     hkl_ref, i_ref, su_ref, _ = read_hkl_as_np(target_path, True)

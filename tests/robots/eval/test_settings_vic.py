@@ -36,49 +36,64 @@ detalign_vic = dedent("""\
     DETROTZ -0.086215
 """)
 
-def test_parsing_file_content():
-    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
-    assert isinstance(vic_file, SettingsVicFile)
-    assert '!' not in vic_file
 
-@pytest.mark.parametrize("content, expected_data", [
-    (beamstop_vic, {
-        'beamstopid': 'oxford_e_81',
-        'beamstopcolour': 'red',
-        'beamstopdiameter': 0.1,
-        'beamstopwidth': 1.0,
-        'beamstop': np.array([0.0, 0.0]),
-        'beamstopshift': np.array([0.0, 0.0]),
-        'beamstopangle': 0.0,
-        'beamstopdistance': 10.0
-    }),
-    (detalign_vic, {
-        'ALIGNDETID': 'oxford_e_81',
-        'DETZEROX': -0.229091,
-        'DETZEROY': -0.471509,
-        'DETZEROZ': 0.506907,
-        'DETROTX': 0.569459,
-        'DETROTY': -0.099205,
-        'DETROTZ': -0.086215
-    })
-])
+def test_parsing_file_content():
+    vic_file = SettingsVicFile("beamstop.vic", beamstop_vic)
+    assert isinstance(vic_file, SettingsVicFile)
+    assert "!" not in vic_file
+
+
+@pytest.mark.parametrize(
+    "content, expected_data",
+    [
+        (
+            beamstop_vic,
+            {
+                "beamstopid": "oxford_e_81",
+                "beamstopcolour": "red",
+                "beamstopdiameter": 0.1,
+                "beamstopwidth": 1.0,
+                "beamstop": np.array([0.0, 0.0]),
+                "beamstopshift": np.array([0.0, 0.0]),
+                "beamstopangle": 0.0,
+                "beamstopdistance": 10.0,
+            },
+        ),
+        (
+            detalign_vic,
+            {
+                "ALIGNDETID": "oxford_e_81",
+                "DETZEROX": -0.229091,
+                "DETZEROY": -0.471509,
+                "DETZEROZ": 0.506907,
+                "DETROTX": 0.569459,
+                "DETROTY": -0.099205,
+                "DETROTZ": -0.086215,
+            },
+        ),
+    ],
+)
 def test_data_integrity(content, expected_data):
-    vic_file = SettingsVicFile('test.vic', content)
+    vic_file = SettingsVicFile("test.vic", content)
     for key, value in expected_data.items():
         if isinstance(value, np.ndarray):
             assert np.array_equal(vic_file[key], value)
         else:
             assert vic_file[key] == value
 
+
 def test_data_modification():
-    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
-    vic_file['beamstopid'] = 'new_id'
-    assert vic_file['beamstopid'] == 'new_id'
+    vic_file = SettingsVicFile("beamstop.vic", beamstop_vic)
+    vic_file["beamstopid"] = "new_id"
+    assert vic_file["beamstopid"] == "new_id"
+
 
 def test_string_representation_and_file_writing(tmp_path):
-    vic_file = SettingsVicFile('beamstop.vic', beamstop_vic)
-    expected_content = "\n".join(line for line in beamstop_vic.split("\n") if not line.startswith('!'))
+    vic_file = SettingsVicFile("beamstop.vic", beamstop_vic)
+    expected_content = "\n".join(
+        line for line in beamstop_vic.split("\n") if not line.startswith("!")
+    )
     vic_file.to_file(tmp_path)
-    with open(tmp_path / "beamstop.vic", 'r', encoding='UTF-8') as f:
+    with open(tmp_path / "beamstop.vic", "r", encoding="UTF-8") as f:
         written_content = f.read()
     assert written_content.strip() == expected_content.strip()

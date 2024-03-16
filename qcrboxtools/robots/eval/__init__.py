@@ -79,15 +79,27 @@ than of actual use:
     eval15.integrate_shoes()
 """
 
-
-from .eval_files import TextFile, PicFile, SettingsVicFile, RmatFile
+from .eval_files import PicFile, RmatFile, SettingsVicFile, TextFile
 from .eval_robots import (
-    Eval15AllRobot, EvalAnyRobot, EvalBuilddatcolRobot, EvalPeakrefRobot, EvalScandbRobot,
-    EvalViewRobot, EvalBuildeval15Robot
+    Eval15AllRobot,
+    EvalAnyRobot,
+    EvalBuilddatcolRobot,
+    EvalBuildeval15Robot,
+    EvalPeakrefRobot,
+    EvalScandbRobot,
+    EvalViewRobot,
 )
 
 __all__ = [
-    'TextFile', 'PicFile', 'SettingsVicFile', 'RmatFile',
-    'Eval15AllRobot', 'EvalAnyRobot', 'EvalBuilddatcolRobot', 'EvalPeakrefRobot', 'EvalScandbRobot',
-    'EvalViewRobot', 'EvalBuildeval15Robot'
+    "TextFile",
+    "PicFile",
+    "SettingsVicFile",
+    "RmatFile",
+    "Eval15AllRobot",
+    "EvalAnyRobot",
+    "EvalBuilddatcolRobot",
+    "EvalPeakrefRobot",
+    "EvalScandbRobot",
+    "EvalViewRobot",
+    "EvalBuildeval15Robot",
 ]

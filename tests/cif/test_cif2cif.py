@@ -316,9 +316,8 @@ def test_unique_optional_cif_entries_from_multiple_sets():
     ), "Optional keywords should be unique and exclude compulsory keywords"
 
 
-def test_cif_file_unified_yml_instr(test_cif_file_unmerged, tmp_path):
-    output_cif_path = tmp_path / "output.cif"
-
+@pytest.fixture
+def mock_yaml_file(tmp_path):
     yml_path = tmp_path / "config.yml"
 
     # Mock YAML content
@@ -346,10 +345,16 @@ def test_cif_file_unified_yml_instr(test_cif_file_unmerged, tmp_path):
     """)
     yml_path.write_text(yml_content)
 
+    return yml_path
+
+
+def test_cif_file_unified_yml_instr(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
+
     cif_file_unified_yml_instr(
         input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
-        yml_path=yml_path,
+        yml_path=mock_yaml_file,
         command="process_cif",
     )
 
@@ -392,6 +397,33 @@ def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
     # Check for expected patterns in the output content
     for pattern in expected_output_patterns:
         assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
+
+
+def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+    command = "yml"
+    args = [str(mock_yaml_file), "process_cif"]
+    expected_output_patterns = [
+        r"_cell_length_a\s+10.00\(3\)",
+        r"_cell_length_b\s+20.00\(2\)",
+        "_atom_site_fract_x",
+        "_atom_site_fract_y",
+    ]
+    output_cif_path = tmp_path / "output.cif"
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_unmerged), str(output_cif_path)] + args
+
+    # Execute the CLI command
+    result = subprocess.run(cli_args, capture_output=True, text=True)
+
+    # Ensure the command executed successfully
+    assert result.returncode == 0, f"CLI command failed with error: {result.stderr}"
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding="UTF-8")
+
+    # Check for expected patterns in the output content
+    for pattern in expected_output_patterns:
+        assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
+    assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
 def test_cli_command_unify(test_cif_file_merged, tmp_path):

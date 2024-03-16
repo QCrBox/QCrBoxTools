@@ -11,7 +11,7 @@ specified criteria. The operations are based on configurations defined either di
 through command-line arguments or via YAML files for using QCrBox command definitions.
 
 The CLI offers three main commands:
-1. keywords_yml: Processes a CIF file according to the specifications in a QCrBox YAML
+1. yml: Processes a CIF file according to the specifications in a QCrBox YAML
    configuration file. This command allows for complex processing instructions,
    including keyword conversions and SU mergers, defined in a structured YAML document.
 2. keywords: Directly processes a CIF file by merging SUs, filtering by specified keywords
@@ -30,7 +30,7 @@ Usage:
 
 Example:
     To process a CIF file using a YAML configuration, one might use:
-    `$ python -m qcrboxtools.cif keywords_yml input.cif output.cif config.yml process_command`
+    `$ python -m qcrboxtools.cif yml input.cif output.cif config.yml process_command`
 
     To merge standard uncertainties and filter by specified keywords:
     `$ python -m qcrboxtools.cif keywords input.cif output.cif --compulsory_entries
@@ -58,13 +58,11 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # Parser for cif_file_unified_yml_instr
-    parser_unify_yml = subparsers.add_parser(
-        "keywords_yml", help="Process a CIF file based on a QCrBox YAML configuration."
-    )
-    parser_unify_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
-    parser_unify_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
-    parser_unify_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
-    parser_unify_yml.add_argument("command", type=str, help="Command within the YAML file for processing.")
+    parser_yml = subparsers.add_parser("yml", help="Process a CIF file based on a QCrBox YAML configuration.")
+    parser_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
+    parser_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
+    parser_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
+    parser_yml.add_argument("yml_command", type=str, help="Command within the YAML file for processing.")
 
     # Parser for cif_file_unified_to_keywords_merge_su
     parser_keywords_merge_su = subparsers.add_parser(
@@ -120,8 +118,8 @@ def main():
     args = parser.parse_args()
 
     # Handling function calls based on command
-    if args.command == "keywords_yml":
-        cif_file_unified_yml_instr(args.input_cif_path, args.output_cif_path, args.yml_path, args.command)
+    if args.command == "yml":
+        cif_file_unified_yml_instr(args.input_cif_path, args.output_cif_path, args.yml_path, args.yml_command)
     elif args.command == "unify":
         cif_file_unify_split(
             args.input_cif_path,

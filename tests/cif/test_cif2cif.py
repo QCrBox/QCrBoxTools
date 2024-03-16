@@ -2,18 +2,22 @@
 # SPDX-License-Identifier: MPL-2.0
 
 import re
+import subprocess
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
 from qcrboxtools.cif.cif2cif import (
-    cif_file_unified_to_keywords_merge_su, cif_file_unified_yml_instr,
-    cif_entries_from_yml, cif_file_unify_split
+    cif_entries_from_yml,
+    cif_file_unified_to_keywords_merge_su,
+    cif_file_unified_yml_instr,
+    cif_file_unify_split,
 )
 
+
 @pytest.fixture
-def cif_path(tmp_path):
+def test_cif_file_merged(tmp_path):
     """Create a temporary CIF file for testing."""
     cif_content = dedent("""
         data_test
@@ -31,7 +35,7 @@ def cif_path(tmp_path):
     return cif_file
 
 
-def test_cif_file_unify_split(cif_path, tmp_path):
+def test_cif_file_unify_split(test_cif_file_merged, tmp_path):
     """
     Test the cif_file_unify_split function to ensure it correctly processes
     and writes a CIF file according to the specified parameters.
@@ -41,10 +45,10 @@ def test_cif_file_unify_split(cif_path, tmp_path):
 
     # Call the function under test with split SUs and without converting keywords
     cif_file_unify_split(
-        input_cif_path=cif_path,
+        input_cif_path=test_cif_file_merged,
         output_cif_path=output_cif_path,
         convert_keywords=False,
-        split_sus=True
+        split_sus=True,
     )
 
     # Read back the output file and verify its content
@@ -70,7 +74,7 @@ def test_cif_file_unify_split(cif_path, tmp_path):
 
 
 @pytest.fixture
-def temp_cif_file(tmp_path) -> Path:
+def test_cif_file_unmerged(tmp_path) -> Path:
     """
     Creates a temporary CIF file with pre-defined content for testing.
 
@@ -98,45 +102,54 @@ def temp_cif_file(tmp_path) -> Path:
         O1 -0.345 0.023 0.678 0.0 -0.901 0.089
     """)
     cif_file = tmp_path / "test.cif"
-    cif_file.write_text(cif_content, encoding='UTF-8')
+    cif_file.write_text(cif_content, encoding="UTF-8")
     return cif_file
 
-def test_cif_file_unified_to_keywords_merge_su(temp_cif_file, tmp_path):
+
+def test_cif_file_unified_to_keywords_merge_su(test_cif_file_unmerged, tmp_path):
     """
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
     """
-    output_cif_path = tmp_path / 'output.cif'
+    output_cif_path = tmp_path / "output.cif"
 
     # Define compulsory and optional entries for the test
-    compulsory_entries = ['_cell_length_a']
-    optional_entries = ['_cell_length_b', '_cell_length_b_su', '_atom_site_fract_x', '_atom_site_fract_y']
-    custom_categories = ['custom']
+    compulsory_entries = ["_cell_length_a"]
+    optional_entries = [
+        "_cell_length_b",
+        "_cell_length_b_su",
+        "_atom_site_fract_x",
+        "_atom_site_fract_y",
+    ]
+    custom_categories = ["custom"]
 
     # Call the function with merge_sus enabled
     cif_file_unified_to_keywords_merge_su(
-        input_cif_path=temp_cif_file,
+        input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         compulsory_entries=compulsory_entries,
         optional_entries=optional_entries,
         custom_categories=custom_categories,
-        merge_sus=True
+        merge_sus=True,
     )
 
     # Read the output CIF content
-    output_content = output_cif_path.read_text(encoding='UTF-8')
+    output_content = output_cif_path.read_text(encoding="UTF-8")
     search_patterns = (
-        r'_cell_length_a\s+10.00\(3\)',
-        r'_cell_length_b\s+20.0',
-        '_cell_length_b_su', # cell_length_b_su is requested as entry and should not be merged
-        '_atom_site_fract_x',
-        '_atom_site_fract_y',
+        r"_cell_length_a\s+10.00\(3\)",
+        r"_cell_length_b\s+20.0",
+        "_cell_length_b_su",  # cell_length_b_su is requested as entry and should not be merged
+        "_atom_site_fract_x",
+        "_atom_site_fract_y",
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
-    assert '_atom_site_fract_z' not in output_content, "Included _atom_site.fract_z entry unexpectedly"
+    assert (
+        "_atom_site_fract_z" not in output_content
+    ), "Included _atom_site.fract_z entry unexpectedly"
 
-def test_cif_file_all_unified_su(temp_cif_file, tmp_path):
+
+def test_cif_file_all_unified_su(test_cif_file_unmerged, tmp_path):
     """
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
@@ -144,38 +157,38 @@ def test_cif_file_all_unified_su(temp_cif_file, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
     # write an entry that is not unified at the moment
-    with open(temp_cif_file, 'a') as fobj:
+    with open(test_cif_file_unmerged, "a") as fobj:
         fobj.write("\n_custom_test2  'something else'\n")
 
     # Define compulsory and optional entries for the test
-    compulsory_entries = ['_cell_length_a', '_cell.length_b_su']
-    optional_entries = ['all_unified']
-    custom_categories = ['custom']
+    compulsory_entries = ["_cell_length_a", "_cell.length_b_su"]
+    optional_entries = ["all_unified"]
+    custom_categories = ["custom"]
 
     # Call the function with merge_sus enabled
     cif_file_unified_to_keywords_merge_su(
-        input_cif_path=temp_cif_file,
+        input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         compulsory_entries=compulsory_entries,
         optional_entries=optional_entries,
         custom_categories=custom_categories,
-        merge_sus=True
+        merge_sus=True,
     )
 
     # Read the output CIF content
-    output_content = output_cif_path.read_text(encoding='UTF-8')
+    output_content = output_cif_path.read_text(encoding="UTF-8")
     search_patterns = (
-        r'_cell\.length_a\s+10.00\(3\)',
-        r'_cell\.length_b\s+20.0',
-        r'_cell\.length_b_su', # cell_length_b_su is requested as entry and should not be merged
-        r'_atom_site\.fract_x',
-        r'_atom_site\.fract_y',
-        r'_atom_site\.fract_z', # also include as all_unified in keywords
-        r'_custom\.test2'  # all unified should output unified keywords -> convert via category
+        r"_cell\.length_a\s+10.00\(3\)",
+        r"_cell\.length_b\s+20.0",
+        r"_cell\.length_b_su",  # cell_length_b_su is requested as entry and should not be merged
+        r"_atom_site\.fract_x",
+        r"_atom_site\.fract_y",
+        r"_atom_site\.fract_z",  # also include as all_unified in keywords
+        r"_custom\.test2",  # all unified should output unified keywords -> convert via category
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
-    assert '_cell_length_a' not in output_content, "Renaming should be skipped entirely"
+    assert "_cell_length_a" not in output_content, "Renaming should be skipped entirely"
 
 
 def test_direct_cif_entries_extraction():
@@ -185,13 +198,16 @@ def test_direct_cif_entries_extraction():
             {
                 "name": "process_cif",
                 "required_cif_entries": ["_cell_length_a", "_cell_length_b"],
-                "optional_cif_entries": ["_atom_site.label"]
+                "optional_cif_entries": ["_atom_site.label"],
             }
         ]
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
-    assert sorted(compulsory) == sorted(["_cell_length_a", "_cell_length_b"]), "Failed to extract compulsory keywords"
+    assert sorted(compulsory) == sorted(
+        ["_cell_length_a", "_cell_length_b"]
+    ), "Failed to extract compulsory keywords"
     assert sorted(optional) == sorted(["_atom_site.label"]), "Failed to extract optional keywords"
+
 
 def test_cif_entries_extraction_via_sets():
     """Test extraction of keywords defined through keyword sets."""
@@ -200,56 +216,55 @@ def test_cif_entries_extraction_via_sets():
             {
                 "name": "process_cif",
                 "required_cif_entry_sets": ["cell_dimensions"],
-                "optional_cif_entry_sets": ["atom_sites"]
+                "optional_cif_entry_sets": ["atom_sites"],
             }
         ],
         "cif_entry_sets": [
             {
                 "name": "cell_dimensions",
                 "required": ["_cell_length_a", "_cell_length_b"],
-                "optional": []  # Example with an empty list
+                "optional": [],  # Example with an empty list
             },
             {
                 "name": "atom_sites",
                 "required": [],
-                "optional": ["_atom_site.label", "_atom_site.occupancy"]
-            }
-        ]
+                "optional": ["_atom_site.label", "_atom_site.occupancy"],
+            },
+        ],
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
-    assert set(compulsory) == {"_cell_length_a", "_cell_length_b"}, "Failed to extract compulsory keywords from sets"
-    assert set(optional) == {"_atom_site.label", "_atom_site.occupancy"}, "Failed to extract optional keywords from sets"
+    assert set(compulsory) == {
+        "_cell_length_a",
+        "_cell_length_b",
+    }, "Failed to extract compulsory keywords from sets"
+    assert set(optional) == {
+        "_atom_site.label",
+        "_atom_site.occupancy",
+    }, "Failed to extract optional keywords from sets"
+
 
 @pytest.mark.parametrize("missing_key", ["process_cif", "nonexistent_set"])
 def test_error_for_missing_command_or_set(missing_key):
     """Test that the correct errors are raised for missing commands or keyword sets."""
-    yml_dict = {
-        'commands': [
-            {"name": "nonexistent_set", "required_cif_entry_sets": ["missing"]}
-        ]
-    }
+    yml_dict = {"commands": [{"name": "nonexistent_set", "required_cif_entry_sets": ["missing"]}]}
     with pytest.raises(KeyError):
         cif_entries_from_yml(yml_dict, missing_key)
+
 
 def test_incorrect_entry_in_cif_entry_set():
     """Test detection of incorrect entries within keyword sets."""
     yml_dict = {
-        "commands": [
-            {
-                "name": "process_cif",
-                "required_cif_entry_sets": ["incorrect_set"]
-            }
-        ],
+        "commands": [{"name": "process_cif", "required_cif_entry_sets": ["incorrect_set"]}],
         "cif_entry_sets": [
             {
                 "name": "incorrect_set",
-                "wrong_entry": ["_cell_length_a"]  # Intentionally incorrect to trigger the error
+                "wrong_entry": ["_cell_length_a"],  # Intentionally incorrect to trigger the error
             }
-        ]
-
+        ],
     }
     with pytest.raises(NameError):
         cif_entries_from_yml(yml_dict, "process_cif")
+
 
 def test_unique_compulsory_cif_entries_from_multiple_sets():
     """Test that compulsory keywords from multiple sets are appended uniquely."""
@@ -261,22 +276,16 @@ def test_unique_compulsory_cif_entries_from_multiple_sets():
             }
         ],
         "cif_entry_sets": [
-            {
-                "name": "set1",
-                "required": ["_cell_length_a", "_cell_angle_alpha"],
-                "optional": []
-            },
-            {
-                "name": "set2",
-                "required": ["_cell_length_a", "_cell_volume"],
-                "optional": []
-            }
-        ]
+            {"name": "set1", "required": ["_cell_length_a", "_cell_angle_alpha"], "optional": []},
+            {"name": "set2", "required": ["_cell_length_a", "_cell_volume"], "optional": []},
+        ],
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
-    assert sorted(compulsory) == sorted(list(set(["_cell_length_a", "_cell_angle_alpha", "_cell_volume"]))), \
-        "Compulsory keywords should be unique and include all items from both sets"
+    assert sorted(compulsory) == sorted(
+        list(set(["_cell_length_a", "_cell_angle_alpha", "_cell_volume"]))
+    ), "Compulsory keywords should be unique and include all items from both sets"
     assert optional == [], "No optional keywords should be present"
+
 
 def test_unique_optional_cif_entries_from_multiple_sets():
     """
@@ -288,29 +297,32 @@ def test_unique_optional_cif_entries_from_multiple_sets():
             {
                 "name": "process_cif",
                 "optional_cif_entry_sets": ["set1", "set2"],
-                "required_cif_entries": ["_cell_length_a"]  # Ensure exclusion of compulsory from optional
+                "required_cif_entries": [
+                    "_cell_length_a"
+                ],  # Ensure exclusion of compulsory from optional
             }
         ],
         "cif_entry_sets": [
             {
                 "name": "set1",
-                "required": ["_cell_length_a", "_cell_angle_alpha"], # _cell_length_a should be excluded
-                "optional": []
+                "required": [
+                    "_cell_length_a",
+                    "_cell_angle_alpha",
+                ],  # _cell_length_a should be excluded
+                "optional": [],
             },
-            {
-                "name": "set2",
-                "required": ["_cell_volume"],
-                "optional": ["_cell_length_b"]
-            }
-        ]
+            {"name": "set2", "required": ["_cell_volume"], "optional": ["_cell_length_b"]},
+        ],
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
     assert compulsory == ["_cell_length_a"], "Only specified compulsory keywords should be present"
     # Ensure _cell_length_a is not duplicated in optional, despite being in both sets and compulsory
-    assert sorted(optional) == sorted(list(set(["_cell_length_b", "_cell_angle_alpha", "_cell_volume"]))), \
-        "Optional keywords should be unique and exclude compulsory keywords"
+    assert sorted(optional) == sorted(
+        list(set(["_cell_length_b", "_cell_angle_alpha", "_cell_volume"]))
+    ), "Optional keywords should be unique and exclude compulsory keywords"
 
-def test_cif_file_unified_yml_instr(temp_cif_file, tmp_path):
+
+def test_cif_file_unified_yml_instr(test_cif_file_unmerged, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
     yml_path = tmp_path / "config.yml"
@@ -341,20 +353,79 @@ def test_cif_file_unified_yml_instr(temp_cif_file, tmp_path):
     yml_path.write_text(yml_content)
 
     cif_file_unified_yml_instr(
-        input_cif_path=temp_cif_file,
+        input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         yml_path=yml_path,
-        command='process_cif'
+        command="process_cif",
     )
 
     # Read the output CIF content
-    output_content = output_cif_path.read_text(encoding='UTF-8')
+    output_content = output_cif_path.read_text(encoding="UTF-8")
     search_patterns = (
-        r'_cell_length_a\s+10.00\(3\)',
-        r'_cell_length_b\s+20.00\(2\)',
-        '_atom_site_fract_x',
-        '_atom_site_fract_y'
+        r"_cell_length_a\s+10.00\(3\)",
+        r"_cell_length_b\s+20.00\(2\)",
+        "_atom_site_fract_x",
+        "_atom_site_fract_y",
     )
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
-    assert '_atom_site_fract_z' not in output_content, "Included _atom_site.fract_z entry unexpectedly"
+    assert (
+        "_atom_site_fract_z" not in output_content
+    ), "Included _atom_site.fract_z entry unexpectedly"
+
+
+# CLI tests
+
+CLI_COMMAND = ["python", "-m", "qcrboxtools.cif"]
+
+
+def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
+    command = "keywords"
+    args = ["--compulsory_entries", "_cell_length_a", "--merge_sus"]
+    expected_output_patterns = [
+        r"_cell_length_a\s+10.00\(3\)",
+    ]
+    output_cif_path = tmp_path / "output.cif"
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_unmerged), str(output_cif_path)] + args
+
+    # Execute the CLI command
+    result = subprocess.run(cli_args, capture_output=True, text=True)
+
+    # Ensure the command executed successfully
+    assert result.returncode == 0, f"CLI command failed with error: {result.stderr}"
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding="UTF-8")
+
+    # Check for expected patterns in the output content
+    for pattern in expected_output_patterns:
+        assert (
+            re.search(pattern, output_content) is not None
+        ), f"Expected pattern not found in output: {pattern}"
+
+
+def test_cli_command_unify(test_cif_file_merged, tmp_path):
+    command = "unify"
+    args = ["--convert_keywords", "--split_sus"]
+    expected_output_patterns = [
+        r"_test_value_with_su\s+1\.23",
+        r"_test_value_with_su_su\s+0\.04",
+        r"_test_value_without_su\s+5\.67",
+    ]
+    output_cif_path = tmp_path / "output.cif"
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path)] + args
+
+    # Execute the CLI command
+    result = subprocess.run(cli_args, capture_output=True, text=True)
+
+    # Ensure the command executed successfully
+    assert result.returncode == 0, f"CLI command failed with error: {result.stderr}"
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding="UTF-8")
+
+    # Check for expected patterns in the output content
+    for pattern in expected_output_patterns:
+        assert (
+            re.search(pattern, output_content) is not None
+        ), f"Expected pattern not found in output: {pattern}"

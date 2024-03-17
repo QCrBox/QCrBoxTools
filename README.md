@@ -7,9 +7,9 @@ The QCrBox project requires the execution of different crystallographic tasks, s
 ## QCrBox Project Team
 | Project Member   | Role  | Unit   |
 |------------------|-------|--------|
-| Dr. [Paul Niklas Ruth](github.com/Niolon)             |  Research Software Engineer (RSE) | [Advanced Research Computing, Durham University](https://www.durham.ac.uk/research/institutes-and-centres/advanced-research-computing/)                       |
-| [Maximilian Albert](github.com/maxalbert)       |  Research Software Engineer (RSE) | [Research Software Group, University of Southampton ](https://rsgsoton.net/)                       |
-| Prof. [Horst Puschmann](github.com/mulomulo) | Principal Investigator      | [OlexSys](https://www.olexsys.org/) |
+| Dr. [Paul Niklas Ruth](https://github.com/Niolon)             |  Research Software Engineer (RSE) | [Advanced Research Computing, Durham University](https://www.durham.ac.uk/research/institutes-and-centres/advanced-research-computing/)                       |
+| [Maximilian Albert](https://github.com/maxalbert)       |  Research Software Engineer (RSE) | [Research Software Group, University of Southampton ](https://rsgsoton.net/)                       |
+| Prof. [Horst Puschmann](https://github.com/mulomulo) | Principal Investigator      | [OlexSys](https://www.olexsys.org/) |
 | Prof. [Simon Coles](https://www.southampton.ac.uk/people/5wzkxv/professor-simon-coles)  | Principal Investigator      | [Department of Chemistry, University of Southampton](https://www.southampton.ac.uk/research/areas/chemistry) |
 
 ## Getting started

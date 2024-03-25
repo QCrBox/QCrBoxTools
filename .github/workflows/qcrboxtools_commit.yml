@@ -19,7 +19,7 @@ jobs:
         echo $CONDA/bin >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        conda env update --file environment.yml --name base
+        conda env create --file environment.yml --name testenv
     - name: Lint with flake8
       run: |
         # conda install flake8
@@ -30,7 +30,7 @@ jobs:
     - name: Test with pytest
       run: |
         # conda install pytest
-        pytest -m "not program_dependent and not not_implemented"
+        conda run -n testenv pytest -m "not program_dependent and not not_implemented"
 
   ruff:
     runs-on: ubuntu-latest

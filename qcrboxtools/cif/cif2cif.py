@@ -6,13 +6,13 @@ from typing import List, Optional, Union
 
 import yaml
 
-from .entries import cif_to_requested_keywords, cif_to_unified_keywords
+from .entries import cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
 from .read import read_cif_as_unified, read_cif_safe
 from .uncertainties import merge_su_cif
 
 
-def cif_file_unify_split(
+def cif_file_to_unified(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
     convert_keywords: bool = True,
@@ -53,7 +53,7 @@ def cif_file_unify_split(
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
 
 
-def cif_file_unified_to_keywords_merge_su(
+def cif_file_to_specific(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
     compulsory_entries: List[str] = None,
@@ -124,7 +124,7 @@ def cif_file_unified_to_keywords_merge_su(
     if "all_unified" in all_keywords:
         cif_model = cif_to_unified_keywords(cif_model, custom_categories)
     elif len(all_keywords) > 0:
-        cif_model = cif_to_requested_keywords(cif_model, compulsory_entries, optional_entries, custom_categories)
+        cif_model = cif_to_specific_keywords(cif_model, compulsory_entries, optional_entries, custom_categories)
 
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
 
@@ -227,7 +227,7 @@ def cif_entries_from_yml(yml_dict, command):
     return compulsory_kws, optional_kws
 
 
-def cif_file_unified_yml_instr(
+def cif_file_to_specific_by_yml(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
     yml_path: Union[str, Path],
@@ -276,7 +276,7 @@ def cif_file_unified_yml_instr(
     merge_sus = options.get("merge_cif_su", False)
     custom_categories = options.get("custom_cif_categories", [])
 
-    cif_file_unified_to_keywords_merge_su(
+    cif_file_to_specific(
         input_cif_path,
         output_cif_path,
         compulsory_entries,

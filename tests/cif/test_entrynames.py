@@ -4,10 +4,10 @@ import pytest
 from iotbx.cif import model
 
 from qcrboxtools.cif.entries import (
-    block_to_requested_keywords,
+    block_to_specific_keywords,
     block_to_unified_keywords,
     cif_entries_present,
-    cif_to_requested_keywords,
+    cif_to_specific_keywords,
     cif_to_unified_keywords,
     entry_to_unified_keyword,
 )
@@ -135,12 +135,12 @@ def unified_block():
 #        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
 
 
-def test_block_to_requested_keywords(unified_block, custom_categories):
+def test_block_to_specific_keywords(unified_block, custom_categories):
     requested_entries = ["_journal_date_accepted", "_mock_loop_entry1"]
     optional_entries = ["_nonexistent_entry", "mock_entry"]
 
     # Attempt conversion with a non-existent entry marked as optional
-    converted_block = block_to_requested_keywords(unified_block, requested_entries, optional_entries, custom_categories)
+    converted_block = block_to_specific_keywords(unified_block, requested_entries, optional_entries, custom_categories)
 
     # Ensure all non-optional requested entries are present in the converted block
     for entry_name in requested_entries:
@@ -164,12 +164,12 @@ def unified_cif(unified_block):
     return cif
 
 
-def test_cif_to_requested_keywords(unified_cif, custom_categories):
+def test_cif_to_specific_keywords(unified_cif, custom_categories):
     requested_entries = ["_journal_date_accepted", "_mock_loop_entry1"]
     optional_entries = ["_nonexistent_entry", "mock_entry"]
 
     # Convert using cif_to_requested_keywords
-    new_cif = cif_to_requested_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
+    new_cif = cif_to_specific_keywords(unified_cif, requested_entries, optional_entries, custom_categories)
 
     # Ensure that each block in the new CIF contains only the requested entries
     for _, block in new_cif.items():

@@ -10,9 +10,9 @@ import pytest
 
 from qcrboxtools.cif.cif2cif import (
     cif_entries_from_yml,
-    cif_file_unified_to_keywords_merge_su,
-    cif_file_unified_yml_instr,
-    cif_file_unify_split,
+    cif_file_to_specific,
+    cif_file_to_specific_by_yml,
+    cif_file_to_unified,
 )
 
 
@@ -35,7 +35,7 @@ def test_cif_file_merged(tmp_path):
     return cif_file
 
 
-def test_cif_file_unify_split(test_cif_file_merged, tmp_path):
+def test_cif_file_to_unified(test_cif_file_merged, tmp_path):
     """
     Test the cif_file_unify_split function to ensure it correctly processes
     and writes a CIF file according to the specified parameters.
@@ -44,7 +44,7 @@ def test_cif_file_unify_split(test_cif_file_merged, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
 
     # Call the function under test with split SUs and without converting keywords
-    cif_file_unify_split(
+    cif_file_to_unified(
         input_cif_path=test_cif_file_merged,
         output_cif_path=output_cif_path,
         convert_keywords=False,
@@ -106,7 +106,7 @@ def test_cif_file_unmerged(tmp_path) -> Path:
     return cif_file
 
 
-def test_cif_file_unified_to_keywords_merge_su(test_cif_file_unmerged, tmp_path):
+def test_cif_file_to_specific(test_cif_file_unmerged, tmp_path):
     """
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
@@ -124,7 +124,7 @@ def test_cif_file_unified_to_keywords_merge_su(test_cif_file_unmerged, tmp_path)
     custom_categories = ["custom"]
 
     # Call the function with merge_sus enabled
-    cif_file_unified_to_keywords_merge_su(
+    cif_file_to_specific(
         input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         compulsory_entries=compulsory_entries,
@@ -147,7 +147,7 @@ def test_cif_file_unified_to_keywords_merge_su(test_cif_file_unmerged, tmp_path)
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
-def test_cif_file_all_unified_su(test_cif_file_unmerged, tmp_path):
+def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     """
     Test the cif_file_unified_to_keywords_merge_su function to ensure it processes the CIF file
     as expected, merging SUs and filtering entries according to specified criteria.
@@ -164,7 +164,7 @@ def test_cif_file_all_unified_su(test_cif_file_unmerged, tmp_path):
     custom_categories = ["custom"]
 
     # Call the function with merge_sus enabled
-    cif_file_unified_to_keywords_merge_su(
+    cif_file_to_specific(
         input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         compulsory_entries=compulsory_entries,
@@ -348,10 +348,10 @@ def mock_yaml_file(tmp_path):
     return yml_path
 
 
-def test_cif_file_unified_yml_instr(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
-    cif_file_unified_yml_instr(
+    cif_file_to_specific_by_yml(
         input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
         yml_path=mock_yaml_file,
@@ -377,7 +377,7 @@ CLI_COMMAND = ["python", "-m", "qcrboxtools.cif"]
 
 
 def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
-    command = "keywords"
+    command = "to-specific"
     args = ["--compulsory_entries", "_cell_length_a", "--merge_sus"]
     expected_output_patterns = [
         r"_cell_length_a\s+10.00\(3\)",
@@ -427,7 +427,7 @@ def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_pa
 
 
 def test_cli_command_unify(test_cif_file_merged, tmp_path):
-    command = "unify"
+    command = "to-unified"
     args = ["--convert_keywords", "--split_sus"]
     expected_output_patterns = [
         r"_test_value_with_su\s+1\.23",

@@ -114,7 +114,7 @@ def cif_to_unified_keywords(cif: model.cif, custom_categories=None):
     return new_cif
 
 
-def cif_to_requested_keywords(
+def cif_to_specific_keywords(
     cif: model.cif,
     compulsory_entries: List[str],
     optional_entries: List[str],
@@ -151,7 +151,7 @@ def cif_to_requested_keywords(
     """
     new_cif = model.cif(
         {
-            block_name: block_to_requested_keywords(block, compulsory_entries, optional_entries, custom_categories)
+            block_name: block_to_specific_keywords(block, compulsory_entries, optional_entries, custom_categories)
             for block_name, block in cif.items()
         }
     )
@@ -159,7 +159,7 @@ def cif_to_requested_keywords(
     return new_cif
 
 
-def block_to_requested_keywords(
+def block_to_specific_keywords(
     block: model.block,
     compulsory_entries: List[str],
     optional_entries: List[str],

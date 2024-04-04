@@ -222,12 +222,16 @@ def test_get_su_order_invalid_inputs(invalid_su):
     [
         # Scenario with no zero SUs
         ([1.234, 2.345], [0.01, 0.02], ["1.234(10)", "2.35(2)"]),
+        # Scenario with large values and large no zero SUs
+        ([1234.0, 2345.0], [100.0, 200.0], ["1230(100)", "2300(200)"]),
         # Scenario with mixed SUs (including zero, non-SU has highest SU precision)
         ([1.2341, 2.3452, 3.4560], [0.01, 0, 0.03], ["1.234(10)", "2.345", "3.46(3)"]),
         # Scenario with all zero SUs
         ([1.23456789, 2.3456], [0, 0], ["1.234568", "2.345600"]),
         # Scenario with all zero SUs and small values
         ([0.0000123456789, 2.3456], [0, 0], ["0.00001234568", "2.34560000000"]),
+        # Scenario with all zero SUs and large values
+        ([123456789.0, 2345678.0], [0, 0], ["123456789", "2345678"]),
     ],
 )
 def test_merge_su_array(values, sus, expected_output):
@@ -268,30 +272,30 @@ def sample_block_with_su() -> model.block:
     block.add_loop(model.loop(data=loop_data))
     return block
 
-
-def test_merge_su_block(sample_block_with_su):
-    # Specify entries to exclude from merging
-    exclude_entries = ["_cell.length_a", "_atom_site.fract_x"]
-
+@pytest.mark.parametrize("exclude", [None, ["_cell.length_a", "_atom_site.fract_x"]])
+def test_merge_su_block(exclude, sample_block_with_su):
     # Perform merge with exclusion
-    merged_block = merge_su_block(sample_block_with_su, exclude=exclude_entries)
+    merged_block = merge_su_block(sample_block_with_su, exclude=exclude)
 
-    # Tests for non-looped entries with exclusion
-    assert merged_block["_cell.length_a"] == "10.0", "Failed to exclude _cell.length_a from merging"
-    assert (
-        "_cell.length_a_su" in merged_block
-    ), "_cell.length_a_su should not be deleted when _cell.length_a is excluded"
+    if exclude is not None:
+        # Tests for non-looped entries with exclusion
+        assert merged_block["_cell.length_a"] == "10.0", "Failed to exclude _cell.length_a from merging"
+        assert (
+            "_cell.length_a_su" in merged_block
+        ), "_cell.length_a_su should not be deleted when _cell.length_a is excluded"
+
+        # Test for looped entries with exclusion
+        assert merged_block["_atom_site.fract_x"][0] == "0.234", "Failed to exclude _atom_site.fract_x from merging"
+        assert (
+            "_atom_site.fract_x_su" in merged_block
+        ), "_atom_site.fract_x_su should not be deleted when _atom_site.fract_x is excluded"
+
 
     # Test for su entry without an existing base entry
     assert (
         "_cell.length_c_su" in merged_block
     ), "_cell.length_c_su should not be deleted when _cell.length_c does not exist"
 
-    # Test for looped entries with exclusion
-    assert merged_block["_atom_site.fract_x"][0] == "0.234", "Failed to exclude _atom_site.fract_x from merging"
-    assert (
-        "_atom_site.fract_x_su" in merged_block
-    ), "_atom_site.fract_x_su should not be deleted when _atom_site.fract_x is excluded"
 
     # Ensure other entries not in exclude list are merged correctly
     assert merged_block["_cell.length_b"] == "20.00(2)", "Failed to merge cell.length.b and its SU correctly"

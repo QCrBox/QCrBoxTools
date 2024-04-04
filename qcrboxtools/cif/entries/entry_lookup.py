@@ -3,7 +3,7 @@
 from typing import Dict, List, Optional
 
 
-def generate_aliases(dic_files: List[str], manual_additions: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+def generate_aliases(dic_files: List[str], manual_additions: Optional[Dict[str, str]] = None) -> Dict[str, str]: # pragma: no cover
     """
     Generates a dictionary of aliases from CIF dictionary files and manual additions.
 

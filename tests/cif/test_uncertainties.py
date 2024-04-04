@@ -65,6 +65,9 @@ def test_split_sus():
         assert value == pytest.approx(check_value)
         assert su == pytest.approx(check_su)
 
+def test_split_su_single_raises_error():
+    with pytest.raises(ValueError):
+        split_su_single("This is a string")  # Invalid SU format
 
 @pytest.fixture
 def test_block() -> model.block:

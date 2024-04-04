@@ -16,7 +16,7 @@ def valid_hkl_line(line):
 
 
 def read_hkl_line(line):
-    if len(line) > 28:
+    if len(line) > 29:
         return [
             int(line[0:4]),
             int(line[4:8]),
@@ -76,7 +76,7 @@ def read_hkl_as_np(hkl_path, sort=False):
     return hkl, i, su_i, number
 
 
-@pytest.mark.parametrize("cif_path", [test_file_dir / "olex.cif", test_file_dir / "shelx.cif"])
+@pytest.mark.parametrize("cif_path", [test_file_dir / "olex.cif", test_file_dir / "shelx.cif", test_file_dir / "olex_noscale.cif"])
 def test_cif_2_shelx_hkl(cif_path, tmp_path):
     # read shelxl hkl (created by olex)
     target_path = test_file_dir / "target.hkl"

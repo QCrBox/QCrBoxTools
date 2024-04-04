@@ -100,8 +100,33 @@ def test_merge_block_conflicts():
         merged_block["_space_group.name_h-m_alt"] == "P 1"
     ), "Block1's unique value space_group.name_h-m_alt not correctly copied"
 
+def test_merge_block_string_marker(loop1, loop2):
+    block1 = cif.model.block()
+    block1.add_loop(loop1)
 
-def test_merge_cif_files(tmp_path):
+    block2 = cif.model.block()
+    block2.add_loop(loop2)
+
+    merged_block = merge_cif_blocks(block1, block2, possible_markers="_atom_site.label")
+
+    merged_loop = merged_block.get_loop("_atom_site")
+    # Check that shared labels end up in the same position
+    assert list(merged_loop["_atom_site.label"]) == ["C1", "C2", "N1"]
+
+    # Check for combined entries from shared columns
+    assert list(merged_loop["_atom_site.type_symbol"]) == ["C", "C", "N"]
+
+    # Check unique column from loop1 is present in merged_loop and missing entries filled with '?'
+    assert list(merged_loop["_atom_site.unique_to_loop1"]) == ["U1", "U2", "?"]
+
+    # Check unique column from loop2 is present in merged_loop and original missing value is preserved
+    assert list(merged_loop["_atom_site.unique_to_loop2"]) == ["U3", "?", "U4"]
+
+@pytest.mark.parametrize("selection_markers", [
+    ("0", "1"),
+    ("test_entry_1", "test_entry_2"),
+])
+def test_merge_cif_files(selection_markers, tmp_path):
     # Define the path to the original CIF file for input
     cif_path = test_file_path / "merge_me.cif"
     # Define a temporary output path using tmp_path
@@ -110,9 +135,9 @@ def test_merge_cif_files(tmp_path):
     # Execute the merging function with block indices
     merge_cif_files(
         cif_path=cif_path,
-        block_name="0",  # Assuming the first block is selected by index
+        block_name=selection_markers[0],
         cif_path2=cif_path,
-        block_name2="1",  # Assuming the second block is selected by index
+        block_name2=selection_markers[1],
         output_path=output_path,
         output_block_name="merged_block",
     )

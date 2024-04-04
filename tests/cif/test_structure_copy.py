@@ -239,6 +239,11 @@ def test_lattice_centring_equal(block1, block2, expected):
             {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "C 2yac"},
             InConsistentCentringError,
         ],
+        [
+            {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "C 2yac"},
+            {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "-P 2yac"},
+            InConsistentCentringError,
+        ],
     ],
 )
 def test_lattice_centring_equal_errors(block1, block2, expected_error):

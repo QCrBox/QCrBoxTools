@@ -16,6 +16,7 @@ from qcrboxtools.cif.trim import keep_single_kw, trim_cif_block, trim_cif_file
         ("_delete_this_entry", [r"_keep.*"], [r"_delete.*"], False),
         ("_ambiguous_entry", [r"_amb.*"], [r"_amb.*"], False),  # delete overwrites keep
         ("_keep_not_delete", [r"_keep.*"], [r"_not.*"], True),
+        ("_keep_this_entry", [], [r"_delete.*"], True),
     ],
 )
 def test_keep_single_kw(name, keep_only_regexes, delete_regexes, expected):
@@ -49,6 +50,27 @@ def test_trim_cif_block(mock_cif_block):
     assert "_keep_also_this" in trimmed_block
     assert "_delete_this" not in trimmed_block
     assert "_empty_entry" in trimmed_block
+
+def test_trim_cif_block_with_loop():
+    # Create a CIF block with a loop
+    block = model.block()
+    block.add_loop(
+        model.loop(data={
+            "_loop_key1": ["value1", "value2", "value3"],
+            "_loop_key2": ["value4", "value5", "value6"],
+            "_loop_key3": ["value7", "value8", "value9"]
+        })
+    )
+
+    # Define your patterns and call the function
+    keep_only_regexes = [r"_loop_key1", ]
+    delete_regexes = [r"_loop_key2"]
+    trimmed_block = trim_cif_block(block, keep_only_regexes, delete_regexes, delete_empty_entries=True)
+
+    # Check the contents of the trimmed block
+    assert "_loop_key1" in trimmed_block
+    assert "_loop_key2" not in trimmed_block
+    assert "_loop_key3" not in trimmed_block
 
 
 def test_trim_cif_file(mock_cif_block):

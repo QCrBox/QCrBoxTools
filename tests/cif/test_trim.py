@@ -51,19 +51,24 @@ def test_trim_cif_block(mock_cif_block):
     assert "_delete_this" not in trimmed_block
     assert "_empty_entry" in trimmed_block
 
+
 def test_trim_cif_block_with_loop():
     # Create a CIF block with a loop
     block = model.block()
     block.add_loop(
-        model.loop(data={
-            "_loop_key1": ["value1", "value2", "value3"],
-            "_loop_key2": ["value4", "value5", "value6"],
-            "_loop_key3": ["value7", "value8", "value9"]
-        })
+        model.loop(
+            data={
+                "_loop_key1": ["value1", "value2", "value3"],
+                "_loop_key2": ["value4", "value5", "value6"],
+                "_loop_key3": ["value7", "value8", "value9"],
+            }
+        )
     )
 
     # Define your patterns and call the function
-    keep_only_regexes = [r"_loop_key1", ]
+    keep_only_regexes = [
+        r"_loop_key1",
+    ]
     delete_regexes = [r"_loop_key2"]
     trimmed_block = trim_cif_block(block, keep_only_regexes, delete_regexes, delete_empty_entries=True)
 

@@ -396,11 +396,11 @@ def merge_cif_blocks(
         try:
             merged_loop = merge_cif_loops(loop1, loop2, merge_on=marker)
             if loop1_name in used_loops1:
-                raise NonUniqueBlockMerging( # theoretically this cannot happen with iotbx
+                raise NonUniqueBlockMerging(  # theoretically this cannot happen with iotbx
                     (f"loop1: {loop1_name} merged at least twice. " + f"Second merge with {loop2_name} of block2")
                 )
             if loop2_name in used_loops2:
-                raise NonUniqueBlockMerging( # theoretically this cannot happen with iotbx
+                raise NonUniqueBlockMerging(  # theoretically this cannot happen with iotbx
                     (f"loop2: {loop2_name} merged at least twice. " + f"Second merge with {loop1_name} of block1")
                 )
             used_loops1.append(loop1_name)

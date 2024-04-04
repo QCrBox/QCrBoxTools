@@ -142,12 +142,14 @@ def test_block_to_specific_keywords(unified_block, custom_categories):
     # Ensure the optional, non-existent entry does not cause an error and is rightly not present
     assert "_nonexistent_entry" not in converted_block, "Optional, non-existent entry was generated from nothing."
 
+
 def test_block_to_specific_keywords_missing_entry(unified_block, custom_categories):
     requested_entries = ["_journal_date_accepted", "_mock_loop_entry1", "_cell_length_a"]
     optional_entries = ["_nonexistent_entry", "mock_entry"]
 
     with pytest.raises(ValueError):
         block_to_specific_keywords(unified_block, requested_entries, optional_entries, custom_categories)
+
 
 @pytest.fixture
 def unified_cif(unified_block):

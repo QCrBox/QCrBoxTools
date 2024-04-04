@@ -100,6 +100,7 @@ def test_merge_block_conflicts():
         merged_block["_space_group.name_h-m_alt"] == "P 1"
     ), "Block1's unique value space_group.name_h-m_alt not correctly copied"
 
+
 def test_merge_block_string_marker(loop1, loop2):
     block1 = cif.model.block()
     block1.add_loop(loop1)
@@ -122,10 +123,14 @@ def test_merge_block_string_marker(loop1, loop2):
     # Check unique column from loop2 is present in merged_loop and original missing value is preserved
     assert list(merged_loop["_atom_site.unique_to_loop2"]) == ["U3", "?", "U4"]
 
-@pytest.mark.parametrize("selection_markers", [
-    ("0", "1"),
-    ("test_entry_1", "test_entry_2"),
-])
+
+@pytest.mark.parametrize(
+    "selection_markers",
+    [
+        ("0", "1"),
+        ("test_entry_1", "test_entry_2"),
+    ],
+)
 def test_merge_cif_files(selection_markers, tmp_path):
     # Define the path to the original CIF file for input
     cif_path = test_file_path / "merge_me.cif"

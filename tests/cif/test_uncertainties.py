@@ -65,9 +65,11 @@ def test_split_sus():
         assert value == pytest.approx(check_value)
         assert su == pytest.approx(check_su)
 
+
 def test_split_su_single_raises_error():
     with pytest.raises(ValueError):
         split_su_single("This is a string")  # Invalid SU format
+
 
 @pytest.fixture
 def test_block() -> model.block:
@@ -275,6 +277,7 @@ def sample_block_with_su() -> model.block:
     block.add_loop(model.loop(data=loop_data))
     return block
 
+
 @pytest.mark.parametrize("exclude", [None, ["_cell.length_a", "_atom_site.fract_x"]])
 def test_merge_su_block(exclude, sample_block_with_su):
     # Perform merge with exclusion
@@ -293,12 +296,10 @@ def test_merge_su_block(exclude, sample_block_with_su):
             "_atom_site.fract_x_su" in merged_block
         ), "_atom_site.fract_x_su should not be deleted when _atom_site.fract_x is excluded"
 
-
     # Test for su entry without an existing base entry
     assert (
         "_cell.length_c_su" in merged_block
     ), "_cell.length_c_su should not be deleted when _cell.length_c does not exist"
-
 
     # Ensure other entries not in exclude list are merged correctly
     assert merged_block["_cell.length_b"] == "20.00(2)", "Failed to merge cell.length.b and its SU correctly"

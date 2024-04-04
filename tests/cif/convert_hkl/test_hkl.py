@@ -76,7 +76,9 @@ def read_hkl_as_np(hkl_path, sort=False):
     return hkl, i, su_i, number
 
 
-@pytest.mark.parametrize("cif_path", [test_file_dir / "olex.cif", test_file_dir / "shelx.cif", test_file_dir / "olex_noscale.cif"])
+@pytest.mark.parametrize(
+    "cif_path", [test_file_dir / "olex.cif", test_file_dir / "shelx.cif", test_file_dir / "olex_noscale.cif"]
+)
 def test_cif_2_shelx_hkl(cif_path, tmp_path):
     # read shelxl hkl (created by olex)
     target_path = test_file_dir / "target.hkl"

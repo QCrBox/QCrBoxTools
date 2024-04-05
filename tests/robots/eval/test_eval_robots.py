@@ -29,8 +29,8 @@ def mock_for_subprocess_call_factory(
     def mocked_subprocess_call(
         program_name: str,
         cwd: Path,
-        shell: bool,
         *args,
+        shell: bool = False,
         **kwargs,
     ):
         """

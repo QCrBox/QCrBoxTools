@@ -1,22 +1,26 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
 
-from pathlib import Path
-from unittest.mock import patch, Mock
 import textwrap
+from pathlib import Path
+from unittest.mock import Mock, patch
 
 import pytest
 
-from qcrboxtools.robots.eval.eval_robots import EvalBaseRobot
 from qcrboxtools.robots.eval import (
-    EvalAnyRobot, Eval15AllRobot, PicFile, EvalViewRobot, RmatFile, EvalPeakrefRobot,
-    EvalScandbRobot
+    Eval15AllRobot,
+    EvalAnyRobot,
+    EvalPeakrefRobot,
+    EvalScandbRobot,
+    EvalViewRobot,
+    PicFile,
+    RmatFile,
 )
+from qcrboxtools.robots.eval.eval_robots import EvalBaseRobot
+
 
 def mock_for_subprocess_call_factory(
-    expected_program_name: str,
-    expected_init_content: str = None,
-    raise_os_error: bool = False
+    expected_program_name: str, expected_init_content: str = None, raise_os_error: bool = False
 ):
     """
     Factory function to flexibly create mocked subprocess.call functions for the Eval components
@@ -33,21 +37,28 @@ def mock_for_subprocess_call_factory(
         Instead of calling the program, check if init file was created.
         """
         init_file = Path(cwd) / f"{program_name}.init"
-        assert program_name == expected_program_name, f"Expected program name {expected_program_name}, got {program_name}"
+        assert (
+            program_name == expected_program_name
+        ), f"Expected program name {expected_program_name}, got {program_name}"
         assert init_file.exists(), f"Init file {init_file} was not created."
         if expected_init_content is not None:
-            assert init_file.read_text(encoding="UTF-8") == expected_init_content, "Init file content does not match the expected value."
+            assert (
+                init_file.read_text(encoding="UTF-8") == expected_init_content
+            ), "Init file content does not match the expected value."
         if raise_os_error and not shell:
             raise OSError("Mocked OS error")
 
     mock = Mock(side_effect=mocked_subprocess_call)
     return mock
 
+
 # Test EvalBaseRobot
+
 
 @pytest.fixture(name="base_robot")
 def fixture_base_robot(tmp_path):
     return EvalBaseRobot(tmp_path)
+
 
 def test_base_init(base_robot, tmp_path):
     assert base_robot.work_folder == tmp_path
@@ -59,12 +70,10 @@ def test_base_init(base_robot, tmp_path):
 
 def test_base_run_program_with_commands(base_robot, tmp_path):
     # Mock the subprocess.call function
-    program_name = 'test'
+    program_name = "test"
 
     mock = mock_for_subprocess_call_factory(
-        expected_program_name=program_name,
-        expected_init_content="command1\ncommand2\n",
-        raise_os_error=False
+        expected_program_name=program_name, expected_init_content="command1\ncommand2\n", raise_os_error=False
     )
 
     with patch("subprocess.call", mock):
@@ -74,9 +83,7 @@ def test_base_run_program_with_commands(base_robot, tmp_path):
 
     # test if shell is used when an OSError is raised
     mock_raise = mock_for_subprocess_call_factory(
-        expected_program_name=program_name,
-        expected_init_content="command1\ncommand2\n",
-        raise_os_error=True
+        expected_program_name=program_name, expected_init_content="command1\ncommand2\n", raise_os_error=True
     )
 
     with patch("subprocess.call", mock_raise):
@@ -92,11 +99,13 @@ def test_base_run_program_with_commands(base_robot, tmp_path):
 
     assert (tmp_path / "test.init").read_text(encoding="UTF-8") == "existing content"
 
+
 @pytest.fixture(name="pic_file")
 def fixture_pic_file():
     pic_file = PicFile("test.pic", "command\ncommand")
-    pic_file.to_file = lambda path: None # remove output as it will not be used
+    pic_file.to_file = lambda path: None  # remove output as it will not be used
     return pic_file
+
 
 # Test Eval15AllRobot
 @pytest.fixture(name="robot15")
@@ -104,15 +113,15 @@ def fixture_robot15(tmp_path, pic_file):
     file_list = [pic_file]
     return Eval15AllRobot(tmp_path, file_list)
 
+
 def test_eval15_init(robot15, tmp_path):
     assert robot15.work_folder == tmp_path
+
 
 def test_integrate_shoes(robot15, tmp_path):
     # Mock the subprocess.call function
     mock = mock_for_subprocess_call_factory(
-        expected_program_name="eval15all",
-        expected_init_content="\n\n\n\n\n\n\n\n\n\n",
-        raise_os_error=False
+        expected_program_name="eval15all", expected_init_content="\n\n\n\n\n\n\n\n\n\n", raise_os_error=False
     )
 
     with patch("subprocess.call", mock):
@@ -136,15 +145,15 @@ def fixture_robot_view(tmp_path, pic_file):
     file_list = [pic_file]
     return EvalViewRobot(tmp_path, file_list)
 
+
 def test_view_init(robot_view, tmp_path):
     assert robot_view.work_folder == tmp_path
+
 
 def test_view_create_shoes(robot_view):
     # Mock the subprocess.call function
     mock = mock_for_subprocess_call_factory(
-        expected_program_name="view",
-        expected_init_content="@datcol\nexit\n",
-        raise_os_error=False
+        expected_program_name="view", expected_init_content="@datcol\nexit\n", raise_os_error=False
     )
 
     with patch("subprocess.call", mock):
@@ -178,13 +187,11 @@ def fixture_any_robot(tmp_path):
 def test_any_init(any_robot, tmp_path):
     assert any_robot.work_folder == tmp_path
 
+
 @pytest.fixture(name="any_abs_mock")
 def fixture_any_abs_mock(any_robot):
     # Mock the subprocess.call function
-    mock = mock_for_subprocess_call_factory(
-        "any",
-        expected_init_content="read final\nsadabs\nexit\n"
-    )
+    mock = mock_for_subprocess_call_factory("any", expected_init_content="read final\nsadabs\nexit\n")
     return mock
 
 
@@ -245,18 +252,17 @@ def test_any_create_cif_file(any_robot, any_abs_mock, tmp_path):
     assert "_diffrn_refln.index_k" in content
     assert "_diffrn_refln.index_l" in content
 
+
 def test_any_create_pk(any_robot):
     # Mock the subprocess.call function
-    mock = mock_for_subprocess_call_factory(
-        "any",
-        expected_init_content="read final\npkrestfrac 0.2\npk\nexit\n"
-    )
+    mock = mock_for_subprocess_call_factory("any", expected_init_content="read final\npkrestfrac 0.2\npk\nexit\n")
 
     with patch("subprocess.call", mock):
         any_robot.create_pk()
 
     # Check if the expected file is created
     assert (any_robot.work_folder / "any_output.log").exists()
+
 
 # Test EvalPeakrefRobot
 
@@ -322,6 +328,7 @@ mock_rmat = textwrap.dedent("""\
     SIGMACELL 0.02070 0.03351 0.02659 0.18847 0.30094 0.22203 4.65000
 """)
 
+
 @pytest.fixture(name="peakref_robot", params=[True, False])
 def fixture_peakref_robot(request, tmp_path):
     if request.param:
@@ -353,12 +360,13 @@ def test_peakref_cell_cif_from_log(peakref_robot, tmp_path):
     assert result["_cell.length_a"] == 57.68429
     assert result["_cell.volume_su"] == 7.0
 
-@pytest.mark.parametrize('reuse_rmat', [True, False])
-@pytest.mark.parametrize('explicit_strategy', [True, False])
-@patch('qcrboxtools.robots.eval.EvalPeakrefRobot._run_program_with_commands')
-@patch('os.remove')
+
+@pytest.mark.parametrize("reuse_rmat", [True, False])
+@pytest.mark.parametrize("explicit_strategy", [True, False])
+@patch("qcrboxtools.robots.eval.EvalPeakrefRobot._run_program_with_commands")
+@patch("os.remove")
 def test_refine_parameters(mock_remove, mock_run_program, explicit_strategy, reuse_rmat, peakref_robot, tmp_path):
-    peakfile_path = 'peakfile'
+    peakfile_path = "peakfile"
     if explicit_strategy:
         refinement_strategy = (("zerohor", "zerover"), ("rmat",), ("detrot",), ("zerodist",))
     else:
@@ -368,13 +376,13 @@ def test_refine_parameters(mock_remove, mock_run_program, explicit_strategy, reu
     rewrite_detalign = True
     rewrite_goniostat = True
     if reuse_rmat:
-        new_rmat_filename = 'new.rmat'
+        new_rmat_filename = "new.rmat"
         new_rmat_file = tmp_path / new_rmat_filename
         new_rmat_file.write_text(mock_rmat)
         peakref_robot.rmat_file = RmatFile(new_rmat_filename, mock_rmat)
         new_rmat_filename = None
     else:
-        new_rmat_filename = 'new.rmat'
+        new_rmat_filename = "new.rmat"
         new_rmat_file = tmp_path / new_rmat_filename
         new_rmat_file.write_text(mock_rmat)
 
@@ -385,39 +393,40 @@ def test_refine_parameters(mock_remove, mock_run_program, explicit_strategy, reu
         end_with_cell,
         new_rmat_filename,
         rewrite_detalign,
-        rewrite_goniostat
+        rewrite_goniostat,
     )
 
     expected_commands = [
-        'rmat transfer.rmat',
-        'pk peakfile',
-        'fix all',
-        'free zerohor',
-        'free zerover',
-        'gox',
-        'free rmat',
-        'gox',
-        'free detrot',
-        'gox',
-        'free zerodist',
-        'gox',
-        'pgzero 0.1 0.2',
-        'gox',
-        'reind',
-        'gox',
-        'fix all',
-        'free cell',
-        'sigrnd 0.1 50',
-        'save detalign.vic',
-        'savegonio goniostat.vic',
-        f'savermat {peakref_robot.rmat_file.filename}',
-        'exit'
+        "rmat transfer.rmat",
+        "pk peakfile",
+        "fix all",
+        "free zerohor",
+        "free zerover",
+        "gox",
+        "free rmat",
+        "gox",
+        "free detrot",
+        "gox",
+        "free zerodist",
+        "gox",
+        "pgzero 0.1 0.2",
+        "gox",
+        "reind",
+        "gox",
+        "fix all",
+        "free cell",
+        "sigrnd 0.1 50",
+        "save detalign.vic",
+        "savegonio goniostat.vic",
+        f"savermat {peakref_robot.rmat_file.filename}",
+        "exit",
     ]
 
-    mock_run_program.assert_called_once_with('peakref', expected_commands)
-    mock_remove.assert_called_once_with(tmp_path / 'transfer.rmat')
+    mock_run_program.assert_called_once_with("peakref", expected_commands)
+    mock_remove.assert_called_once_with(tmp_path / "transfer.rmat")
     if not reuse_rmat:
         assert peakref_robot.rmat_file.filename == new_rmat_filename
+
 
 def test_peakref_folder_to_cif(peakref_robot, tmp_path):
     # Create a mock peakref_output.log file with sample data
@@ -444,15 +453,14 @@ def test_peakref_folder_to_cif(peakref_robot, tmp_path):
 
 # Test EvalScandbRobot
 def test_scandb_run(tmp_path):
-    mock = mock_for_subprocess_call_factory('scandb', '\n', False)
+    mock = mock_for_subprocess_call_factory("scandb", "\n", False)
     robot = EvalScandbRobot(tmp_path)
 
     view_init_path = tmp_path / "view.init"
     view_init_path.write_text("Test Content", encoding="UTF-8")
 
-    with patch('subprocess.call', mock):
+    with patch("subprocess.call", mock):
         robot.run()
 
     assert mock.called
     assert view_init_path.read_text(encoding="UTF-8") == "Test Content"
-

@@ -699,7 +699,7 @@ class EvalBuilddatcolRobot(EvalBaseRobot):
             ("box_size", "boxsizemm", float),
             ("box_depth", "boxdepth", int),
             ("maximum_duration", "durationmax", float),
-            ("min_refln_in_box", "boxrefl", float),
+            ("min_refln_in_box", "boxrefl", int),
         )
         results = {}
         number_pattern = r"(\d+\.?\d*)"
@@ -794,6 +794,9 @@ class EvalBuildeval15Robot(EvalBaseRobot):
             If an invalid focus type or polarisation type is specified.
         """
         possible_focusses = ("unknown", "tube", "rotating", "mirror", "synchrotron", "file")
+
+        if focus_type is None:
+            focus_type = "synchrotron"
         if focus_type not in possible_focusses:
             raise ValueError(f'Invalid focus type, choose one of: {", ".join(possible_focusses)}')
 
@@ -832,7 +835,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
             command_base = (focus_type, polarisation_type, pointspread_gamma, acdnoise, mosaic)
             # self.p4p_file.to_file(self.work_folder)
             warnings.warn(
-                "Reading and writing p4p files is currently not implemented." + "You need to add the p4p file yourself"
+                "Reading and writing p4p files is currently not implemented. You need to add the p4p file yourself"
             )
         command_list = ["" if val is None else str(val) for val in command_base]
         self._run_program_with_commands("buildeval15", command_list)

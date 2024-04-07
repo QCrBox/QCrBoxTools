@@ -10,6 +10,8 @@ import pytest
 from qcrboxtools.robots.eval import (
     Eval15AllRobot,
     EvalAnyRobot,
+    EvalBuilddatcolRobot,
+    EvalBuildeval15Robot,
     EvalPeakrefRobot,
     EvalScandbRobot,
     EvalViewRobot,
@@ -464,3 +466,157 @@ def test_scandb_run(tmp_path):
 
     assert mock.called
     assert view_init_path.read_text(encoding="UTF-8") == "Test Content"
+
+
+# Test BuilddatcolRobot
+@pytest.fixture(name="builddatcol_robot")
+def fixture_builddatcol_robot(tmp_path):
+    return EvalBuilddatcolRobot(tmp_path)
+
+
+# TODO Complete
+def test_builddatcol_create_datcol_files(builddatcol_robot, tmp_path):
+    # Mock the subprocess.call function
+    mock_builddatcol = mock_for_subprocess_call_factory("builddatcol", expected_init_content="\n\n\n\n\n\n\n\n\n\n")
+    mock_scandb = Mock(side_effect=lambda *args: None)
+
+    # entry, value, search_string
+    test_data = [
+        ("rmat_file", RmatFile("example.rmat", mock_rmat), "rmat example.rmat"),
+        ("minimum_res", 9.6, "resomin 9.6"),
+        ("maximum_res", 0.84, "resomax 0.84"),
+        ("box_size", 0.1, "boxsizemm 0.1"),
+        ("box_depth", 5, "boxdepth 5"),
+        ("maximum_duration", 6, "durationmax 6"),
+        ("min_refln_in_box", 3, "boxrefl 3"),
+    ]
+
+    test_kws = {key: value for key, value, _ in test_data}
+    with patch("subprocess.call", mock_builddatcol), patch("qcrboxtools.robots.eval.EvalScandbRobot.run", mock_scandb):
+        builddatcol_robot.create_datcol_files(**test_kws)
+
+    assert mock_builddatcol.called
+    assert mock_scandb.called
+
+    vic_path = tmp_path / "datcolsetup.vic"
+    vic_content = vic_path.read_text(encoding="UTF-8")
+
+    for _, _, search_string in test_data:
+        assert search_string in vic_content
+
+    mock_scandb.reset_mock()
+
+    # Check that scandb not called if scaninfo.txt exists
+    (tmp_path / "scaninfo.txt").write_text("Test Content", encoding="UTF-8")
+    with patch("subprocess.call", mock_builddatcol), patch("qcrboxtools.robots.eval.EvalScandbRobot.run", mock_scandb):
+        builddatcol_robot.create_datcol_files(**test_kws)
+
+    assert mock_builddatcol.called
+    assert not mock_scandb.called
+
+    # Check that ValueError raised if minimum_res < maximum_res
+
+    with pytest.raises(ValueError):
+        wrong_test_kws = {key: value for key, value, _ in test_data}
+        wrong_test_kws["minimum_res"] = 0.83
+        builddatcol_robot.create_datcol_files(**wrong_test_kws)
+
+
+mock_datcol_output = textwrap.dedent("""\
+    ! Created by builddatcol at 3-Apr-2024 17:00:52
+    ! Host 68c97441bae5 User WD /mnt/qcrbox/shared_files/examples_eval/run_integrate/
+    ! abort on warnings
+    abort on
+    badpixel on
+    rmat ic.rmat
+    ! load scan specific rmat if it exists
+    \if file 'scan'.rmat rmat 'scan'.rmat
+    ! scandependent beamstop
+    &beamstop'scan'.vic
+    ! scandependent goniostat
+    &goniostat'scan'.vic
+    resomin 50.0
+    resomax 0.79
+    boxsizemm 1.2
+    boxdepth 5
+    durationmax 5.0
+    boxrefl 1000
+    ! display only
+    datcolboxes 1
+    output none
+""")
+
+
+def test_builddatcol_extract_vars(builddatcol_robot, tmp_path):
+    # Create a mock datcolsetup.vic file with sample data
+    vic_file = tmp_path / "datcolsetup.vic"
+    vic_file.write_text(mock_datcol_output)
+
+    # Test the method
+    result = builddatcol_robot.extract_vars()
+
+    # Add assertions here to verify the returned dictionary
+    assert result["minimum_res"] == 50.0
+    assert result["maximum_res"] == 0.79
+    assert result["box_size"] == 1.2
+    assert result["box_depth"] == 5
+    assert result["maximum_duration"] == 5.0
+    assert result["min_refln_in_box"] == 1000
+
+    # Check that KeyError is raised if essential line missing
+    vic_file.write_text(mock_datcol_output.replace("resomin 50.0", ""), encoding="UTF-8")
+
+    with pytest.raises(KeyError):
+        builddatcol_robot.extract_vars()
+
+
+# test EvalBuildEval15Robot
+
+
+@pytest.fixture(name="robot_buildeval15")
+def fixture_robot_buildeval15(tmp_path):
+    return EvalBuildeval15Robot(tmp_path)
+
+
+def test_evalbuildeval15_init(tmp_path, robot_buildeval15):
+    assert robot_buildeval15.work_folder == tmp_path
+
+
+def test_evalbuildeval15_run(robot_buildeval15, tmp_path):
+    # Mock the subprocess.call function
+    mock_nop4p = mock_for_subprocess_call_factory(
+        "buildeval15", expected_init_content="tube\nnone\n0.8\n2.0\n0.2\n0.3\n"
+    )
+    with patch("subprocess.call", mock_nop4p):
+        robot_buildeval15.run(
+            focus_type="tube",
+            polarisation_type=None,
+            pointspread_gamma=0.8,
+            acdnoise=2.0,
+            crystal_dimension=0.2,
+            mosaic=0.3,
+        )
+
+    assert mock_nop4p.called
+
+    mock_p4p = mock_for_subprocess_call_factory(
+        "buildeval15", expected_init_content="rotating\nparallel\n0.8\n2.0\n0.3\n"
+    )
+
+    (tmp_path / "test.p4p").touch()
+
+    with patch("subprocess.call", mock_p4p):
+        with pytest.warns(UserWarning):
+            robot_buildeval15.p4p_file = "test.p4p"
+            robot_buildeval15.run(
+                focus_type="rotating", polarisation_type="parallel", pointspread_gamma=0.8, acdnoise=2.0, mosaic=0.3
+            )
+    assert mock_p4p.called
+
+    # Test that an invalid focus_type raises a ValueError
+    with pytest.raises(ValueError):
+        robot_buildeval15.run(focus_type="nonsense")
+
+    # Test that an invalid polarisation_type raises a ValueError
+    with pytest.raises(ValueError):
+        robot_buildeval15.run(polarisation_type="nonsense")

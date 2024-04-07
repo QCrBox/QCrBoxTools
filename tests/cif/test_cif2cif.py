@@ -3,12 +3,14 @@
 
 import re
 import subprocess
+from itertools import product
 from pathlib import Path
 from textwrap import dedent
 
 import pytest
 
 from qcrboxtools.cif.cif2cif import (
+    NoKeywordsError,
     cif_entries_from_yml,
     cif_file_to_specific,
     cif_file_to_specific_by_yml,
@@ -114,37 +116,67 @@ def test_cif_file_to_specific(test_cif_file_unmerged, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
     # Define compulsory and optional entries for the test
-    compulsory_entries = ["_cell_length_a"]
-    optional_entries = [
-        "_cell_length_b",
-        "_cell_length_b_su",
-        "_atom_site_fract_x",
-        "_atom_site_fract_y",
-    ]
-    custom_categories = ["custom"]
+    kwdict = {
+        "compulsory_entries": ["_cell_length_a"],
+        "optional_entries": [
+            "_cell_length_b",
+            "_cell_length_b_su",
+            "_atom_site_fract_x",
+            "_atom_site_fract_y",
+            "_custom_test",
+        ],
+        "custom_categories": ["custom"],
+    }
+
+    patterns_from_kwdict = {
+        "compulsory_entries": [r"_cell_length_a\s+10.00\(3\)"],
+        "optional_entries": [
+            r"_cell_length_b\s+20.0",
+            "_cell_length_b_su",  # cell_length_b_su is requested as entry and should not be merged
+            "_atom_site_fract_x",
+            "_atom_site_fract_y",
+        ],
+        "custom_categories": [r"_custom_test\s+something"],
+    }
 
     # Call the function with merge_sus enabled
-    cif_file_to_specific(
-        input_cif_path=test_cif_file_unmerged,
-        output_cif_path=output_cif_path,
-        compulsory_entries=compulsory_entries,
-        optional_entries=optional_entries,
-        custom_categories=custom_categories,
-        merge_sus=True,
-    )
+    for include_compulsory, include_optional, include_custom in product([True, False], repeat=3):
+        included_kws = {}
+        check_patterns = []
+        anti_check_patterns = []
+        if include_compulsory:
+            included_kws["compulsory_entries"] = kwdict["compulsory_entries"]
+            check_patterns.extend(patterns_from_kwdict["compulsory_entries"])
+        else:
+            anti_check_patterns.extend(patterns_from_kwdict["compulsory_entries"])
 
-    # Read the output CIF content
-    output_content = output_cif_path.read_text(encoding="UTF-8")
-    search_patterns = (
-        r"_cell_length_a\s+10.00\(3\)",
-        r"_cell_length_b\s+20.0",
-        "_cell_length_b_su",  # cell_length_b_su is requested as entry and should not be merged
-        "_atom_site_fract_x",
-        "_atom_site_fract_y",
-    )
-    for pattern in search_patterns:
-        assert re.search(pattern, output_content) is not None
-    assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
+        if include_optional:
+            included_kws["optional_entries"] = kwdict["optional_entries"]
+            check_patterns.extend(patterns_from_kwdict["optional_entries"])
+        else:
+            anti_check_patterns.extend(patterns_from_kwdict["optional_entries"])
+
+        if include_custom and include_optional:
+            included_kws["custom_categories"] = kwdict["custom_categories"]
+            check_patterns.extend(patterns_from_kwdict["custom_categories"])
+        else:
+            anti_check_patterns.extend(patterns_from_kwdict["custom_categories"])
+
+        cif_file_to_specific(
+            input_cif_path=test_cif_file_unmerged,
+            output_cif_path=output_cif_path,
+            merge_sus=True,
+            **included_kws,
+        )
+
+        # Read the output CIF content
+        output_content = output_cif_path.read_text(encoding="UTF-8")
+
+        for pattern in check_patterns:
+            assert re.search(pattern, output_content) is not None, f"Expected pattern not found: {pattern}"
+        for pattern in anti_check_patterns:
+            assert re.search(pattern, output_content) is None, f"Unexpected pattern found: {pattern}"
+        # assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
 def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
@@ -239,18 +271,34 @@ def test_cif_entries_extraction_via_sets():
     }, "Failed to extract optional keywords from sets"
 
 
-@pytest.mark.parametrize("missing_key", ["process_cif", "nonexistent_set"])
-def test_error_for_missing_command_or_set(missing_key):
+@pytest.mark.parametrize(
+    "missing_key, tested_set",
+    [
+        ("process_cif", "required_cif_entry_sets"),
+        ("nonexistent_set", "required_cif_entry_sets"),
+        ("process_cif", "optional_cif_entry_sets"),
+        ("nonexistent_set", "optional_cif_entry_sets"),
+    ],
+)
+def test_errors_for_missing_command_or_set(missing_key, tested_set):
     """Test that the correct errors are raised for missing commands or keyword sets."""
-    yml_dict = {"commands": [{"name": "nonexistent_set", "required_cif_entry_sets": ["missing"]}]}
+    yml_dict = {"commands": [{"name": "nonexistent_set", tested_set: ["missing"]}]}
     with pytest.raises(KeyError):
         cif_entries_from_yml(yml_dict, missing_key)
 
 
-def test_incorrect_entry_in_cif_entry_set():
+def test_no_entries_in_command():
+    # test command has no sets
+    yml_dict = {"commands": [{"name": "no_entries"}]}
+    with pytest.raises(NoKeywordsError):
+        cif_entries_from_yml(yml_dict, "no_entries")
+
+
+@pytest.mark.parametrize("tested_set", ["required_cif_entry_sets", "optional_cif_entry_sets"])
+def test_incorrect_entry_in_cif_entry_set(tested_set):
     """Test detection of incorrect entries within keyword sets."""
     yml_dict = {
-        "commands": [{"name": "process_cif", "required_cif_entry_sets": ["incorrect_set"]}],
+        "commands": [{"name": "process_cif", tested_set: ["incorrect_set"]}],
         "cif_entry_sets": [
             {
                 "name": "incorrect_set",
@@ -371,6 +419,18 @@ def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
+def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
+
+    with pytest.raises(KeyError):
+        cif_file_to_specific_by_yml(
+            input_cif_path=test_cif_file_unmerged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="nonexistent_command",
+        )
+
+
 # CLI tests
 
 CLI_COMMAND = ["python", "-m", "qcrboxtools.cif"]
@@ -449,3 +509,14 @@ def test_cli_command_unify(test_cif_file_merged, tmp_path):
     # Check for expected patterns in the output content
     for pattern in expected_output_patterns:
         assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
+
+
+def test_cli_non_existent_command(test_cif_file_merged, tmp_path):
+    # Run the script with a non-existent command
+    command = "nonexistent_command"
+    output_cif_path = tmp_path / "output.cif"
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path)]
+    result = subprocess.run(cli_args, capture_output=True, text=True)
+
+    # Check if the help message is in the output
+    assert "usage:" in result.stderr

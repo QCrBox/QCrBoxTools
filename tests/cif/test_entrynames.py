@@ -125,16 +125,6 @@ def unified_block():
     return block
 
 
-# def test_block_to_requested_keywords(unified_block, custom_categories):
-#    requested_entries = ['_mock_entry', '_journal_date_accepted', '_mock_loop_entry1', '_mock_loop_entry1']
-#
-#    converted_block = block_to_requested_keywords(unified_block, requested_entries, custom_categories)
-#
-#    # Ensure all requested entries are present in the converted block
-#    for entry_name in requested_entries:
-#        assert entry_name in converted_block, f"Requested entry '{entry_name}' was not found in the converted block."
-
-
 def test_block_to_specific_keywords(unified_block, custom_categories):
     requested_entries = ["_journal_date_accepted", "_mock_loop_entry1"]
     optional_entries = ["_nonexistent_entry", "mock_entry"]
@@ -151,6 +141,14 @@ def test_block_to_specific_keywords(unified_block, custom_categories):
 
     # Ensure the optional, non-existent entry does not cause an error and is rightly not present
     assert "_nonexistent_entry" not in converted_block, "Optional, non-existent entry was generated from nothing."
+
+
+def test_block_to_specific_keywords_missing_entry(unified_block, custom_categories):
+    requested_entries = ["_journal_date_accepted", "_mock_loop_entry1", "_cell_length_a"]
+    optional_entries = ["_nonexistent_entry", "mock_entry"]
+
+    with pytest.raises(ValueError):
+        block_to_specific_keywords(unified_block, requested_entries, optional_entries, custom_categories)
 
 
 @pytest.fixture

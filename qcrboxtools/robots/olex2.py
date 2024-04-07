@@ -109,6 +109,10 @@ class Olex2Socket(SocketRobot):
         except RuntimeError as exc:
             warnings.warn("There has been an error during loading: " + str(exc))
 
+        # ensures that the tsc file is copied when not in same folder
+        if self.tsc_path is not None:
+            self.tsc_path = self.tsc_path
+
     @property
     def tsc_path(self):
         """Returns the path of the currently selected tsc(b) file."""
@@ -122,8 +126,15 @@ class Olex2Socket(SocketRobot):
         Args:
         - path (str): The path to the tsc(b) file.
         """
+        if self.structure_path is None:
+            raise ValueError(
+                "No structure loaded to refine. The structure_path attribute needs to be set before setting a tsc_path."
+            )
+
         if path is not None:
             path = pathlib.Path(path)
+            if not path.exists():
+                raise FileNotFoundError(f"File {path} does not exist.")
             if path.absolute().parent != self.structure_path.absolute().parent:
                 shutil.copy(path, self.structure_path.parent / path.name)
             cmds = [
@@ -165,7 +176,7 @@ class Olex2Socket(SocketRobot):
 
         task_id = next(self._task_id_counter)
         _ = self._send_input(f"run:{task_id}\nlog:task_{task_id}.log\n{input_str}")
-        timeout_counter = 10000
+        timeout_counter = 2000
         self.wait_for_completion(timeout_counter, task_id, input_str)
 
         log_path = self.structure_path.parents[0] / f"task_{task_id}.log"
@@ -196,7 +207,7 @@ class Olex2Socket(SocketRobot):
         return_msg = " "
         while "finished" not in return_msg:
             return_msg = self._send_input(f"status:{task_id}")
-            time.sleep(0.1)
+            time.sleep(0.5)
             timeout_counter -= 1
             if timeout_counter < 0:
                 warnings.warn("TimeOut limit for job reached. Continuing")

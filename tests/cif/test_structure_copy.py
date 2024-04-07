@@ -20,6 +20,7 @@ from qcrboxtools.cif.merge import (
     InConsistentCentringError,
     NoCentringFoundError,
     check_centring_equal,
+    check_crystal_system,
     read_cif_safe,
     replace_structure_from_cif,
     split_su_array,
@@ -239,6 +240,11 @@ def test_lattice_centring_equal(block1, block2, expected):
             {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "C 2yac"},
             InConsistentCentringError,
         ],
+        [
+            {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "C 2yac"},
+            {"_space_group.name_h-m_alt": "P n m a", "_space_group.name_hall": "-P 2yac"},
+            InConsistentCentringError,
+        ],
     ],
 )
 def test_lattice_centring_equal_errors(block1, block2, expected_error):
@@ -246,6 +252,12 @@ def test_lattice_centring_equal_errors(block1, block2, expected_error):
         check_centring_equal(block1, block2)
 
 
-@pytest.mark.not_implemented
+@pytest.mark.parametrize(
+    "block1,block2,expected",
+    [
+        ({"_space_group.crystal_system": "triclinic"}, {"_space_group.crystal_system": "triclinic"}, True),
+        ({"_space_group.crystal_system": "triclinic"}, {"_space_group.crystal_system": "monoclinic"}, False),
+    ],
+)
 def test_crystal_system_equal(block1, block2, expected):
-    raise NotImplementedError()
+    assert check_crystal_system(block1, block2) == expected

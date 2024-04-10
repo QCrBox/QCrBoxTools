@@ -75,9 +75,9 @@ def keep_single_kw(name: str, keep_only_regexes: List[str], delete_regexes: List
     if len(keep_only_regexes) == 0:
         condition1 = True
     else:
-        condition1 = any(re.match(pattern, name) is not None for pattern in keep_only_regexes)
+        condition1 = any(re.fullmatch(pattern, name) is not None for pattern in keep_only_regexes)
 
-    condition2 = all(re.match(pattern, name) is None for pattern in delete_regexes)
+    condition2 = all(re.fullmatch(pattern, name) is None for pattern in delete_regexes)
     return condition1 and condition2
 
 

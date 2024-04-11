@@ -18,8 +18,8 @@ from qcrboxtools.cif.cif2cif import (
 )
 
 
-@pytest.fixture
-def test_cif_file_merged(tmp_path):
+@pytest.fixture(name="test_cif_file_merged")
+def fixture_test_cif_file_merged(tmp_path):
     """Create a temporary CIF file for testing."""
     cif_content = dedent("""
         data_test
@@ -75,8 +75,8 @@ def test_cif_file_to_unified(test_cif_file_merged, tmp_path):
         assert re.search(line, output_cif_content) is not None, f"Expected line not found: {line}"
 
 
-@pytest.fixture
-def test_cif_file_unmerged(tmp_path) -> Path:
+@pytest.fixture(name="test_cif_file_unmerged")
+def fixture_test_cif_file_unmerged(tmp_path) -> Path:
     """
     Creates a temporary CIF file with pre-defined content for testing.
 
@@ -187,7 +187,7 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
     # write an entry that is not unified at the moment
-    with open(test_cif_file_unmerged, "a") as fobj:
+    with open(test_cif_file_unmerged, "a", encoding='UTF-8') as fobj:
         fobj.write("\n_custom_test2  'something else'\n")
 
     # Define compulsory and optional entries for the test
@@ -220,22 +220,36 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
         assert re.search(pattern, output_content) is not None
     assert "_cell_length_a" not in output_content, "Renaming should be skipped entirely"
 
-
-def test_direct_cif_entries_extraction():
+@pytest.mark.parametrize("input_or_output", ["input", "output"])
+def test_direct_cif_entries_extraction(input_or_output):
     """Test extraction of directly defined keywords."""
     yml_dict = {
         "commands": [
             {
                 "name": "process_cif",
-                "required_cif_entries": ["_cell_length_a", "_cell_length_b"],
-                "optional_cif_entries": ["_atom_site.label"],
+                f"cif_{input_or_output}": {
+                    "required_cif_entries": ["_cell_length_a", "_cell_length_b"],
+                    "optional_cif_entries": ["_atom_site.label"],
+                }
             }
         ]
     }
-    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif", input_or_output)
     assert sorted(compulsory) == sorted(["_cell_length_a", "_cell_length_b"]), "Failed to extract compulsory keywords"
     assert sorted(optional) == sorted(["_atom_site.label"]), "Failed to extract optional keywords"
 
+@pytest.mark.parametrize("input_or_output", ["input", "output"])
+def test_cif_entries_io_section_missing(input_or_output):
+    """Test that an error is raised if the input or output section is missing."""
+    yml_dict = {"commands": [{"name": "process_cif"}]}
+    with pytest.raises(KeyError):
+        cif_entries_from_yml(yml_dict, "process_cif", input_or_output)
+
+def test_cif_entries_io_invalid():
+    """Test that an error is raised if the input or output section is invalid."""
+    yml_dict = {}
+    with pytest.raises(ValueError):
+        cif_entries_from_yml(yml_dict, "process_cif", "notavailable")
 
 def test_cif_entries_extraction_via_sets():
     """Test extraction of keywords defined through keyword sets."""
@@ -243,8 +257,10 @@ def test_cif_entries_extraction_via_sets():
         "commands": [
             {
                 "name": "process_cif",
-                "required_cif_entry_sets": ["cell_dimensions"],
-                "optional_cif_entry_sets": ["atom_sites"],
+                "cif_input": {
+                    "required_cif_entry_sets": ["cell_dimensions"],
+                    "optional_cif_entry_sets": ["atom_sites"],
+                }
             }
         ],
         "cif_entry_sets": [
@@ -260,7 +276,7 @@ def test_cif_entries_extraction_via_sets():
             },
         ],
     }
-    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif", "input")
     assert set(compulsory) == {
         "_cell_length_a",
         "_cell_length_b",
@@ -282,23 +298,23 @@ def test_cif_entries_extraction_via_sets():
 )
 def test_errors_for_missing_command_or_set(missing_key, tested_set):
     """Test that the correct errors are raised for missing commands or keyword sets."""
-    yml_dict = {"commands": [{"name": "nonexistent_set", tested_set: ["missing"]}]}
+    yml_dict = {"commands": [{"name": "nonexistent_set", "cif_input": {tested_set: ["missing"]}}]}
     with pytest.raises(KeyError):
-        cif_entries_from_yml(yml_dict, missing_key)
+        cif_entries_from_yml(yml_dict, missing_key, input_or_output="input")
 
 
 def test_no_entries_in_command():
     # test command has no sets
-    yml_dict = {"commands": [{"name": "no_entries"}]}
+    yml_dict = {"commands": [{"name": "no_entries", "cif_input": {}}]}
     with pytest.raises(NoKeywordsError):
-        cif_entries_from_yml(yml_dict, "no_entries")
+        cif_entries_from_yml(yml_dict, "no_entries", "input")
 
 
 @pytest.mark.parametrize("tested_set", ["required_cif_entry_sets", "optional_cif_entry_sets"])
 def test_incorrect_entry_in_cif_entry_set(tested_set):
     """Test detection of incorrect entries within keyword sets."""
     yml_dict = {
-        "commands": [{"name": "process_cif", tested_set: ["incorrect_set"]}],
+        "commands": [{"name": "process_cif", "cif_input": {tested_set: ["incorrect_set"]}}],
         "cif_entry_sets": [
             {
                 "name": "incorrect_set",
@@ -307,7 +323,7 @@ def test_incorrect_entry_in_cif_entry_set(tested_set):
         ],
     }
     with pytest.raises(NameError):
-        cif_entries_from_yml(yml_dict, "process_cif")
+        cif_entries_from_yml(yml_dict, "process_cif", "input")
 
 
 def test_unique_compulsory_cif_entries_from_multiple_sets():
@@ -316,7 +332,9 @@ def test_unique_compulsory_cif_entries_from_multiple_sets():
         "commands": [
             {
                 "name": "process_cif",
-                "required_cif_entry_sets": ["set1", "set2"],
+                "cif_input": {
+                    "required_cif_entry_sets": ["set1", "set2"],
+                }
             }
         ],
         "cif_entry_sets": [
@@ -324,7 +342,7 @@ def test_unique_compulsory_cif_entries_from_multiple_sets():
             {"name": "set2", "required": ["_cell_length_a", "_cell_volume"], "optional": []},
         ],
     }
-    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif", "input")
     assert sorted(compulsory) == sorted(
         list(set(["_cell_length_a", "_cell_angle_alpha", "_cell_volume"]))
     ), "Compulsory keywords should be unique and include all items from both sets"
@@ -340,8 +358,10 @@ def test_unique_optional_cif_entries_from_multiple_sets():
         "commands": [
             {
                 "name": "process_cif",
-                "optional_cif_entry_sets": ["set1", "set2"],
-                "required_cif_entries": ["_cell_length_a"],  # Ensure exclusion of compulsory from optional
+                "cif_input": {
+                    "optional_cif_entry_sets": ["set1", "set2"],
+                    "required_cif_entries": ["_cell_length_a"],  # Ensure exclusion of compulsory from optional
+                }
             }
         ],
         "cif_entry_sets": [
@@ -356,7 +376,7 @@ def test_unique_optional_cif_entries_from_multiple_sets():
             {"name": "set2", "required": ["_cell_volume"], "optional": ["_cell_length_b"]},
         ],
     }
-    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif")
+    compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif", "input")
     assert compulsory == ["_cell_length_a"], "Only specified compulsory keywords should be present"
     # Ensure _cell_length_a is not duplicated in optional, despite being in both sets and compulsory
     assert sorted(optional) == sorted(
@@ -364,8 +384,8 @@ def test_unique_optional_cif_entries_from_multiple_sets():
     ), "Optional keywords should be unique and exclude compulsory keywords"
 
 
-@pytest.fixture
-def mock_yaml_file(tmp_path):
+@pytest.fixture(name="mock_yaml_file")
+def fixture_mock_yaml_file(tmp_path):
     yml_path = tmp_path / "config.yml"
 
     # Mock YAML content
@@ -382,14 +402,21 @@ def mock_yaml_file(tmp_path):
         required : [
           _invalid_keyword, _atom_site_fract_x
         ]
+
     commands :
       - name: process_cif
         merge_cif_su: Yes
-        custom_cif_categories: [custom]
-        required_cif_entry_sets: [test1]
-        optional_cif_entry_sets: [test2]
-        required_cif_entries: [_cell_length_b]
-        optional_cif_entries: [_atom_site_label]
+        cif_input:
+          custom_cif_categories: [custom]
+          required_cif_entry_sets: [test1]
+          optional_cif_entry_sets: [test2]
+          required_cif_entries: [_cell_length_b]
+          optional_cif_entries: [_atom_site_label]
+        cif_output:
+          custom_cif_categories: [custom]
+          required_cif_entry_sets: [test1]
+          optional_cif_entry_sets: [test2]
+          optional_cif_entries: [_atom_site_label]
     """)
     yml_path.write_text(yml_content)
 

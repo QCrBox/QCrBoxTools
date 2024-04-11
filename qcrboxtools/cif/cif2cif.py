@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Any, Dict, Tuple
 
 import yaml
 
@@ -10,7 +10,6 @@ from .entries import cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
 from .read import read_cif_as_unified, read_cif_safe
 from .uncertainties import merge_su_cif
-
 
 def cif_file_to_unified(
     input_cif_path: Union[str, Path],
@@ -139,8 +138,7 @@ class NoKeywordsError(BaseException):
         Explanation of the error
     """
 
-
-def cif_entries_from_yml(yml_dict, command):
+def cif_entries_from_yml(yml_dict: Dict[str, Any], command: str, input_or_output: str) -> Tuple[List[str], List[str]]:
     """
     Extracts compulsory and optional cif_entries for a given command from a YAML configuration
     dictionary.
@@ -155,6 +153,8 @@ def cif_entries_from_yml(yml_dict, command):
         The dictionary obtained from parsing the YAML configuration file.
     command : str
         The command name to look up in the YAML dictionary for extracting cif entry specifications.
+    input_or_output : str
+        The section of the command to look up in the YAML dictionary. Must be either 'input' or 'output'.
 
     Returns
     -------
@@ -176,19 +176,36 @@ def cif_entries_from_yml(yml_dict, command):
     ...     "commands": [
     ...         {
                     "name": "process_cif",
-    ...             "required_cif_entries": ["_cell_length_a"],
-    ...             "optional_cif_entries": ["_atom_site_label"]
+                    "cif_input": {
+        ...             "required_cif_entries": ["_cell_length_a"],
+        ...             "optional_cif_entries": ["_atom_site_label"]
+        ...         },
     ...         }
     ...     ]
     ... }
-    >>> cif_entries_from_yml(yml_dict, "process_cif")
+    >>> cif_entries_from_yml(yml_dict, "process_cif", "input")
     (['_cell_length_a'], ['_atom_site_label'])
     """
     entry_sets = {eset["name"]: eset for eset in yml_dict.get("cif_entry_sets", [])}
+    if input_or_output == "input":
+        lookup_section = "cif_input"
+    elif input_or_output == "output":
+        lookup_section = "cif_output"
+    else:
+        raise ValueError("input_or_output must be either 'input' or 'output'.")
+
     try:
-        options = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
+        command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
+    except KeyError as exc:
+        raise KeyError("One or more commands are missing a name entry in the yml_dict.") from exc
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in yml_dict.") from exc
+
+    try:
+        options = command_dict[lookup_section]
+    except KeyError as exc:
+        raise KeyError(f"No {lookup_section} section found in yml definition of command {command}.") from exc
+
     possible_entries = (
         "required_cif_entry_sets",
         "required_cif_entries",
@@ -272,7 +289,7 @@ def cif_file_to_specific_by_yml(
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in {yml_path}.") from exc
 
-    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command)
+    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command, "input")
     merge_sus = options.get("merge_cif_su", False)
     custom_categories = options.get("custom_cif_categories", [])
 

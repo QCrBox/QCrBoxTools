@@ -187,12 +187,10 @@ def cif_entries_from_yml(yml_dict: Dict[str, Any], command: str, input_or_output
     (['_cell_length_a'], ['_atom_site_label'])
     """
     entry_sets = {eset["name"]: eset for eset in yml_dict.get("cif_entry_sets", [])}
-    if input_or_output == "input":
-        lookup_section = "cif_input"
-    elif input_or_output == "output":
-        lookup_section = "cif_output"
-    else:
+
+    if input_or_output not in ("input", "output"):
         raise ValueError("input_or_output must be either 'input' or 'output'.")
+    lookup_section = f"cif_{input_or_output}"
 
     try:
         command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)

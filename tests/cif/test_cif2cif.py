@@ -610,7 +610,7 @@ CLI_COMMAND = ["python", "-m", "qcrboxtools.cif"]
 
 
 def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
-    command = "to-specific"
+    command = "to_specific"
     args = ["--compulsory_entries", "_cell_length_a", "--merge_sus"]
     expected_output_patterns = [
         r"_cell_length_a\s+10.00\(3\)",
@@ -633,7 +633,7 @@ def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
 
 
 def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_path):
-    command = "yml"
+    command = "specific_by_yml"
     args = [str(mock_yaml_file), "process_cif"]
     expected_output_patterns = [
         r"_cell_length_a\s+10.00\(3\)",
@@ -660,12 +660,41 @@ def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_pa
 
 
 def test_cli_command_unify(test_cif_file_merged, tmp_path):
-    command = "to-unified"
+    command = "to_unified"
     args = ["--convert_keywords", "--split_sus"]
     expected_output_patterns = [
         r"_test_value_with_su\s+1\.23",
         r"_test_value_with_su_su\s+0\.04",
         r"_test_value_without_su\s+5\.67",
+    ]
+    output_cif_path = tmp_path / "output.cif"
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path)] + args
+
+    # Execute the CLI command
+    result = subprocess.run(cli_args, capture_output=True, text=True)
+
+    # Ensure the command executed successfully
+    assert result.returncode == 0, f"CLI command failed with error: {result.stderr}"
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding="UTF-8")
+
+    # Check for expected patterns in the output content
+    for pattern in expected_output_patterns:
+        assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
+
+def test_cli_command_unify_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
+    command = "unified_by_yml"
+    args = [str(mock_yaml_file), "process_cif"]
+    expected_output_patterns = [
+        "data_test",
+        r"_test_value_with_su\s+1\.23",
+        r"_test_value_with_su_su\s+0\.04",
+        "loop_",
+        "_test_loop_id",
+        "_test_loop_value_without_su",
+        r"\s*1\s+7\.89",
+        r"\s*2\s+8\.90",
     ]
     output_cif_path = tmp_path / "output.cif"
     cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path)] + args

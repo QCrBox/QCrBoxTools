@@ -11,10 +11,12 @@ import pytest
 
 from qcrboxtools.cif.cif2cif import (
     NoKeywordsError,
+    UnnamedCommandError,
     cif_entries_from_yml,
     cif_file_to_specific,
     cif_file_to_specific_by_yml,
     cif_file_to_unified,
+    cif_file_to_unified_by_yml,
 )
 
 
@@ -325,6 +327,11 @@ def test_incorrect_entry_in_cif_entry_set(tested_set):
     with pytest.raises(NameError):
         cif_entries_from_yml(yml_dict, "process_cif", "input")
 
+def test_command_missing_name():
+    """Test that an error is raised if a command is missing a name."""
+    yml_dict = {"commands": [{}]}
+    with pytest.raises(UnnamedCommandError):
+        cif_entries_from_yml(yml_dict, "process_cif", "input")
 
 def test_unique_compulsory_cif_entries_from_multiple_sets():
     """Test that compulsory keywords from multiple sets are appended uniquely."""
@@ -391,16 +398,23 @@ def fixture_mock_yaml_file(tmp_path):
     # Mock YAML content
     yml_content = dedent("""
     cif_entry_sets :
-      - name: test1
+      - name: input_test1
         required : [
           _cell_length_a
         ]
         optional : [
           _atom_site_fract_y
         ]
-      - name: test2
+      - name: input_test2
         required : [
           _invalid_keyword, _atom_site_fract_x
+        ]
+      - name: output_test
+        required : [
+          _test_value_with_su
+        ]
+        optional : [
+          _test_loop_id
         ]
 
     commands :
@@ -408,15 +422,19 @@ def fixture_mock_yaml_file(tmp_path):
         cif_input:
           merge_cif_su: Yes
           custom_cif_categories: [custom]
-          required_cif_entry_sets: [test1]
-          optional_cif_entry_sets: [test2]
+          required_cif_entry_sets: [input_test1]
+          optional_cif_entry_sets: [input_test2]
           required_cif_entries: [_cell_length_b]
           optional_cif_entries: [_atom_site_label]
         cif_output:
           custom_cif_categories: [custom]
-          required_cif_entry_sets: [test1]
-          optional_cif_entry_sets: [test2]
-          optional_cif_entries: [_atom_site_label]
+          required_cif_entry_sets: [output_test]
+          required_cif_entries: [_test_loop_value_without_su]
+          optional_cif_entries: [_nonexistent_keyword]
+      - name: empty_command
+      - name: command_with_merge_su_in_base
+        merge_cif_su: Yes
+
     """)
     yml_path.write_text(yml_content)
 
@@ -457,6 +475,134 @@ def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yam
             command="nonexistent_command",
         )
 
+def test_cif_file_to_specific_by_yml_no_cif_input(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
+
+    with pytest.raises(KeyError):
+        cif_file_to_specific_by_yml(
+            input_cif_path=test_cif_file_unmerged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="empty_command",
+        )
+
+def test_cif_file_to_specific_by_yml_merge_su_wrong(test_cif_file_unmerged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
+
+    with pytest.raises(ValueError):
+        cif_file_to_specific_by_yml(
+            input_cif_path=test_cif_file_unmerged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="command_with_merge_su_in_base",
+        )
+
+@pytest.mark.parametrize("function", ["specific", "unified"])
+def test_cif_file_by_yml_command_without_name(function, test_cif_file_unmerged, tmp_path):
+    mock_yaml_content = dedent("""
+    commands:
+      - cif_input:
+          required_cif_entries: [_cell_length_a]
+          optional_cif_entries: [_cell_length_b]
+        cif_output:
+          required_cif_entries: [_cell_length_c]
+          optional_cif_entries: [_cell_angle_alpha]
+    """)
+
+    mock_yaml_file = tmp_path / "config.yml"
+    mock_yaml_file.write_text(mock_yaml_content)
+
+    output_cif_path = tmp_path / "output.cif"
+    with pytest.raises(UnnamedCommandError):
+        if function == "specific":
+            cif_file_to_specific_by_yml(
+                input_cif_path=test_cif_file_unmerged,
+                output_cif_path=output_cif_path,
+                yml_path=mock_yaml_file,
+                command="process_cif",
+            )
+        else:
+            cif_file_to_unified_by_yml(
+                input_cif_path=test_cif_file_unmerged,
+                output_cif_path=output_cif_path,
+                yml_path=mock_yaml_file,
+                command="process_cif",
+            )
+
+
+def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output_test_data.cif"
+
+    cif_file_to_unified_by_yml(
+        input_cif_path=test_cif_file_merged,
+        output_cif_path=output_cif_path,
+        yml_path=mock_yaml_file,
+        command="process_cif",
+    )
+
+    # Read back the output file and verify its content
+    output_cif_content = output_cif_path.read_text()
+
+
+    # Expected content checks
+    expected_lines = [
+        "data_test",
+        r"_test_value_with_su\s+1\.23",
+        r"_test_value_with_su_su\s+0\.04",
+        "loop_",
+        "_test_loop_id",
+        "_test_loop_value_without_su",
+        r"\s*1\s+7\.89",
+        r"\s*2\s+8\.90",
+    ]
+
+    for line in expected_lines:
+        assert re.search(line, output_cif_content) is not None, f"Expected line not found: {line}"
+
+    unexpected_lines = [
+        "_test_value_without_su",
+        "_test_loop_value_with_su",
+        "_test_loop_value_with_su_su",
+    ]
+
+    for line in unexpected_lines:
+        assert re.search(line, output_cif_content) is None, f"Unexpected line found: {line}"
+
+def test_cif_file_to_unified_by_yml_no_command(test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output_test_data.cif"
+
+    with pytest.raises(KeyError):
+        cif_file_to_unified_by_yml(
+            input_cif_path=test_cif_file_merged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="nonexistent_command",
+        )
+
+def test_cif_file_to_unified_by_yml_no_cif_output(test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output_test_data.cif"
+
+    with pytest.raises(KeyError):
+        cif_file_to_unified_by_yml(
+            input_cif_path=test_cif_file_merged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="empty_command",
+        )
+
+def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output_test_data.cif"
+    cif_content = test_cif_file_merged.read_text(encoding="UTF-8").splitlines()
+    new_cif_content = '\n'.join([line for line in cif_content if "_test_value_with_su" not in line])
+    test_cif_file_merged.write_text(new_cif_content, encoding="UTF-8")
+
+    with pytest.raises(ValueError):
+        cif_file_to_unified_by_yml(
+            input_cif_path=test_cif_file_merged,
+            output_cif_path=output_cif_path,
+            yml_path=mock_yaml_file,
+            command="process_cif",
+        )
 
 # CLI tests
 

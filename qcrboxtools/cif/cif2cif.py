@@ -9,7 +9,7 @@ import yaml
 from .entries import cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
 from .read import read_cif_as_unified, read_cif_safe
-from .uncertainties import merge_su_cif
+from .uncertainties import merge_su_cif, split_su_cif
 from .trim import trim_cif
 
 def cif_file_to_unified(
@@ -139,6 +139,16 @@ class NoKeywordsError(BaseException):
         Explanation of the error
     """
 
+class UnnamedCommandError(BaseException):
+    """
+    Exception raised when a command in the YAML configuration is missing a name entry.
+
+    Attributes
+    ----------
+    message : str
+        Explanation of the error
+    """
+
 def cif_entries_from_yml(yml_dict: Dict[str, Any], command: str, input_or_output: str) -> Tuple[List[str], List[str]]:
     """
     Extracts compulsory and optional cif_entries for a given command from a YAML configuration
@@ -196,7 +206,7 @@ def cif_entries_from_yml(yml_dict: Dict[str, Any], command: str, input_or_output
     try:
         command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except KeyError as exc:
-        raise KeyError("One or more commands are missing a name entry in the yml_dict.") from exc
+        raise UnnamedCommandError("One or more commands are missing a name entry in the yml_dict.") from exc
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in yml_dict.") from exc
 
@@ -290,6 +300,8 @@ def cif_file_to_specific_by_yml(
         command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in {yml_path}.") from exc
+    except KeyError as exc:
+        raise UnnamedCommandError("One or more commands are missing a name entry in the yml_dict.") from exc
 
     if 'merge_cif_su' in command_dict:
         raise ValueError("merge_cif_su needs to be in the cif_input section.")
@@ -358,6 +370,8 @@ def cif_file_to_unified_by_yml(
         command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in {yml_path}.") from exc
+    except KeyError as exc:
+        raise UnnamedCommandError("One or more commands are missing a name entry in the yml_dict.") from exc
 
     try:
         options = command_dict["cif_output"]
@@ -365,7 +379,7 @@ def cif_file_to_unified_by_yml(
         raise KeyError(f"No cif_output section found in command {command}.") from exc
     custom_categories = options.get("custom_cif_categories", [])
 
-    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command, "input")
+    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command, "output")
 
     all_entries = compulsory_entries + optional_entries
 
@@ -380,12 +394,14 @@ def cif_file_to_unified_by_yml(
     for block in new_cif.values():
         entries_in_cif += list(block.keys())
 
-    missing_entries = set(all_entries) - set(entries_in_cif)
+    missing_entries = set(compulsory_entries) - set(entries_in_cif)
 
     if len(missing_entries) > 0:
-        raise ValueError(f"Required entries missing in input_cif: {missing_entries}")
+        raise ValueError(f"Required entries missing in loaded cif file: {missing_entries}")
 
-    output_cif = cif_to_unified_keywords(new_cif, custom_categories)
+    unified_entries_cif = cif_to_unified_keywords(new_cif, custom_categories)
+    output_cif = split_su_cif(unified_entries_cif)
+
 
     Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")
 

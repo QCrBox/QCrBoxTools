@@ -405,8 +405,8 @@ def fixture_mock_yaml_file(tmp_path):
 
     commands :
       - name: process_cif
-        merge_cif_su: Yes
         cif_input:
+          merge_cif_su: Yes
           custom_cif_categories: [custom]
           required_cif_entry_sets: [test1]
           optional_cif_entry_sets: [test2]

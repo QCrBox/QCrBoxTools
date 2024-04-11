@@ -10,6 +10,7 @@ from .entries import cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
 from .read import read_cif_as_unified, read_cif_safe
 from .uncertainties import merge_su_cif
+from .trim import trim_cif
 
 def cif_file_to_unified(
     input_cif_path: Union[str, Path],
@@ -250,7 +251,8 @@ def cif_file_to_specific_by_yml(
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, applying
-    specified keyword transformations and standard uncertainty mergers.
+    specified keyword transformations defined in a commands "cif_input" section and standard
+    uncertainty merge settings.
 
     This function reads the CIF file specified by `input_cif_path` and processes it according
     to instructions defined in a YAML file (`yml_path`) under a specific command. It supports
@@ -273,6 +275,8 @@ def cif_file_to_specific_by_yml(
     ------
     KeyError
         If the specified command is not found in the YAML configuration.
+    ValueError
+        If the merge_cif_su setting is found in the wrong section of the YAML configuration.
 
     Notes
     -----
@@ -283,10 +287,17 @@ def cif_file_to_specific_by_yml(
         yml_dict = yaml.safe_load(fobj)
 
     try:
-        options = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
+        command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
     except StopIteration as exc:
         raise KeyError(f"Command {command} not found in {yml_path}.") from exc
 
+    if 'merge_cif_su' in command_dict:
+        raise ValueError("merge_cif_su needs to be in the cif_input section.")
+
+    try:
+        options = command_dict["cif_input"]
+    except KeyError as exc:
+        raise KeyError(f"No cif_input section found in command {command}.") from exc
     compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command, "input")
     merge_sus = options.get("merge_cif_su", False)
     custom_categories = options.get("custom_cif_categories", [])
@@ -299,3 +310,82 @@ def cif_file_to_specific_by_yml(
         custom_categories,
         merge_sus,
     )
+
+def cif_file_to_unified_by_yml(
+    input_cif_path: Union[str, Path],
+    output_cif_path: Union[str, Path],
+    yml_path: Union[str, Path],
+    command: str,
+) -> None:
+    """
+    Processes a CIF file based on instructions defined in a YAML configuration, reducing
+    the cif content to the unified equivalents of the entries defined in a commands
+    "cif_output" section.
+
+    This function reads the CIF file specified by `input_cif_path` and processes it according
+    to instructions defined in a YAML file (`yml_path`) under a specific command. It supports
+    operations such as converting CIF keywords to a unified format and filtering CIF entries
+    based on compulsory and optional keywords derived from the YAML configuration. The processed
+    CIF content is written to the path specified by `output_cif_path`.
+
+    Parameters
+    ----------
+    input_cif_path : Union[str, Path]
+        The file path to the input CIF file to be processed.
+    output_cif_path : Union[str, Path]
+        The file path where the processed CIF content will be written.
+    yml_path : Union[str, Path]
+        The file path to the YAML file containing processing instructions.
+    command : str
+        The specific command within the YAML file to follow for processing the CIF file.
+
+    Raises
+    ------
+    KeyError
+        If the specified command is not found in the YAML configuration.
+
+    Notes
+    -----
+    This file was developed for exposeing commands within QCrBox. See this project or the
+    test of this function for an example of how such a yml file might look like.
+    """
+    cif_model = read_cif_safe(input_cif_path)
+
+    with open(yml_path, "r", encoding="UTF-8") as fobj:
+        yml_dict = yaml.safe_load(fobj)
+
+    try:
+        command_dict = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
+    except StopIteration as exc:
+        raise KeyError(f"Command {command} not found in {yml_path}.") from exc
+
+    try:
+        options = command_dict["cif_output"]
+    except KeyError as exc:
+        raise KeyError(f"No cif_output section found in command {command}.") from exc
+    custom_categories = options.get("custom_cif_categories", [])
+
+    compulsory_entries, optional_entries = cif_entries_from_yml(yml_dict, command, "input")
+
+    all_entries = compulsory_entries + optional_entries
+
+    new_cif = trim_cif(
+        cif_model,
+        keep_only_regexes=all_entries,
+        delete_regexes=[],
+        delete_empty_entries=True
+    )
+
+    entries_in_cif = []
+    for block in new_cif.values():
+        entries_in_cif += list(block.keys())
+
+    missing_entries = set(all_entries) - set(entries_in_cif)
+
+    if len(missing_entries) > 0:
+        raise ValueError(f"Required entries missing in input_cif: {missing_entries}")
+
+    output_cif = cif_to_unified_keywords(new_cif, custom_categories)
+
+    Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")
+

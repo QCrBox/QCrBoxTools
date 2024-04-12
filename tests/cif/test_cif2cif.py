@@ -189,7 +189,7 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
     # write an entry that is not unified at the moment
-    with open(test_cif_file_unmerged, "a", encoding='UTF-8') as fobj:
+    with open(test_cif_file_unmerged, "a", encoding="UTF-8") as fobj:
         fobj.write("\n_custom_test2  'something else'\n")
 
     # Define compulsory and optional entries for the test
@@ -222,6 +222,7 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
         assert re.search(pattern, output_content) is not None
     assert "_cell_length_a" not in output_content, "Renaming should be skipped entirely"
 
+
 @pytest.mark.parametrize("input_or_output", ["input", "output"])
 def test_direct_cif_entries_extraction(input_or_output):
     """Test extraction of directly defined keywords."""
@@ -232,13 +233,14 @@ def test_direct_cif_entries_extraction(input_or_output):
                 f"cif_{input_or_output}": {
                     "required_cif_entries": ["_cell_length_a", "_cell_length_b"],
                     "optional_cif_entries": ["_atom_site.label"],
-                }
+                },
             }
         ]
     }
     compulsory, optional = cif_entries_from_yml(yml_dict, "process_cif", input_or_output)
     assert sorted(compulsory) == sorted(["_cell_length_a", "_cell_length_b"]), "Failed to extract compulsory keywords"
     assert sorted(optional) == sorted(["_atom_site.label"]), "Failed to extract optional keywords"
+
 
 @pytest.mark.parametrize("input_or_output", ["input", "output"])
 def test_cif_entries_io_section_missing(input_or_output):
@@ -247,11 +249,13 @@ def test_cif_entries_io_section_missing(input_or_output):
     with pytest.raises(KeyError):
         cif_entries_from_yml(yml_dict, "process_cif", input_or_output)
 
+
 def test_cif_entries_io_invalid():
     """Test that an error is raised if the input or output section is invalid."""
     yml_dict = {}
     with pytest.raises(ValueError):
         cif_entries_from_yml(yml_dict, "process_cif", "notavailable")
+
 
 def test_cif_entries_extraction_via_sets():
     """Test extraction of keywords defined through keyword sets."""
@@ -262,7 +266,7 @@ def test_cif_entries_extraction_via_sets():
                 "cif_input": {
                     "required_cif_entry_sets": ["cell_dimensions"],
                     "optional_cif_entry_sets": ["atom_sites"],
-                }
+                },
             }
         ],
         "cif_entry_sets": [
@@ -327,11 +331,13 @@ def test_incorrect_entry_in_cif_entry_set(tested_set):
     with pytest.raises(NameError):
         cif_entries_from_yml(yml_dict, "process_cif", "input")
 
+
 def test_command_missing_name():
     """Test that an error is raised if a command is missing a name."""
     yml_dict = {"commands": [{}]}
     with pytest.raises(UnnamedCommandError):
         cif_entries_from_yml(yml_dict, "process_cif", "input")
+
 
 def test_unique_compulsory_cif_entries_from_multiple_sets():
     """Test that compulsory keywords from multiple sets are appended uniquely."""
@@ -341,7 +347,7 @@ def test_unique_compulsory_cif_entries_from_multiple_sets():
                 "name": "process_cif",
                 "cif_input": {
                     "required_cif_entry_sets": ["set1", "set2"],
-                }
+                },
             }
         ],
         "cif_entry_sets": [
@@ -368,7 +374,7 @@ def test_unique_optional_cif_entries_from_multiple_sets():
                 "cif_input": {
                     "optional_cif_entry_sets": ["set1", "set2"],
                     "required_cif_entries": ["_cell_length_a"],  # Ensure exclusion of compulsory from optional
-                }
+                },
             }
         ],
         "cif_entry_sets": [
@@ -475,6 +481,7 @@ def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yam
             command="nonexistent_command",
         )
 
+
 def test_cif_file_to_specific_by_yml_no_cif_input(test_cif_file_unmerged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
@@ -486,6 +493,7 @@ def test_cif_file_to_specific_by_yml_no_cif_input(test_cif_file_unmerged, mock_y
             command="empty_command",
         )
 
+
 def test_cif_file_to_specific_by_yml_merge_su_wrong(test_cif_file_unmerged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output.cif"
 
@@ -496,6 +504,7 @@ def test_cif_file_to_specific_by_yml_merge_su_wrong(test_cif_file_unmerged, mock
             yml_path=mock_yaml_file,
             command="command_with_merge_su_in_base",
         )
+
 
 @pytest.mark.parametrize("function", ["specific", "unified"])
 def test_cif_file_by_yml_command_without_name(function, test_cif_file_unmerged, tmp_path):
@@ -543,7 +552,6 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
     # Read back the output file and verify its content
     output_cif_content = output_cif_path.read_text()
 
-
     # Expected content checks
     expected_lines = [
         "data_test",
@@ -568,6 +576,7 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
     for line in unexpected_lines:
         assert re.search(line, output_cif_content) is None, f"Unexpected line found: {line}"
 
+
 def test_cif_file_to_unified_by_yml_no_command(test_cif_file_merged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
 
@@ -578,6 +587,7 @@ def test_cif_file_to_unified_by_yml_no_command(test_cif_file_merged, mock_yaml_f
             yml_path=mock_yaml_file,
             command="nonexistent_command",
         )
+
 
 def test_cif_file_to_unified_by_yml_no_cif_output(test_cif_file_merged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
@@ -590,10 +600,11 @@ def test_cif_file_to_unified_by_yml_no_cif_output(test_cif_file_merged, mock_yam
             command="empty_command",
         )
 
+
 def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
     cif_content = test_cif_file_merged.read_text(encoding="UTF-8").splitlines()
-    new_cif_content = '\n'.join([line for line in cif_content if "_test_value_with_su" not in line])
+    new_cif_content = "\n".join([line for line in cif_content if "_test_value_with_su" not in line])
     test_cif_file_merged.write_text(new_cif_content, encoding="UTF-8")
 
     with pytest.raises(ValueError):
@@ -603,6 +614,7 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
             yml_path=mock_yaml_file,
             command="process_cif",
         )
+
 
 # CLI tests
 
@@ -682,6 +694,7 @@ def test_cli_command_unify(test_cif_file_merged, tmp_path):
     # Check for expected patterns in the output content
     for pattern in expected_output_patterns:
         assert re.search(pattern, output_content) is not None, f"Expected pattern not found in output: {pattern}"
+
 
 def test_cli_command_unify_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
     command = "unified_by_yml"

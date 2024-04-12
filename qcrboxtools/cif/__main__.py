@@ -49,12 +49,7 @@ Example:
 import argparse
 from pathlib import Path
 
-from .cif2cif import (
-    cif_file_to_specific,
-    cif_file_to_specific_by_yml,
-    cif_file_to_unified,
-    cif_file_to_unified_by_yml
-)
+from .cif2cif import cif_file_to_specific, cif_file_to_specific_by_yml, cif_file_to_unified, cif_file_to_unified_by_yml
 
 
 def main():
@@ -65,7 +60,10 @@ def main():
     subparsers = parser.add_subparsers(dest="command", help="Commands")
 
     # Parser for cif_file_unified_yml_instr
-    parser_yml = subparsers.add_parser("specific_by_yml", help="Process a CIF file based on a QCrBox YAML configuration using the keywords from cif_input")
+    parser_yml = subparsers.add_parser(
+        "specific_by_yml",
+        help="Process a CIF file based on a QCrBox YAML configuration using the keywords from cif_input",
+    )
     parser_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
     parser_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
@@ -74,7 +72,10 @@ def main():
     # Parser for cif_file_unified_yml_instr
     parser_unified_by_yml = subparsers.add_parser(
         "unified_by_yml",
-        help="Process a CIF file to unified format based on a QCrBox YAML configuration, trimming to the keywords from cif_output before conversion"
+        help=(
+            "Process a CIF file to unified format based on a QCrBox YAML configuration, trimming to the keywords from"
+            + "cif_output before conversion"
+        ),
     )
     parser_unified_by_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
     parser_unified_by_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
@@ -156,6 +157,7 @@ def main():
             args.custom_categories,
             args.merge_sus,
         )
+
 
 if __name__ == "__main__":
     main()

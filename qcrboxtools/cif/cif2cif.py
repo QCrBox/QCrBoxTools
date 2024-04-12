@@ -2,15 +2,16 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from pathlib import Path
-from typing import List, Optional, Union, Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
 
 from .entries import cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
 from .read import read_cif_as_unified, read_cif_safe
-from .uncertainties import merge_su_cif, split_su_cif
 from .trim import trim_cif
+from .uncertainties import merge_su_cif, split_su_cif
+
 
 def cif_file_to_unified(
     input_cif_path: Union[str, Path],
@@ -139,6 +140,7 @@ class NoKeywordsError(BaseException):
         Explanation of the error
     """
 
+
 class UnnamedCommandError(BaseException):
     """
     Exception raised when a command in the YAML configuration is missing a name entry.
@@ -148,6 +150,7 @@ class UnnamedCommandError(BaseException):
     message : str
         Explanation of the error
     """
+
 
 def cif_entries_from_yml(yml_dict: Dict[str, Any], command: str, input_or_output: str) -> Tuple[List[str], List[str]]:
     """
@@ -303,7 +306,7 @@ def cif_file_to_specific_by_yml(
     except KeyError as exc:
         raise UnnamedCommandError("One or more commands are missing a name entry in the yml_dict.") from exc
 
-    if 'merge_cif_su' in command_dict:
+    if "merge_cif_su" in command_dict:
         raise ValueError("merge_cif_su needs to be in the cif_input section.")
 
     try:
@@ -322,6 +325,7 @@ def cif_file_to_specific_by_yml(
         custom_categories,
         merge_sus,
     )
+
 
 def cif_file_to_unified_by_yml(
     input_cif_path: Union[str, Path],
@@ -383,12 +387,7 @@ def cif_file_to_unified_by_yml(
 
     all_entries = compulsory_entries + optional_entries
 
-    new_cif = trim_cif(
-        cif_model,
-        keep_only_regexes=all_entries,
-        delete_regexes=[],
-        delete_empty_entries=True
-    )
+    new_cif = trim_cif(cif_model, keep_only_regexes=all_entries, delete_regexes=[], delete_empty_entries=True)
 
     entries_in_cif = []
     for block in new_cif.values():
@@ -402,6 +401,4 @@ def cif_file_to_unified_by_yml(
     unified_entries_cif = cif_to_unified_keywords(new_cif, custom_categories)
     output_cif = split_su_cif(unified_entries_cif)
 
-
     Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")
-

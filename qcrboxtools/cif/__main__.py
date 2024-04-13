@@ -40,7 +40,7 @@ Example:
 
     To merge standard uncertainties and filter by specified keywords:
     `$ python -m qcrboxtools.cif to_specific input.cif output.cif --compulsory_entries
-       _cell_length_a --merge_sus`
+       _cell_length_a --merge_su`
 
     To convert keywords and split SUs in a CIF file:
     `$ python -m qcrboxtools.cif to_unified input.cif output.cif --convert_keywords --split_sus`
@@ -99,11 +99,11 @@ def main():
         "--custom_categories", nargs="*", default=[], help="Custom categories for entry conversion."
     )
     parser_to_specific.add_argument(
-        "--merge_sus",
+        "--merge_su",
         action="store_true",
         help="Merge numerical values with their standard uncertainties.",
     )
-    parser_to_specific.set_defaults(merge_sus=False)
+    parser_to_specific.set_defaults(merge_su=False)
 
     # Parser for cif_file_to_unified
     parser_to_unified = subparsers.add_parser(
@@ -155,7 +155,7 @@ def main():
             args.compulsory_entries,
             args.optional_entries,
             args.custom_categories,
-            args.merge_sus,
+            args.merge_su,
         )
 
 

@@ -39,7 +39,7 @@ Example:
     `$ python -m qcrboxtools.cif unified_by_yml input.cif output.cif config.yml command_name`
 
     To merge standard uncertainties and filter by specified keywords:
-    `$ python -m qcrboxtools.cif to_specific input.cif output.cif --compulsory_entries
+    `$ python -m qcrboxtools.cif to_specific input.cif output.cif --required_entries
        _cell_length_a --merge_su`
 
     To convert keywords and split SUs in a CIF file:
@@ -90,7 +90,7 @@ def main():
     parser_to_specific.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
     parser_to_specific.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_to_specific.add_argument(
-        "--compulsory_entries", nargs="*", default=[], help="Compulsory entries to include."
+        "--required_entries", nargs="*", default=[], help="Compulsory entries to include."
     )
     parser_to_specific.add_argument(
         "--optional_entries", nargs="*", default=[], help="Optional entries to include if present."
@@ -152,7 +152,7 @@ def main():
         cif_file_to_specific(
             args.input_cif_path,
             args.output_cif_path,
-            args.compulsory_entries,
+            args.required_entries,
             args.optional_entries,
             args.custom_categories,
             args.merge_su,

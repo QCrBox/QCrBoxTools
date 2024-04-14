@@ -128,9 +128,9 @@ def test_cif_file_to_specific(test_cif_file_unmerged, tmp_path):
     """
     output_cif_path = tmp_path / "output.cif"
 
-    # Define compulsory and optional entries for the test
+    # Define required and optional entries for the test
     kwdict = {
-        "compulsory_entries": ["_cell_length_a"],
+        "required_entries": ["_cell_length_a"],
         "optional_entries": [
             "_cell_length_b",
             "_cell_length_b_su",
@@ -142,7 +142,7 @@ def test_cif_file_to_specific(test_cif_file_unmerged, tmp_path):
     }
 
     patterns_from_kwdict = {
-        "compulsory_entries": [r"_cell_length_a\s+10.00\(3\)"],
+        "required_entries": [r"_cell_length_a\s+10.00\(3\)"],
         "optional_entries": [
             r"_cell_length_b\s+20.0",
             "_cell_length_b_su",  # cell_length_b_su is requested as entry and should not be merged
@@ -153,15 +153,15 @@ def test_cif_file_to_specific(test_cif_file_unmerged, tmp_path):
     }
 
     # Call the function with merge_su enabled
-    for include_compulsory, include_optional, include_custom in product([True, False], repeat=3):
+    for include_required, include_optional, include_custom in product([True, False], repeat=3):
         included_kws = {}
         check_patterns = []
         anti_check_patterns = []
-        if include_compulsory:
-            included_kws["compulsory_entries"] = kwdict["compulsory_entries"]
-            check_patterns.extend(patterns_from_kwdict["compulsory_entries"])
+        if include_required:
+            included_kws["required_entries"] = kwdict["required_entries"]
+            check_patterns.extend(patterns_from_kwdict["required_entries"])
         else:
-            anti_check_patterns.extend(patterns_from_kwdict["compulsory_entries"])
+            anti_check_patterns.extend(patterns_from_kwdict["required_entries"])
 
         if include_optional:
             included_kws["optional_entries"] = kwdict["optional_entries"]
@@ -203,8 +203,8 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     with open(test_cif_file_unmerged, "a", encoding="UTF-8") as fobj:
         fobj.write("\n_custom_test2  'something else'\n")
 
-    # Define compulsory and optional entries for the test
-    compulsory_entries = ["_cell_length_a", "_cell.length_b_su"]
+    # Define required and optional entries for the test
+    required_entries = ["_cell_length_a", "_cell.length_b_su"]
     optional_entries = ["all_unified"]
     custom_categories = ["custom"]
 
@@ -212,7 +212,7 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     cif_file_to_specific(
         input_cif_path=test_cif_file_unmerged,
         output_cif_path=output_cif_path,
-        compulsory_entries=compulsory_entries,
+        required_entries=required_entries,
         optional_entries=optional_entries,
         custom_categories=custom_categories,
         merge_su=True,
@@ -372,10 +372,10 @@ def test_cif_entries_from_entry_set():
             "optional": ["_cell_volume"],
         },
     }
-    compulsory, optional = cif_entries_from_entry_set(["test_set1", "test_set2"], entry_sets)
-    compulsory_correct = ["_cell_length_a", "_cell_length_b", "_cell_length_c"]
+    required, optional = cif_entries_from_entry_set(["test_set1", "test_set2"], entry_sets)
+    required_correct = ["_cell_length_a", "_cell_length_b", "_cell_length_c"]
     optional_correct = ["_atom_site_fract_x", "_atom_site_fract_y", "_atom_site_fract_z"]
-    assert sorted(compulsory) == sorted(compulsory_correct), "Failed to extract compulsory entries"
+    assert sorted(required) == sorted(required_correct), "Failed to extract required entries"
     assert sorted(optional) == sorted(optional_correct), "Failed to extract optional entries"
 
 
@@ -412,8 +412,8 @@ def test_cif_entries_from_yml_section():
         "custom_categories": ["custom"],
     }
 
-    compulsory, optional, categories = cif_entries_from_yml_section(io_section, entry_sets)
-    compulsory_correct = ["_cell_length_a", "_cell_length_b", "_cell_angle_alpha"]
+    required, optional, categories = cif_entries_from_yml_section(io_section, entry_sets)
+    required_correct = ["_cell_length_a", "_cell_length_b", "_cell_angle_alpha"]
     optional_correct = [
         "_atom_site_fract_x",
         "_atom_site_fract_y",
@@ -422,7 +422,7 @@ def test_cif_entries_from_yml_section():
         "_cell_volume",
     ]
     categories_correct = ["custom"]
-    assert sorted(compulsory) == sorted(compulsory_correct), "Failed to extract compulsory entries"
+    assert sorted(required) == sorted(required_correct), "Failed to extract required entries"
     assert sorted(optional) == sorted(optional_correct), "Failed to extract optional entries"
     assert sorted(categories) == sorted(categories_correct), "Failed to extract categories"
 
@@ -453,7 +453,7 @@ def test_cif_input_entries_from_yml():
     }
     yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif")
     # required, optional, custom_categories, merge_su = cif_input_entries_from_yml(yml_dict, "process_cif")
-    assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract compulsory entries"
+    assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_input_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     assert yml_input_settings.custom_categories == [], "Failed to extract custom categories"
     assert yml_input_settings.merge_su is False, "Failed to extract merge_su"
@@ -462,7 +462,7 @@ def test_cif_input_entries_from_yml():
     yml_dict["commands"][0]["cif_input"]["custom_categories"] = ["custom"]
 
     yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif")
-    assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract compulsory entries"
+    assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_input_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     assert yml_input_settings.custom_categories == ["custom"], "Failed to extract custom categories"
     assert yml_input_settings.merge_su is True, "Failed to extract merge_su"
@@ -521,7 +521,7 @@ def test_cif_output_entries_from_yml():
         ],
     }
     yml_output_settings = cif_output_entries_from_yml(yml_dict, "process_cif")
-    assert yml_output_settings.required_entries == ["_cell_length_a"], "Failed to extract compulsory entries"
+    assert yml_output_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_output_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     correct_invalid = ["_cell_length_c", "_cell_volume", "_cell_angle_alpha"]
     assert sorted(yml_output_settings.invalidated_entries) == sorted(
@@ -706,7 +706,7 @@ CLI_COMMAND = ["python", "-m", "qcrboxtools.cif"]
 
 def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
     command = "to_specific"
-    args = ["--compulsory_entries", "_cell_length_a", "--merge_su"]
+    args = ["--required_entries", "_cell_length_a", "--merge_su"]
     expected_output_patterns = [
         r"_cell_length_a\s+10.00\(3\)",
     ]

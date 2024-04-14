@@ -60,7 +60,7 @@ def cif_file_to_unified(
 def cif_file_to_specific(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
-    compulsory_entries: List[str] = None,
+    required_entries: List[str] = None,
     optional_entries: List[str] = None,
     custom_categories: List[str] = None,
     merge_su: bool = False,
@@ -71,9 +71,9 @@ def cif_file_to_specific(
 
     Reads a CIF file from the specified input path and performs a series of processing steps:
     optionally merging numerical values with their standard uncertainties (SUs), filtering the data
-    to retain only specified compulsory and optional entries along with any custom categories,
+    to retain only specified required and optional entries along with any custom categories,
     and finally writing the processed content to a new file at the output path.
-    If neither compulsory, nor optional entries are provided, all entries will be written to
+    If neither required, nor optional entries are provided, all entries will be written to
     file.
 
     Parameters
@@ -82,17 +82,17 @@ def cif_file_to_specific(
         The file path to the input CIF file to be processed.
     output_cif_path : Union[str, Path]
         The file path where the processed CIF content will be written.
-    compulsory_entries : List[str], optional
+    required_entries : List[str], optional
         A list of entry names that must be included in the converted CIF file. These need to be
         either entries in the CIF, aliases of entries in the CIF, or entries renamed via the
         custom categories. The keyword "all_unified" can be passed in any entry list to convert
-        all present cif entries into unified cif entries and otherwise ignore optional
-        and compulsory entries.
+        all present CIF entries into unified CIF entries and otherwise ignore optional
+        and required entries.
     optional_entries : List[str], optional
         Entries within this list are declared to be optional and will be included if present,
         but do not raise an error if they are missing. The keyword "all_unified" can be passed
-        in any entry list to convert all present cif entries into unified cif entries and
-        otherwise ignore optional and compulsory entries.
+        in any entry list to convert all present CIF entries into unified CIF entries and
+        otherwise ignore optional and required entries.
     custom_categories : List[str], optional
         User-defined categories (e.g., 'iucr', 'olex2', or 'shelx') that can be taken
         into account where an entry "_category.example" would be cpnverted to "_category_example"
@@ -100,7 +100,7 @@ def cif_file_to_specific(
     merge_su : bool, default=False
         If True, numerical values and their standard uncertainties in the CIF model are
         merged before any other processing, if the su (or an alias) is not included as a
-        compulsory or optional cif entry. If False, the CIF model is processed without merging SUs.
+        required or optional CIF entry. If False, the CIF model is processed without merging SUs.
 
     Returns
     -------
@@ -109,14 +109,14 @@ def cif_file_to_specific(
     """
     cif_model = read_cif_safe(input_cif_path)
 
-    if compulsory_entries is None:
-        compulsory_entries = []
+    if required_entries is None:
+        required_entries = []
     if optional_entries is None:
         optional_entries = []
     if custom_categories is None:
         custom_categories = []
 
-    all_keywords = set(compulsory_entries + optional_entries)
+    all_keywords = set(required_entries + optional_entries)
 
     if merge_su:
         unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords]
@@ -128,7 +128,7 @@ def cif_file_to_specific(
     if "all_unified" in all_keywords:
         cif_model = cif_to_unified_keywords(cif_model, custom_categories)
     elif len(all_keywords) > 0:
-        cif_model = cif_to_specific_keywords(cif_model, compulsory_entries, optional_entries, custom_categories)
+        cif_model = cif_to_specific_keywords(cif_model, required_entries, optional_entries, custom_categories)
 
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
 
@@ -269,7 +269,7 @@ def cif_entry_sets_from_yml(yml_dict: Dict[str, Any]) -> Dict[str, Dict[str, Lis
     -------
     dict
         A dictionary of keyword sets, where the key is the keyword set name and the value is a dictionary
-        containing 'name', 'required', and 'optional' entries.
+        containing 'required', and 'optional' entries.
     """
     try:
         return_dict = {}
@@ -277,7 +277,7 @@ def cif_entry_sets_from_yml(yml_dict: Dict[str, Any]) -> Dict[str, Dict[str, Lis
             name = eset["name"]
             eset.pop("name")
             return_dict[name] = eset
-            if any(key not in ("name", "required", "optional") for key in eset.keys()):
+            if any(key not in ("required", "optional") for key in eset.keys()):
                 raise InvalidEntrySetError(
                     f'Found entry other than "name", "required" or "optional" in keyword set {name}. Typo?'
                 )
@@ -290,15 +290,15 @@ def cif_entries_from_entry_set(
     entry_set_names: List[str], entry_sets: Dict[str, Dict[str, List[str]]]
 ) -> Tuple[List[str], List[str]]:
     """
-    Extracts required and optional entries from a list of keyword sets.
+    Assembles required and optional CIF entries from a list of keyword sets.
 
     Parameters
     ----------
     entry_set_names : list
-        A list of keyword set names to extract entries from.
+        A list of keyword set names to assemble the entries for.
     entry_sets : dict
         A dictionary of keyword sets, where the key is the keyword set name and the value is a dictionary
-        containing 'name', 'required', and 'optional' entries.
+        containing 'required', and 'optional' entries.
 
     Returns
     -------
@@ -322,21 +322,21 @@ def cif_entries_from_yml_section(
     io_section: Dict[str, Any], entry_sets: Dict[str, Dict[str, List[str]]]
 ) -> Tuple[List[str], List[str], List[str]]:
     """
-    Extracts compulsory and optional cif entries from a YAML configuration section.
+    Extracts required and optional CIF entries from a YAML configuration section.
 
     Parameters
     ----------
     io_section : dict
-        The section of the YAML configuration dictionary containing the cif entries.
+        The section of the YAML configuration dictionary containing the CIF entries.
     entry_sets : dict
         A dictionary of keyword sets, where the key is the keyword set name and the value is a dictionary
-        containing 'name', 'required', and 'optional' entries.
+        containing 'required', and 'optional' entries.
 
     Returns
     -------
     Tuple[List[str], List[str], List[str]]
-        A tuple containing three lists: the first list contains compulsory cif entries, the second list
-        contains optional cif entries, and the third list contains custom categories. All lists are de-duplicated.
+        A tuple containing three lists: the first list contains required CIF entries, the second list
+        contains optional CIF entries, and the third list contains custom categories. All lists are de-duplicated.
 
     Raises
     ------
@@ -352,11 +352,11 @@ def cif_entries_from_yml_section(
     if not any(entry in io_section for entry in possible_entries):
         raise NoKeywordsError("No entries defining optional or necessary keywords found.")
 
-    compulsory_kws = io_section.get("required_entries", [])
+    required_kws = io_section.get("required_entries", [])
     optional_kws = io_section.get("optional_entries", [])
 
     required, optional = cif_entries_from_entry_set(io_section.get("required_entry_sets", []), entry_sets)
-    compulsory_kws += required
+    required_kws += required
     optional_kws += optional
 
     # for optional entry sets required entries are optional as well
@@ -364,25 +364,38 @@ def cif_entries_from_yml_section(
     optional_kws += required
     optional_kws += optional
 
-    optional_kws = (kw for kw in optional_kws if kw not in compulsory_kws)
+    optional_kws = (kw for kw in optional_kws if kw not in required_kws)
     custom_categories = io_section.get("custom_categories", [])
 
-    return (list(set(entries)) for entries in (compulsory_kws, optional_kws, custom_categories))
+    return (list(set(entries)) for entries in (required_kws, optional_kws, custom_categories))
 
 
 YmlCifInputSettings = namedtuple(
     "YmlInputSettings", ["required_entries", "optional_entries", "custom_categories", "merge_su"]
 )
-YmlCifInputSettings.__doc__ = """Named tuple for storing input settings from a YAML configuration."""
+YmlCifInputSettings.__doc__ = """
+Named tuple for storing input settings from a YAML configuration.
+
+Attributes
+----------
+required_entries : list
+    A list of required CIF entries, Functions will throw exceptions if any of these entries is missing.
+optional_entries : list
+    A list of optional CIF entries, which will be included if present but do not raise an error if missing.
+custom_categories : list
+    A list of custom categories for keyword conversion, if applicable.
+merge_su : bool
+    A boolean indicating whether standard uncertainties should be merged.
+"""
 
 
-def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str], bool]:
+def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCifInputSettings:
     """
-    Extracts compulsory and optional cif_entries for a given command from a YAML configuration
+    Extracts required and optional cif_entries for a given command from a YAML configuration
     dictionary.
 
-    Parses the YAML configuration dictionary to find and compile lists of compulsory and optional
-    cif entries specified under a given command. This includes directly specified keywords and those
+    Parses the YAML configuration dictionary to find and compile lists of required and optional
+    CIF entries specified under a given command. This includes directly specified keywords and those
     included in keyword sets referenced by the command.
 
     Parameters
@@ -390,14 +403,13 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[
     yml_dict : dict
         The dictionary obtained from parsing the YAML configuration file.
     command : str
-        The command name to look up in the YAML dictionary for extracting cif entry specifications.
+        The command name to look up in the YAML dictionary for extracting CIF entry specifications.
 
     Returns
     -------
-    Tuple[List[str], List[str], List[str], bool]
-        A tuple containing three lists and a bool: the first list contains compulsory cif entries, and
-        the second, list contains optional cif entries. Both lists are de-duplicated. The third list
-        contains custom categories. The bool indicates whether standard uncertainties should be merged.
+    YmlCifInputSettings
+        A named tuple containing required and optional CIF entries, custom categories, and a boolean
+        indicating whether standard uncertainties should be merged.
     """
     entry_sets = cif_entry_sets_from_yml(yml_dict)
     command_dict = command_dict_from_yml(yml_dict, command)
@@ -446,16 +458,32 @@ YmlCifOutputSettings = namedtuple(
     "YmlOutputSettings",
     ["required_entries", "optional_entries", "invalidated_entries", "custom_categories", "select_block"],
 )
-YmlCifOutputSettings.__doc__ = """Named tuple for storing output settings from a YAML configuration."""
+YmlCifOutputSettings.__doc__ = """
+Named tuple for storing output settings from a YAML configuration.
+
+Attributes
+----------
+required_entries : list
+    A list of required CIF entries, Functions will throw exceptions if any of these entries is missing.
+optional_entries : list
+    A list of optional CIF entries, which will be included if present but do not raise an error if missing.
+invalidated_entries : list
+    A list of invalidated CIF entries, which will be removed from the CIF content of the original input cif.
+custom_categories : list
+    A list of custom categories for keyword conversion, if applicable.
+select_block : str
+    The block number to select from the new/work CIF file. Default is '0', so the first block. Plain strings
+    are also accepted to select a block by name.
+"""
 
 
-def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str]]:
+def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCifOutputSettings:
     """
-    Extracts compulsory and optional cif_entries for a given command from a YAML configuration
+    Extracts required and optional cif_entries for a given command from a YAML configuration
     dictionary.
 
-    Parses the YAML configuration dictionary to find and compile lists of compulsory and optional
-    cif entries specified under a given command. This includes directly specified keywords and those
+    Parses the YAML configuration dictionary to find and compile lists of required and optional
+    CIF entries specified under a given command. This includes directly specified keywords and those
     included in keyword sets referenced by the command.
 
     Parameters
@@ -463,14 +491,13 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple
     yml_dict : dict
         The dictionary obtained from parsing the YAML configuration file.
     command : str
-        The command name to look up in the YAML dictionary for extracting cif entry specifications.
+        The command name to look up in the YAML dictionary for extracting CIF entry specifications.
 
     Returns
     -------
-    Tuple[List[str], List[str], List[str]]
-        A tuple containing three lists: the first list contains compulsory cif entries, the second list
-        contains optional cif entries, and the third list contains invalidated cif entries. All lists
-        are de-duplicated.
+    YmlCifOutputSettings
+        A named tuple containing required, optional and invalidated CIF entries, custom categories,
+        and a block number or string to select from the new/work CIF file.
     """
     entry_sets = cif_entry_sets_from_yml(yml_dict)
     command_dict = command_dict_from_yml(yml_dict, command)
@@ -534,12 +561,6 @@ def cif_file_to_specific_by_yml(
     specified keyword transformations defined in a commands "cif_input" section and standard
     uncertainty merge settings.
 
-    This function reads the CIF file specified by `input_cif_path` and processes it according
-    to instructions defined in a YAML file (`yml_path`) under a specific command. It supports
-    operations such as merging standard uncertainties and filtering CIF entries based on
-    compulsory and optional keywords derived from the YAML configuration. The processed CIF
-    content is written to the path specified by `output_cif_path`.
-
     Parameters
     ----------
     input_cif_path : Union[str, Path]
@@ -553,7 +574,7 @@ def cif_file_to_specific_by_yml(
 
     Notes
     -----
-    This file was developed for exposeing commands within QCrBox. See this project or the
+    This file was developed for exposing commands within QCrBox. See this project or the
     test of this function for an example of how such a yml file might look like.
     """
     with open(yml_path, "r", encoding="UTF-8") as fobj:
@@ -579,14 +600,8 @@ def cif_file_to_unified_by_yml(
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, reducing
-    the cif content to the unified equivalents of the entries defined in a commands
+    the CIF content to the unified equivalents of the entries defined in a commands
     "cif_output" section.
-
-    This function reads the CIF file specified by `input_cif_path` and processes it according
-    to instructions defined in a YAML file (`yml_path`) under a specific command. It supports
-    operations such as converting CIF keywords to a unified format and filtering CIF entries
-    based on compulsory and optional keywords derived from the YAML configuration. The processed
-    CIF content is written to the path specified by `output_cif_path`.
 
     Parameters
     ----------
@@ -627,7 +642,7 @@ def cif_file_to_unified_by_yml(
     missing_entries = set(yml_output_settings.required_entries) - set(entries_in_cif)
 
     if len(missing_entries) > 0:
-        raise ValueError(f"Required entries missing in loaded cif file: {missing_entries}")
+        raise ValueError(f"Required entries missing in loaded CIF file: {missing_entries}")
 
     unified_entries_cif = cif_to_unified_keywords(new_cif, yml_output_settings.custom_categories)
     output_cif = split_su_cif(unified_entries_cif)

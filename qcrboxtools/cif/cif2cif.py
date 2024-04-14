@@ -5,6 +5,7 @@ from copy import deepcopy
 from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
+from collections import namedtuple
 
 import yaml
 
@@ -368,6 +369,9 @@ def cif_entries_from_yml_section(
 
     return (list(set(entries)) for entries in (compulsory_kws, optional_kws, custom_categories))
 
+YmlInputSettings = namedtuple("YmlInputSettings", ["required_entries", "optional_entries", "custom_categories", "merge_su"])
+YmlInputSettings.__doc__ = """Named tuple for storing input settings from a YAML configuration."""
+
 
 def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str], bool]:
     """
@@ -432,8 +436,10 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[
 
     merge_su = command_dict["cif_input"].get("merge_su", False)
 
-    return (required_entries, optional_entries, custom_categories, merge_su)
+    return YmlInputSettings(required_entries, optional_entries, custom_categories, merge_su)
 
+YmlOutputSettings = namedtuple("YmlOutputSettings", ["required_entries", "optional_entries", "invalidated_entries", "custom_categories", "select_block"])
+YmlOutputSettings.__doc__ = """Named tuple for storing output settings from a YAML configuration."""
 
 def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str]]:
     """
@@ -473,6 +479,7 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple
         "custom_categories",
         "invalidated_entry_sets",
         "invalidated_entries",
+        "select_block",
     )
     invalid_entries = [entry for entry in output_section if entry not in possible_entries]
 
@@ -503,7 +510,9 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple
     invalidated_kws += optional
     invalidated_kws = list(set(invalidated_kws))
 
-    return (required_entries, optional_entries, invalidated_kws, custom_categories)
+    select_block = output_section.get("select_block", "0")
+
+    return YmlOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
 
 
 def cif_file_to_specific_by_yml(
@@ -542,15 +551,15 @@ def cif_file_to_specific_by_yml(
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
 
-    compulsory_entries, optional_entries, custom_categories, merge_su = cif_input_entries_from_yml(yml_dict, command)
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, command)
 
     cif_file_to_specific(
         input_cif_path,
         output_cif_path,
-        compulsory_entries,
-        optional_entries,
-        custom_categories,
-        merge_su,
+        yml_input_settings.required_entries,
+        yml_input_settings.optional_entries,
+        yml_input_settings.custom_categories,
+        yml_input_settings.merge_su,
     )
 
 
@@ -597,11 +606,9 @@ def cif_file_to_unified_by_yml(
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
 
-    compulsory_entries, optional_entries, invalidated_entries, custom_categories = cif_output_entries_from_yml(
-        yml_dict, command
-    )
+    yml_output_settings = cif_output_entries_from_yml(yml_dict, command)
 
-    all_entries = compulsory_entries + optional_entries
+    all_entries = yml_output_settings.required_entries + yml_output_settings.optional_entries
 
     new_cif = trim_cif(cif_model, keep_only_regexes=all_entries, delete_regexes=[], delete_empty_entries=True)
 
@@ -609,12 +616,12 @@ def cif_file_to_unified_by_yml(
     for block in new_cif.values():
         entries_in_cif += list(block.keys())
 
-    missing_entries = set(compulsory_entries) - set(entries_in_cif)
+    missing_entries = set(yml_output_settings.required_entries) - set(entries_in_cif)
 
     if len(missing_entries) > 0:
         raise ValueError(f"Required entries missing in loaded cif file: {missing_entries}")
 
-    unified_entries_cif = cif_to_unified_keywords(new_cif, custom_categories)
+    unified_entries_cif = cif_to_unified_keywords(new_cif, yml_output_settings.custom_categories)
     output_cif = split_su_cif(unified_entries_cif)
 
     Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")

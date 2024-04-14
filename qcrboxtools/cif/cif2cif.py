@@ -370,10 +370,10 @@ def cif_entries_from_yml_section(
     return (list(set(entries)) for entries in (compulsory_kws, optional_kws, custom_categories))
 
 
-YmlInputSettings = namedtuple(
+YmlCifInputSettings = namedtuple(
     "YmlInputSettings", ["required_entries", "optional_entries", "custom_categories", "merge_su"]
 )
-YmlInputSettings.__doc__ = """Named tuple for storing input settings from a YAML configuration."""
+YmlCifInputSettings.__doc__ = """Named tuple for storing input settings from a YAML configuration."""
 
 
 def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str], bool]:
@@ -439,14 +439,14 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[
 
     merge_su = command_dict["cif_input"].get("merge_su", False)
 
-    return YmlInputSettings(required_entries, optional_entries, custom_categories, merge_su)
+    return YmlCifInputSettings(required_entries, optional_entries, custom_categories, merge_su)
 
 
-YmlOutputSettings = namedtuple(
+YmlCifOutputSettings = namedtuple(
     "YmlOutputSettings",
     ["required_entries", "optional_entries", "invalidated_entries", "custom_categories", "select_block"],
 )
-YmlOutputSettings.__doc__ = """Named tuple for storing output settings from a YAML configuration."""
+YmlCifOutputSettings.__doc__ = """Named tuple for storing output settings from a YAML configuration."""
 
 
 def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str]]:
@@ -520,7 +520,7 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple
 
     select_block = output_section.get("select_block", "0")
 
-    return YmlOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
+    return YmlCifOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
 
 
 def cif_file_to_specific_by_yml(

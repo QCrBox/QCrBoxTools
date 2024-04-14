@@ -89,9 +89,7 @@ def main():
     )
     parser_to_specific.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
     parser_to_specific.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
-    parser_to_specific.add_argument(
-        "--required_entries", nargs="*", default=[], help="Compulsory entries to include."
-    )
+    parser_to_specific.add_argument("--required_entries", nargs="*", default=[], help="Compulsory entries to include.")
     parser_to_specific.add_argument(
         "--optional_entries", nargs="*", default=[], help="Optional entries to include if present."
     )

@@ -1,11 +1,11 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
 
+from collections import namedtuple
 from copy import deepcopy
 from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
-from collections import namedtuple
 
 import yaml
 
@@ -369,7 +369,10 @@ def cif_entries_from_yml_section(
 
     return (list(set(entries)) for entries in (compulsory_kws, optional_kws, custom_categories))
 
-YmlInputSettings = namedtuple("YmlInputSettings", ["required_entries", "optional_entries", "custom_categories", "merge_su"])
+
+YmlInputSettings = namedtuple(
+    "YmlInputSettings", ["required_entries", "optional_entries", "custom_categories", "merge_su"]
+)
 YmlInputSettings.__doc__ = """Named tuple for storing input settings from a YAML configuration."""
 
 
@@ -438,8 +441,13 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[
 
     return YmlInputSettings(required_entries, optional_entries, custom_categories, merge_su)
 
-YmlOutputSettings = namedtuple("YmlOutputSettings", ["required_entries", "optional_entries", "invalidated_entries", "custom_categories", "select_block"])
+
+YmlOutputSettings = namedtuple(
+    "YmlOutputSettings",
+    ["required_entries", "optional_entries", "invalidated_entries", "custom_categories", "select_block"],
+)
 YmlOutputSettings.__doc__ = """Named tuple for storing output settings from a YAML configuration."""
+
 
 def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> Tuple[List[str], List[str], List[str]]:
     """

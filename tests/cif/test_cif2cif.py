@@ -452,7 +452,7 @@ def test_cif_input_entries_from_yml():
         ]
     }
     yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif")
-    #required, optional, custom_categories, merge_su = cif_input_entries_from_yml(yml_dict, "process_cif")
+    # required, optional, custom_categories, merge_su = cif_input_entries_from_yml(yml_dict, "process_cif")
     assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract compulsory entries"
     assert yml_input_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     assert yml_input_settings.custom_categories == [], "Failed to extract custom categories"
@@ -524,7 +524,9 @@ def test_cif_output_entries_from_yml():
     assert yml_output_settings.required_entries == ["_cell_length_a"], "Failed to extract compulsory entries"
     assert yml_output_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     correct_invalid = ["_cell_length_c", "_cell_volume", "_cell_angle_alpha"]
-    assert sorted(yml_output_settings.invalidated_entries) == sorted(correct_invalid), "Failed to extract invalid entries"
+    assert sorted(yml_output_settings.invalidated_entries) == sorted(
+        correct_invalid
+    ), "Failed to extract invalid entries"
     assert yml_output_settings.custom_categories == ["custom"], "Failed to extract custom categories"
     assert yml_output_settings.select_block == "0", "Failed to extract default output block value"
 

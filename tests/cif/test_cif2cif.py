@@ -585,16 +585,17 @@ def fixture_mock_yaml_file(tmp_path):
       - name: process_cif
         cif_input:
           merge_su: Yes
-          custom_categories: [custom]
+          custom_categories: [test_value, test_loop]
           required_entry_sets: [input_test1]
           optional_entry_sets: [input_test2]
           required_entries: [_cell_length_b]
           optional_entries: [_atom_site_label]
         cif_output:
-          custom_categories: [custom]
+          custom_categories: [test_value, test_loop]
           required_entry_sets: [output_test]
           required_entries: [_test_loop_value_without_su]
           optional_entries: [_nonexistent_keyword]
+          invalidated_entries: [_test_value_invalidated, _test_loop_value_invalidated]
     """)
     yml_path.write_text(yml_content)
 
@@ -637,6 +638,69 @@ def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yam
 
 
 def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
+    merge_cif = dedent("""
+        data_merge_name
+        _test_value.with_su 5.67
+        _test_value.with_su_su 0.06
+        _test_value.without_su 9.99
+        _test_value.invalidated 9.01
+
+        loop_
+        _test_loop.id
+        _test_loop.value_to_merge
+        _test_loop.value_invalidated
+        1 1.11 6.66
+        2 2.22 7.77
+    """)
+
+    merge_cif_path = tmp_path / "merge_data.cif"
+    merge_cif_path.write_text(merge_cif, encoding="UTF-8")
+
+    cif_file_merge_to_unified_by_yml(
+        input_cif_path=test_cif_file_merged,
+        output_cif_path=output_cif_path,
+        merge_cif_path=merge_cif_path,
+        yml_path=mock_yaml_file,
+        command="process_cif",
+    )
+
+
+    # Read the output CIF content
+    output_content = output_cif_path.read_text(encoding="UTF-8")
+    search_patterns = (
+        "data_merge_name",
+        r"_test_value\.with_su\s+1\.23", # in required-> from input
+        r"_test_value\.with_su_su\s+0\.04", # in required-> from input
+        r"_test_value\.without_su\s+9\.99", # not required or optional -> from merge
+        # correctly merged loop
+        r"_test_loop\.id",
+        r"_test_loop\.value_to_merge",
+        r"_test_loop\.value_without_su",
+    )
+
+    # cif is order agnostic, so we need to check for both possible orders
+    if re.search(r"\s*_test_loop\.id\n\s*_test_loop\.value_to_merge\n\s*_test_loop\.value_without_su\n", output_content) is not None:
+        search_patterns += (
+            r"1\s+1\.11\s+7\.89\s*\n",
+            r"2\s+2\.22\s+8\.90\s*\n",
+        )
+    elif re.search(r"\s*_test_loop\.id\n\s*_test_loop\.value_without_su\n\s*_test_loop\.value_to_merge\n", output_content) is not None:
+        search_patterns += (
+            r"1\s+7\.89\s+1\.11\s*\n",
+            r"2\s+8\.90\s+2\.22\s*\n",
+        )
+    else:
+        raise ValueError("No correctly merged loop found in output file.")
+
+    for pattern in search_patterns:
+        assert re.search(pattern, output_content) is not None
+    assert "_test_value.invalidated" not in output_content, "Invalidated entry included unexpectedly"
+    assert "_test_loop.value_invalidated" not in output_content, "Invalidated loop entry included unexpectedly"
+
+
+
+def test_cif_file_to_unified_by_yml_no_merge(test_cif_file_merged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
 
     cif_file_merge_to_unified_by_yml(
@@ -653,11 +717,11 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
     # Expected content checks
     expected_lines = [
         "data_test",
-        r"_test_value_with_su\s+1\.23",
-        r"_test_value_with_su_su\s+0\.04",
+        r"_test_value\.with_su\s+1\.23",
+        r"_test_value\.with_su_su\s+0\.04",
         "loop_",
-        "_test_loop_id",
-        "_test_loop_value_without_su",
+        r"_test_loop\.id",
+        r"_test_loop\.value_without_su",
         r"\s*1\s+7\.89",
         r"\s*2\s+8\.90",
     ]
@@ -689,7 +753,6 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
             yml_path=mock_yaml_file,
             command="process_cif",
         )
-
 
 # CLI tests
 
@@ -776,11 +839,11 @@ def test_cli_command_unify_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
     args = [str(mock_yaml_file), "process_cif"]
     expected_output_patterns = [
         "data_test",
-        r"_test_value_with_su\s+1\.23",
-        r"_test_value_with_su_su\s+0\.04",
+        r"_test_value.with_su\s+1\.23",
+        r"_test_value.with_su_su\s+0\.04",
         "loop_",
-        "_test_loop_id",
-        "_test_loop_value_without_su",
+        r"_test_loop\.id",
+        r"_test_loop\.value_without_su",
         r"\s*1\s+7\.89",
         r"\s*2\s+8\.90",
     ]

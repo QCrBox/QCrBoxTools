@@ -665,7 +665,7 @@ def cif_file_merge_to_unified_by_yml(
 
     # Cut down the merge block to the required entries.
     trimmed_merge_block = trim_cif_block(
-        merge_block, keep_only_regexes=all_entries, delete_regexes=unified_invalidated, delete_empty_entries=False
+        merge_block, keep_only_regexes=[], delete_regexes=unified_invalidated, delete_empty_entries=False
     )
 
     output_cif_block = merge_cif_blocks(trimmed_merge_block, unified_input_block)

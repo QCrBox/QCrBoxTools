@@ -49,7 +49,12 @@ Example:
 import argparse
 from pathlib import Path
 
-from .cif2cif import cif_file_to_specific, cif_file_to_specific_by_yml, cif_file_to_unified, cif_file_merge_to_unified_by_yml
+from .cif2cif import (
+    cif_file_merge_to_unified_by_yml,
+    cif_file_to_specific,
+    cif_file_to_specific_by_yml,
+    cif_file_to_unified,
+)
 
 
 def main():
@@ -137,7 +142,9 @@ def main():
     if args.command == "specific_by_yml":
         cif_file_to_specific_by_yml(args.input_cif_path, args.output_cif_path, args.yml_path, args.yml_command)
     elif args.command == "unified_by_yml":
-        cif_file_merge_to_unified_by_yml(args.input_cif_path, args.output_cif_path, None, args.yml_path, args.yml_command)
+        cif_file_merge_to_unified_by_yml(
+            args.input_cif_path, args.output_cif_path, None, args.yml_path, args.yml_command
+        )
     elif args.command == "to_unified":
         cif_file_to_unified(
             args.input_cif_path,

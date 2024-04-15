@@ -21,10 +21,10 @@ from qcrboxtools.cif.cif2cif import (
     cif_entries_from_entry_set,
     cif_entries_from_yml_section,
     cif_entry_sets_from_yml,
+    cif_file_merge_to_unified_by_yml,
     cif_file_to_specific,
     cif_file_to_specific_by_yml,
     cif_file_to_unified,
-    cif_file_merge_to_unified_by_yml,
     cif_input_entries_from_yml,
     cif_output_entries_from_yml,
     command_dict_from_yml,
@@ -665,14 +665,13 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
         command="process_cif",
     )
 
-
     # Read the output CIF content
     output_content = output_cif_path.read_text(encoding="UTF-8")
     search_patterns = (
         "data_merge_name",
-        r"_test_value\.with_su\s+1\.23", # in required-> from input
-        r"_test_value\.with_su_su\s+0\.04", # in required-> from input
-        r"_test_value\.without_su\s+9\.99", # not required or optional -> from merge
+        r"_test_value\.with_su\s+1\.23",  # in required-> from input
+        r"_test_value\.with_su_su\s+0\.04",  # in required-> from input
+        r"_test_value\.without_su\s+9\.99",  # not required or optional -> from merge
         # correctly merged loop
         r"_test_loop\.id",
         r"_test_loop\.value_to_merge",
@@ -680,12 +679,22 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
     )
 
     # cif is order agnostic, so we need to check for both possible orders
-    if re.search(r"\s*_test_loop\.id\n\s*_test_loop\.value_to_merge\n\s*_test_loop\.value_without_su\n", output_content) is not None:
+    if (
+        re.search(
+            r"\s*_test_loop\.id\n\s*_test_loop\.value_to_merge\n\s*_test_loop\.value_without_su\n", output_content
+        )
+        is not None
+    ):
         search_patterns += (
             r"1\s+1\.11\s+7\.89\s*\n",
             r"2\s+2\.22\s+8\.90\s*\n",
         )
-    elif re.search(r"\s*_test_loop\.id\n\s*_test_loop\.value_without_su\n\s*_test_loop\.value_to_merge\n", output_content) is not None:
+    elif (
+        re.search(
+            r"\s*_test_loop\.id\n\s*_test_loop\.value_without_su\n\s*_test_loop\.value_to_merge\n", output_content
+        )
+        is not None
+    ):
         search_patterns += (
             r"1\s+7\.89\s+1\.11\s*\n",
             r"2\s+8\.90\s+2\.22\s*\n",
@@ -697,7 +706,6 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
         assert re.search(pattern, output_content) is not None
     assert "_test_value.invalidated" not in output_content, "Invalidated entry included unexpectedly"
     assert "_test_loop.value_invalidated" not in output_content, "Invalidated loop entry included unexpectedly"
-
 
 
 def test_cif_file_to_unified_by_yml_no_merge(test_cif_file_merged, mock_yaml_file, tmp_path):
@@ -753,6 +761,7 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
             yml_path=mock_yaml_file,
             command="process_cif",
         )
+
 
 # CLI tests
 

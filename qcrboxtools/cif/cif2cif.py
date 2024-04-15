@@ -8,12 +8,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import yaml
+from iotbx import cif
 
-from .entries import cif_to_specific_keywords, cif_to_unified_keywords
+from .entries import block_to_unified_keywords, cif_to_specific_keywords, cif_to_unified_keywords
 from .entries.entry_conversion import entry_to_unified_keyword
-from .read import read_cif_as_unified, read_cif_safe
-from .trim import trim_cif
-from .uncertainties import merge_su_cif, split_su_cif
+from .merge import merge_cif_blocks
+from .read import cifdata_str_or_index, read_cif_as_unified, read_cif_safe
+from .trim import trim_cif_block
+from .uncertainties import merge_su_cif, split_su_block
 
 
 def cif_file_to_unified(
@@ -592,16 +594,17 @@ def cif_file_to_specific_by_yml(
     )
 
 
-def cif_file_to_unified_by_yml(
+def cif_file_merge_to_unified_by_yml(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
+    merge_cif_path: Union[str, Path],
     yml_path: Union[str, Path],
     command: str,
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, reducing
     the CIF content to the unified equivalents of the entries defined in a commands
-    "cif_output" section.
+    "cif_output" section and merging to a prexisting cif file.
 
     Parameters
     ----------
@@ -609,6 +612,8 @@ def cif_file_to_unified_by_yml(
         The file path to the input CIF file to be processed.
     output_cif_path : Union[str, Path]
         The file path where the processed CIF content will be written.
+    merge_cif_path : Union[str, Path]
+        The file path to the CIF file to merge the trimmed input CIF file to. If None, a new CIF file is created.
     yml_path : Union[str, Path]
         The file path to the YAML file containing processing instructions.
     command : str
@@ -624,27 +629,48 @@ def cif_file_to_unified_by_yml(
     This file was developed for exposeing commands within QCrBox. See this project or the
     test of this function for an example of how such a yml file might look like.
     """
-    cif_model = read_cif_safe(input_cif_path)
-
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
-
     yml_output_settings = cif_output_entries_from_yml(yml_dict, command)
 
+    input_cif = read_cif_safe(input_cif_path)
+    # dataset name will be overwritten if merge_cif is not None
+    input_block, dataset_name = cifdata_str_or_index(input_cif, yml_output_settings.select_block)
+    if merge_cif_path is None:
+        merge_block = cif.model.block()
+    else:
+        merge_block, dataset_name = cifdata_str_or_index(
+            read_cif_safe(merge_cif_path), "0"
+        )  # QCrBox cif files have only one block
+
+    # Cut down the input block to the required entries and convert to unified keywords
     all_entries = yml_output_settings.required_entries + yml_output_settings.optional_entries
 
-    new_cif = trim_cif(cif_model, keep_only_regexes=all_entries, delete_regexes=[], delete_empty_entries=True)
+    new_input_block = trim_cif_block(
+        input_block, keep_only_regexes=all_entries, delete_regexes=[], delete_empty_entries=True
+    )
 
-    entries_in_cif = []
-    for block in new_cif.values():
-        entries_in_cif += list(block.keys())
-
-    missing_entries = set(yml_output_settings.required_entries) - set(entries_in_cif)
+    missing_entries = set(yml_output_settings.required_entries) - set(new_input_block.keys())
 
     if len(missing_entries) > 0:
         raise ValueError(f"Required entries missing in loaded CIF file: {missing_entries}")
 
-    unified_entries_cif = cif_to_unified_keywords(new_cif, yml_output_settings.custom_categories)
-    output_cif = split_su_cif(unified_entries_cif)
+    unified_input_block = block_to_unified_keywords(new_input_block, yml_output_settings.custom_categories)
+    unified_input_block = split_su_block(unified_input_block)
+
+    unified_invalidated = [
+        entry_to_unified_keyword(entry, yml_output_settings.custom_categories)
+        for entry in yml_output_settings.invalidated_entries
+    ]
+
+    # Cut down the merge block to the required entries.
+    trimmed_merge_block = trim_cif_block(
+        merge_block, keep_only_regexes=all_entries, delete_regexes=unified_invalidated, delete_empty_entries=False
+    )
+
+    output_cif_block = merge_cif_blocks(trimmed_merge_block, unified_input_block)
+
+    output_cif = cif.model.cif()
+    output_cif[dataset_name] = output_cif_block
 
     Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")

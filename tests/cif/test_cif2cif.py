@@ -24,7 +24,7 @@ from qcrboxtools.cif.cif2cif import (
     cif_file_to_specific,
     cif_file_to_specific_by_yml,
     cif_file_to_unified,
-    cif_file_to_unified_by_yml,
+    cif_file_merge_to_unified_by_yml,
     cif_input_entries_from_yml,
     cif_output_entries_from_yml,
     command_dict_from_yml,
@@ -573,23 +573,13 @@ def fixture_mock_yaml_file(tmp_path):
     yml_content = dedent("""
     cif_entry_sets :
       - name: input_test1
-        required : [
-          _cell_length_a
-        ]
-        optional : [
-          _atom_site_fract_y
-        ]
+        required : [ _cell_length_a ]
+        optional : [ _atom_site_fract_y ]
       - name: input_test2
-        required : [
-          _invalid_keyword, _atom_site_fract_x
-        ]
+        required : [ _invalid_keyword, _atom_site_fract_x ]
       - name: output_test
-        required : [
-          _test_value_with_su
-        ]
-        optional : [
-          _test_loop_id
-        ]
+        required : [ _test_value_with_su ]
+        optional : [ _test_loop_id ]
 
     commands :
       - name: process_cif
@@ -649,9 +639,10 @@ def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yam
 def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
     output_cif_path = tmp_path / "output_test_data.cif"
 
-    cif_file_to_unified_by_yml(
+    cif_file_merge_to_unified_by_yml(
         input_cif_path=test_cif_file_merged,
         output_cif_path=output_cif_path,
+        merge_cif_path=None,
         yml_path=mock_yaml_file,
         command="process_cif",
     )
@@ -691,9 +682,10 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
     test_cif_file_merged.write_text(new_cif_content, encoding="UTF-8")
 
     with pytest.raises(ValueError):
-        cif_file_to_unified_by_yml(
+        cif_file_merge_to_unified_by_yml(
             input_cif_path=test_cif_file_merged,
             output_cif_path=output_cif_path,
+            merge_cif_path=None,
             yml_path=mock_yaml_file,
             command="process_cif",
         )

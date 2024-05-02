@@ -3,7 +3,6 @@
 
 from collections import namedtuple
 from copy import deepcopy
-from difflib import get_close_matches
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -179,6 +178,39 @@ class EmptyCommandError(BaseException):
     """
 
 
+class UnnamedParameterError(BaseException):
+    """
+    Exception raised when a parameter in a command in the YAML configuration is missing a name entry.
+
+    Attributes
+    ----------
+    message : str
+        Explanation of the error
+    """
+
+
+class UnknownParameterError(BaseException):
+    """
+    Exception raised when a parameter is not found in a command in the YAML configuration.
+
+    Attributes
+    ----------
+    message : str
+        Explanation of the error
+    """
+
+
+class EmptyParameterError(BaseException):
+    """
+    Exception raised when a parameter is found in a command in the YAML configuration but has no content.
+
+    Attributes
+    ----------
+    message : str
+        Explanation of the error
+    """
+
+
 class NonExistentEntrySetError(BaseException):
     """
     Exception raised when a keyword set is referenced in the YAML configuration but does not exist.
@@ -202,30 +234,7 @@ class InvalidEntrySetError(BaseException):
     """
 
 
-class MissingSectionError(BaseException):
-    """
-    Exception raised when cif_input or cif_output is missing in a command in the YAML configuration.
-
-    Attributes
-    ----------
-    message : str
-        Explanation of the error
-    """
-
-
-class InvalidSectionEntryError(BaseException):
-    """
-    Exception raised when an invalid entry is found in the cif_input or cif_output section of a command
-    in the YAML configuration.
-
-    Attributes
-    ----------
-    message : str
-        Explanation of the error
-    """
-
-
-def command_dict_from_yml(yml_dict: Dict[str, Any], command: str) -> Dict[str, Any]:
+def command_parameter_dict_from_yml(yml_dict: Dict[str, Any], command: str, parameter: str) -> Dict[str, Any]:
     """
     Returns the command dictionary for a given command from a YAML configuration dictionary.
 
@@ -247,15 +256,23 @@ def command_dict_from_yml(yml_dict: Dict[str, Any], command: str) -> Dict[str, A
         If the specified command is not found in the YAML configuration.
     """
     try:
-        selected_command = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command).copy()
-        selected_command.pop("name")
-        if len(selected_command) == 0:
+        selected_command = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
+        if len(selected_command) == 1:
             raise EmptyCommandError(f"Command {command} has no content.")
-        return selected_command
     except StopIteration as exc:
         raise UnknownCommandError(f"Command {command} not found in yml_dict.") from exc
     except KeyError as exc:
         raise UnnamedCommandError("One or more commands are missing a name entry in the yml_dict.") from exc
+    try:
+        selected_parameter = next(par for par in selected_command["parameters"] if par["name"] == parameter).copy()
+        selected_parameter.pop("name")
+        if len(selected_parameter) == 0:
+            raise EmptyParameterError(f"Parameter {parameter} of command {command} has no content.")
+        return selected_parameter
+    except StopIteration as exc:
+        raise UnknownParameterError(f"Parameter {parameter} not found in command {command}.") from exc
+    except KeyError as exc:
+        raise UnnamedParameterError("One or more parameters are missing a name entry in the yml_dict.") from exc
 
 
 def cif_entry_sets_from_yml(yml_dict: Dict[str, Any]) -> Dict[str, Dict[str, List[str]]]:
@@ -320,8 +337,8 @@ def cif_entries_from_entry_set(
     return required, optional
 
 
-def cif_entries_from_yml_section(
-    io_section: Dict[str, Any], entry_sets: Dict[str, Dict[str, List[str]]]
+def cif_entries_from_parameter_dict(
+    parameter_dict: Dict[str, Any], entry_sets: Dict[str, Dict[str, List[str]]]
 ) -> Tuple[List[str], List[str], List[str]]:
     """
     Extracts required and optional CIF entries from a YAML configuration section.
@@ -351,23 +368,23 @@ def cif_entries_from_yml_section(
         "optional_entry_sets",
         "optional_entries",
     )
-    if not any(entry in io_section for entry in possible_entries):
+    if not any(entry in parameter_dict for entry in possible_entries):
         raise NoKeywordsError("No entries defining optional or necessary keywords found.")
 
-    required_kws = io_section.get("required_entries", [])
-    optional_kws = io_section.get("optional_entries", [])
+    required_kws = parameter_dict.get("required_entries", [])
+    optional_kws = parameter_dict.get("optional_entries", [])
 
-    required, optional = cif_entries_from_entry_set(io_section.get("required_entry_sets", []), entry_sets)
+    required, optional = cif_entries_from_entry_set(parameter_dict.get("required_entry_sets", []), entry_sets)
     required_kws += required
     optional_kws += optional
 
     # for optional entry sets required entries are optional as well
-    required, optional = cif_entries_from_entry_set(io_section.get("optional_entry_sets", []), entry_sets)
+    required, optional = cif_entries_from_entry_set(parameter_dict.get("optional_entry_sets", []), entry_sets)
     optional_kws += required
     optional_kws += optional
 
     optional_kws = (kw for kw in optional_kws if kw not in required_kws)
-    custom_categories = io_section.get("custom_categories", [])
+    custom_categories = parameter_dict.get("custom_categories", [])
 
     return (list(set(entries)) for entries in (required_kws, optional_kws, custom_categories))
 
@@ -391,7 +408,7 @@ merge_su : bool
 """
 
 
-def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCifInputSettings:
+def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str, parameter) -> YmlCifInputSettings:
     """
     Extracts required and optional cif_entries for a given command from a YAML configuration
     dictionary.
@@ -414,44 +431,19 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCif
         indicating whether standard uncertainties should be merged.
     """
     entry_sets = cif_entry_sets_from_yml(yml_dict)
-    command_dict = command_dict_from_yml(yml_dict, command)
+    parameter_dict = command_parameter_dict_from_yml(yml_dict, command, parameter)
+
     try:
-        input_section = command_dict["cif_input"]
-    except KeyError as exc:
-        raise MissingSectionError(f"No cif_input section found in command {command}.") from exc
-
-    possible_entries = (
-        "required_entry_sets",
-        "required_entries",
-        "optional_entry_sets",
-        "optional_entries",
-        "custom_categories",
-        "merge_su",
-    )
-    invalid_entries = [entry for entry in input_section if entry not in possible_entries]
-
-    if len(invalid_entries) > 0:
-        entry_strings = []
-        for entry in invalid_entries:
-            close_matches = get_close_matches(entry, possible_entries, n=3)
-            if len(close_matches) > 0:
-                entry_strings.append(f"Invalid entry is '{entry}'. Did you mean '{close_matches[0]}'?")
-            else:
-                entry_strings.append(f"Invalid entry is '{entry}'.")
-        raise InvalidSectionEntryError(
-            f"Found one or more invalid setting entries in cif_input section of command {command}:\n"
-            + "\n".join(entry_strings)
+        required_entries, optional_entries, custom_categories = cif_entries_from_parameter_dict(
+            parameter_dict, entry_sets
         )
-
-    try:
-        required_entries, optional_entries, custom_categories = cif_entries_from_yml_section(input_section, entry_sets)
     except NoKeywordsError as exc:
         raise NoKeywordsError(
-            f"Command {command} has no entries defining optional or necessary keywords"
-            + " in section cif_input of the yml_dict."
+            f"Parameter {parameter} of command {command} has no entries defining optional"
+            + "or necessary keywords in the yml_dict."
         ) from exc
 
-    merge_su = command_dict["cif_input"].get("merge_su", False)
+    merge_su = parameter_dict.get("merge_su", False)
 
     return YmlCifInputSettings(required_entries, optional_entries, custom_categories, merge_su)
 
@@ -479,7 +471,7 @@ select_block : str
 """
 
 
-def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCifOutputSettings:
+def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str, parameter: str) -> YmlCifOutputSettings:
     """
     Extracts required and optional cif_entries for a given command from a YAML configuration
     dictionary.
@@ -502,52 +494,25 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str) -> YmlCi
         and a block number or string to select from the new/work CIF file.
     """
     entry_sets = cif_entry_sets_from_yml(yml_dict)
-    command_dict = command_dict_from_yml(yml_dict, command)
+    parameter_dict = command_parameter_dict_from_yml(yml_dict, command, parameter)
+
     try:
-        output_section = command_dict["cif_output"]
-    except KeyError as exc:
-        raise MissingSectionError(f"No cif_output section found in command {command}.") from exc
-
-    possible_entries = (
-        "required_entry_sets",
-        "required_entries",
-        "optional_entry_sets",
-        "optional_entries",
-        "custom_categories",
-        "invalidated_entry_sets",
-        "invalidated_entries",
-        "select_block",
-    )
-    invalid_entries = [entry for entry in output_section if entry not in possible_entries]
-
-    if len(invalid_entries) > 0:
-        entry_strings = []
-        for entry in invalid_entries:
-            close_matches = get_close_matches(entry, possible_entries, n=3)
-            if len(close_matches) > 0:
-                entry_strings.append(f"Invalid entry is '{entry}'. Did you mean '{close_matches[0]}'?")
-            else:
-                entry_strings.append(f"Invalid entry is '{entry}'.")
-        raise InvalidSectionEntryError(
-            f"Found one or more invalid setting entries in cif_output section of command {command}:\n"
-            + "\n".join(entry_strings)
+        required_entries, optional_entries, custom_categories = cif_entries_from_parameter_dict(
+            parameter_dict, entry_sets
         )
-
-    try:
-        required_entries, optional_entries, custom_categories = cif_entries_from_yml_section(output_section, entry_sets)
     except NoKeywordsError as exc:
         raise NoKeywordsError(
             f"Command {command} has no entries defining optional or necessary keywords"
             + " in section cif_output of the yml_dict."
         ) from exc
 
-    invalidated_kws = output_section.get("invalidated_entries", [])
-    required, optional = cif_entries_from_entry_set(output_section.get("invalidated_entry_sets", []), entry_sets)
+    invalidated_kws = parameter_dict.get("invalidated_entries", [])
+    required, optional = cif_entries_from_entry_set(parameter_dict.get("invalidated_entry_sets", []), entry_sets)
     invalidated_kws += required
     invalidated_kws += optional
     invalidated_kws = list(set(invalidated_kws))
 
-    select_block = output_section.get("select_block", "0")
+    select_block = parameter_dict.get("select_block", "0")
 
     return YmlCifOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
 
@@ -557,10 +522,11 @@ def cif_file_to_specific_by_yml(
     output_cif_path: Union[str, Path],
     yml_path: Union[str, Path],
     command: str,
+    parameter: str,
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, applying
-    specified keyword transformations defined in a commands "cif_input" section and standard
+    specified keyword transformations defined in a commands parameter as well as its standard
     uncertainty merge settings.
 
     Parameters
@@ -582,7 +548,7 @@ def cif_file_to_specific_by_yml(
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
 
-    yml_input_settings = cif_input_entries_from_yml(yml_dict, command)
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
 
     cif_file_to_specific(
         input_cif_path,
@@ -600,6 +566,7 @@ def cif_file_merge_to_unified_by_yml(
     merge_cif_path: Union[str, Path],
     yml_path: Union[str, Path],
     command: str,
+    parameter: str,
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, reducing
@@ -631,7 +598,7 @@ def cif_file_merge_to_unified_by_yml(
     """
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
-    yml_output_settings = cif_output_entries_from_yml(yml_dict, command)
+    yml_output_settings = cif_output_entries_from_yml(yml_dict, command, parameter)
 
     input_cif = read_cif_safe(input_cif_path)
     # dataset name will be overwritten if merge_cif is not None

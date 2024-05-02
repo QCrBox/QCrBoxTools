@@ -11,15 +11,16 @@ import pytest
 
 from qcrboxtools.cif.cif2cif import (
     EmptyCommandError,
+    EmptyParameterError,
     InvalidEntrySetError,
-    InvalidSectionEntryError,
-    MissingSectionError,
     NoKeywordsError,
     NonExistentEntrySetError,
     UnknownCommandError,
+    UnknownParameterError,
     UnnamedCommandError,
+    UnnamedParameterError,
     cif_entries_from_entry_set,
-    cif_entries_from_yml_section,
+    cif_entries_from_parameter_dict,
     cif_entry_sets_from_yml,
     cif_file_merge_to_unified_by_yml,
     cif_file_to_specific,
@@ -27,7 +28,7 @@ from qcrboxtools.cif.cif2cif import (
     cif_file_to_unified,
     cif_input_entries_from_yml,
     cif_output_entries_from_yml,
-    command_dict_from_yml,
+    command_parameter_dict_from_yml,
 )
 
 
@@ -234,40 +235,42 @@ def test_cif_file_to_specific_all_unified_su(test_cif_file_unmerged, tmp_path):
     assert "_cell_length_a" not in output_content, "Renaming should be skipped entirely"
 
 
-def test_command_dict_from_yml():
+def test_command_parameter_dict_from_yml():
     """Test extraction of command dictionary from a YAML file."""
     yml_dict = {
         "commands": [
-            {"name": "not_this_one"},
+            {
+                "name": "not_this_one",
+                "parameters": [
+                    {
+                        "name": "test_parameter",
+                        "required_entries": ["_cell_length_c"],
+                        "optional_entries": ["_cell_angle_alpha"],
+                    },
+                ],
+            },
             {
                 "name": "process_cif",
-                "cif_input": {
-                    "required_entries": ["_cell_length_a"],
-                    "optional_entries": ["_cell_length_b"],
-                },
-                "cif_output": {
-                    "required_entries": ["_cell_length_c"],
-                    "optional_entries": ["_cell_angle_alpha"],
-                },
+                "parameters": [
+                    {
+                        "name": "test_parameter",
+                        "required_entries": ["_cell_length_a"],
+                        "optional_entries": ["_cell_length_b"],
+                    },
+                ],
             },
         ]
     }
-    command_dict = command_dict_from_yml(yml_dict, "process_cif")
-    assert command_dict == {
-        "cif_input": {
-            "required_entries": ["_cell_length_a"],
-            "optional_entries": ["_cell_length_b"],
-        },
-        "cif_output": {
-            "required_entries": ["_cell_length_c"],
-            "optional_entries": ["_cell_angle_alpha"],
-        },
+    parameter_dict = command_parameter_dict_from_yml(yml_dict, "process_cif", "test_parameter")
+    assert parameter_dict == {
+        "required_entries": ["_cell_length_a"],
+        "optional_entries": ["_cell_length_b"],
     }, "Failed to extract command dictionary"
 
-    assert "name" in yml_dict["commands"][1], "Name was deleted from yml dictionary"
+    assert "name" in yml_dict["commands"][1]["parameters"][0], "Name was deleted from yml dictionary"
 
 
-def test_command_dict_from_yml_unkown_command():
+def test_command_parameter_dict_from_yml_unkown_command():
     """Test that an error is raised if an unknown command is requested."""
     yml_dict = {
         "commands": [
@@ -277,10 +280,10 @@ def test_command_dict_from_yml_unkown_command():
         ]
     }
     with pytest.raises(UnknownCommandError):
-        command_dict_from_yml(yml_dict, "unknown_command")
+        command_parameter_dict_from_yml(yml_dict, "unknown_command", "something")
 
 
-def test_command_dict_invalid_command():
+def test_command_parameter_dict_invalid_command():
     """Test that an error is raised if a command is missing a name."""
     yml_dict = {
         "commands": [
@@ -288,10 +291,10 @@ def test_command_dict_invalid_command():
         ]
     }
     with pytest.raises(UnnamedCommandError):
-        command_dict_from_yml(yml_dict, "process_cif")
+        command_parameter_dict_from_yml(yml_dict, "process_cif", "something")
 
 
-def test_command_dict_from_yml_empty_command():
+def test_command_parameter_dict_from_yml_empty_command():
     """Test that an error is raised if a command is empty."""
     yml_dict = {
         "commands": [
@@ -301,7 +304,62 @@ def test_command_dict_from_yml_empty_command():
         ]
     }
     with pytest.raises(EmptyCommandError):
-        command_dict_from_yml(yml_dict, "empty_command")
+        command_parameter_dict_from_yml(yml_dict, "empty_command", "something")
+
+
+def test_command_parameter_dict_from_yml_unknown_parameter():
+    """Test that an error is raised if an unknown parameter is requested."""
+    yml_dict = {
+        "commands": [
+            {
+                "name": "process_cif",
+                "parameters": [
+                    {
+                        "name": "test_parameter",
+                        "required_entries": ["_cell_length_a"],
+                        "optional_entries": ["_cell_length_b"],
+                    },
+                ],
+            },
+        ]
+    }
+    with pytest.raises(UnknownParameterError):
+        command_parameter_dict_from_yml(yml_dict, "process_cif", "unknown_parameter")
+
+
+def test_command_parameter_dict_from_yml_invalid_parameter():
+    """Test that an error is raised if a parameter is missing a name."""
+    yml_dict = {
+        "commands": [
+            {
+                "name": "process_cif",
+                "parameters": [
+                    {
+                        "required_entries": ["_cell_length_a"],
+                        "optional_entries": ["_cell_length_b"],
+                    },
+                ],
+            },
+        ]
+    }
+    with pytest.raises(UnnamedParameterError):
+        command_parameter_dict_from_yml(yml_dict, "process_cif", "something")
+
+
+def test_command_parameter_dict_from_yml_empty_parameter():
+    """Test that an error is raised if a parameter is empty."""
+    yml_dict = {
+        "commands": [
+            {
+                "name": "empty_command",
+                "parameters": [
+                    {"name": "empty_parameter"},
+                ],
+            },
+        ]
+    }
+    with pytest.raises(EmptyParameterError):
+        command_parameter_dict_from_yml(yml_dict, "empty_command", "empty_parameter")
 
 
 def test_cif_entry_sets_from_yml():
@@ -391,7 +449,7 @@ def test_cif_entries_from_entry_set_nonexistent_set():
         cif_entries_from_entry_set(["nonexistent_set"], entry_sets)
 
 
-def test_cif_entries_from_yml_section():
+def test_cif_entries_from_parameter_dict():
     entry_sets = {
         "test_set1": {
             "required": ["_cell_length_a", "_cell_length_b"],
@@ -404,7 +462,7 @@ def test_cif_entries_from_yml_section():
         },
     }
 
-    io_section = {
+    parameter_dict = {
         "required_entry_sets": ["test_set1"],
         "optional_entry_sets": ["test_set2"],
         "required_entries": ["_cell_angle_alpha"],
@@ -412,7 +470,7 @@ def test_cif_entries_from_yml_section():
         "custom_categories": ["custom"],
     }
 
-    required, optional, categories = cif_entries_from_yml_section(io_section, entry_sets)
+    required, optional, categories = cif_entries_from_parameter_dict(parameter_dict, entry_sets)
     required_correct = ["_cell_length_a", "_cell_length_b", "_cell_angle_alpha"]
     optional_correct = [
         "_atom_site_fract_x",
@@ -427,15 +485,15 @@ def test_cif_entries_from_yml_section():
     assert sorted(categories) == sorted(categories_correct), "Failed to extract categories"
 
 
-def test_cif_entries_from_yml_section_no_kws():
+def test_cif_entries_from_parameter_dict_no_kws():
     """Test that an error is raised if a non-existent entry set is requested."""
     entry_sets = {}
 
-    io_section = {
+    parameter_dict = {
         "custom_categories": ["custom"],
     }
     with pytest.raises(NoKeywordsError):
-        cif_entries_from_yml_section(io_section, entry_sets)
+        cif_entries_from_parameter_dict(parameter_dict, entry_sets)
 
 
 def test_cif_input_entries_from_yml():
@@ -444,24 +502,27 @@ def test_cif_input_entries_from_yml():
         "commands": [
             {
                 "name": "process_cif",
-                "cif_input": {
-                    "required_entries": ["_cell_length_a"],
-                    "optional_entries": ["_cell_length_b"],
-                },
+                "parameters": [
+                    {
+                        "name": "test_parameter",
+                        "required_entries": ["_cell_length_a"],
+                        "optional_entries": ["_cell_length_b"],
+                    },
+                ],
             }
         ]
     }
-    yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif")
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif", "test_parameter")
     # required, optional, custom_categories, merge_su = cif_input_entries_from_yml(yml_dict, "process_cif")
     assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_input_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     assert yml_input_settings.custom_categories == [], "Failed to extract custom categories"
     assert yml_input_settings.merge_su is False, "Failed to extract merge_su"
 
-    yml_dict["commands"][0]["cif_input"]["merge_su"] = True
-    yml_dict["commands"][0]["cif_input"]["custom_categories"] = ["custom"]
+    yml_dict["commands"][0]["parameters"][0]["merge_su"] = True
+    yml_dict["commands"][0]["parameters"][0]["custom_categories"] = ["custom"]
 
-    yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif")
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, "process_cif", "test_parameter")
     assert yml_input_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_input_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     assert yml_input_settings.custom_categories == ["custom"], "Failed to extract custom categories"
@@ -474,27 +535,16 @@ def test_cif_input_entries_from_yml_exceptions():
         "commands": [
             {
                 "name": "process_cif",
-                "cif_output": {"required_entries": ["_cell_length_a"]},
+                "parameters": [
+                    {"name": "test_input_parameter", "merge_su": True},
+                ],
             }
         ]
     }
-    with pytest.raises(MissingSectionError):
-        cif_input_entries_from_yml(yml_dict, "process_cif")
-
-    yml_dict["commands"][0]["cif_input"] = {"merge_su": True}
 
     with pytest.raises(NoKeywordsError) as excinfo:
-        cif_input_entries_from_yml(yml_dict, "process_cif")
+        cif_input_entries_from_yml(yml_dict, "process_cif", "test_input_parameter")
     assert "process_cif" in str(excinfo.value), "Command name not included in error message"
-
-    yml_dict["commands"][0]["cif_input"]["required_entries"] = ["_cell_length_a"]
-    yml_dict["commands"][0]["cif_input"]["merge_sus"] = True  # Typo to catch
-    yml_dict["commands"][0]["cif_input"]["something arbitrary"] = ["_cell_length_c"]
-
-    with pytest.raises(InvalidSectionEntryError) as excinfo:
-        cif_input_entries_from_yml(yml_dict, "process_cif")
-    assert "'merge_su'" in str(excinfo.value), "Closest correct not included in error message"
-    assert "'something arbitrary'" in str(excinfo.value), "Keyword without close match not included in error message"
 
 
 def test_cif_output_entries_from_yml():
@@ -503,13 +553,16 @@ def test_cif_output_entries_from_yml():
         "commands": [
             {
                 "name": "process_cif",
-                "cif_output": {
-                    "required_entries": ["_cell_length_a"],
-                    "optional_entries": ["_cell_length_b"],
-                    "invalidated_entries": ["_cell_length_c"],
-                    "invalidated_entry_sets": ["invalid_test"],
-                    "custom_categories": ["custom"],
-                },
+                "parameters": [
+                    {
+                        "name": "test_output_parameter",
+                        "required_entries": ["_cell_length_a"],
+                        "optional_entries": ["_cell_length_b"],
+                        "invalidated_entries": ["_cell_length_c"],
+                        "invalidated_entry_sets": ["invalid_test"],
+                        "custom_categories": ["custom"],
+                    },
+                ],
             }
         ],
         "cif_entry_sets": [
@@ -520,7 +573,7 @@ def test_cif_output_entries_from_yml():
             }
         ],
     }
-    yml_output_settings = cif_output_entries_from_yml(yml_dict, "process_cif")
+    yml_output_settings = cif_output_entries_from_yml(yml_dict, "process_cif", "test_output_parameter")
     assert yml_output_settings.required_entries == ["_cell_length_a"], "Failed to extract required entries"
     assert yml_output_settings.optional_entries == ["_cell_length_b"], "Failed to extract optional entries"
     correct_invalid = ["_cell_length_c", "_cell_volume", "_cell_angle_alpha"]
@@ -530,8 +583,8 @@ def test_cif_output_entries_from_yml():
     assert yml_output_settings.custom_categories == ["custom"], "Failed to extract custom categories"
     assert yml_output_settings.select_block == "0", "Failed to extract default output block value"
 
-    yml_dict["commands"][0]["cif_output"]["select_block"] = "test_block"
-    yml_output_settings = cif_output_entries_from_yml(yml_dict, "process_cif")
+    yml_dict["commands"][0]["parameters"][0]["select_block"] = "test_block"
+    yml_output_settings = cif_output_entries_from_yml(yml_dict, "process_cif", "test_output_parameter")
     assert yml_output_settings.select_block == "test_block", "Failed to extract output block value"
 
 
@@ -541,28 +594,14 @@ def test_cif_output_entries_from_yml_exceptions():
         "commands": [
             {
                 "name": "process_cif",
-                "cif_input": {"required_entries": ["_cell_length_a"]},  # Not an empty command but missing output
+                "parameters": [{"name": "test_output_parameter", "invalidated_entries": ["_cell_length_a"]}],
             }
         ]
     }
-    with pytest.raises(MissingSectionError):
-        cif_output_entries_from_yml(yml_dict, "process_cif")
-
-    yml_dict["commands"][0]["cif_output"] = {"invalidated_entries": ["_cell_length_a"]}
 
     with pytest.raises(NoKeywordsError) as excinfo:
-        cif_output_entries_from_yml(yml_dict, "process_cif")
+        cif_output_entries_from_yml(yml_dict, "process_cif", "test_output_parameter")
     assert "process_cif" in str(excinfo.value), "Command name not included in error message"
-
-    yml_dict["commands"][0]["cif_output"]["required_entries"] = ["_cell_length_a"]
-    yml_dict["commands"][0]["cif_output"]["invalid_entries"] = ["_cell_length_c"]  # Typo to catch
-    yml_dict["commands"][0]["cif_output"]["something arbitrary"] = ["_cell_length_c"]
-
-    with pytest.raises(InvalidSectionEntryError) as excinfo:
-        cif_output_entries_from_yml(yml_dict, "process_cif")
-
-    assert "'invalidated_entries'" in str(excinfo.value), "Closest correct keyword not included in error message"
-    assert "'something arbitrary'" in str(excinfo.value), "Keyword without close match not included in error message"
 
 
 @pytest.fixture(name="mock_yaml_file")
@@ -583,19 +622,22 @@ def fixture_mock_yaml_file(tmp_path):
 
     commands :
       - name: process_cif
-        cif_input:
-          merge_su: Yes
-          custom_categories: [test_value, test_loop]
-          required_entry_sets: [input_test1]
-          optional_entry_sets: [input_test2]
-          required_entries: [_cell_length_b]
-          optional_entries: [_atom_site_label]
-        cif_output:
-          custom_categories: [test_value, test_loop]
-          required_entry_sets: [output_test]
-          required_entries: [_test_loop_value_without_su]
-          optional_entries: [_nonexistent_keyword]
-          invalidated_entries: [_test_value_invalidated, _test_loop_value_invalidated]
+        parameters :
+          - name: "input_cif_path"
+            type: "QCrBox.input_cif"
+            merge_su: Yes
+            custom_categories: [test_value, test_loop]
+            required_entry_sets: [input_test1]
+            optional_entry_sets: [input_test2]
+            required_entries: [_cell_length_b]
+            optional_entries: [_atom_site_label]
+          - name: "output_cif_path"
+            type: "QCrBox.output_cif"
+            custom_categories: [test_value, test_loop]
+            required_entry_sets: [output_test]
+            required_entries: [_test_loop_value_without_su]
+            optional_entries: [_nonexistent_keyword]
+            invalidated_entries: [_test_value_invalidated, _test_loop_value_invalidated]
     """)
     yml_path.write_text(yml_content)
 
@@ -610,6 +652,7 @@ def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp
         output_cif_path=output_cif_path,
         yml_path=mock_yaml_file,
         command="process_cif",
+        parameter="input_cif_path",
     )
 
     # Read the output CIF content
@@ -623,18 +666,6 @@ def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp
     for pattern in search_patterns:
         assert re.search(pattern, output_content) is not None
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
-
-
-def test_cif_file_to_specific_by_yml_no_command(test_cif_file_unmerged, mock_yaml_file, tmp_path):
-    output_cif_path = tmp_path / "output.cif"
-
-    with pytest.raises(UnknownCommandError):
-        cif_file_to_specific_by_yml(
-            input_cif_path=test_cif_file_unmerged,
-            output_cif_path=output_cif_path,
-            yml_path=mock_yaml_file,
-            command="nonexistent_command",
-        )
 
 
 def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
@@ -663,6 +694,7 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
         merge_cif_path=merge_cif_path,
         yml_path=mock_yaml_file,
         command="process_cif",
+        parameter="output_cif_path",
     )
 
     # Read the output CIF content
@@ -717,6 +749,7 @@ def test_cif_file_to_unified_by_yml_no_merge(test_cif_file_merged, mock_yaml_fil
         merge_cif_path=None,
         yml_path=mock_yaml_file,
         command="process_cif",
+        parameter="output_cif_path",
     )
 
     # Read back the output file and verify its content
@@ -760,6 +793,7 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
             merge_cif_path=None,
             yml_path=mock_yaml_file,
             command="process_cif",
+            parameter="output_cif_path",
         )
 
 
@@ -793,7 +827,7 @@ def test_cli_command_keyword(test_cif_file_unmerged, tmp_path):
 
 def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_path):
     command = "specific_by_yml"
-    args = [str(mock_yaml_file), "process_cif"]
+    args = [str(mock_yaml_file), "process_cif", "input_cif_path"]
     expected_output_patterns = [
         r"_cell_length_a\s+10.00\(3\)",
         r"_cell_length_b\s+20.00\(2\)",
@@ -845,7 +879,7 @@ def test_cli_command_unify(test_cif_file_merged, tmp_path):
 
 def test_cli_command_unify_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
     command = "unified_by_yml"
-    args = [str(mock_yaml_file), "process_cif"]
+    args = [str(mock_yaml_file), "process_cif", "output_cif_path"]
     expected_output_patterns = [
         "data_test",
         r"_test_value.with_su\s+1\.23",

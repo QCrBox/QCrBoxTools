@@ -73,6 +73,9 @@ def main():
     parser_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
     parser_yml.add_argument("yml_command", type=str, help="Command within the YAML file for processing.")
+    parser_yml.add_argument(
+        "yml_cmd_parameter", type=str, help="Command parameter within the YAML file for processing."
+    )
 
     # Parser for cif_file_unified_yml_instr
     parser_unified_by_yml = subparsers.add_parser(
@@ -86,6 +89,9 @@ def main():
     parser_unified_by_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
     parser_unified_by_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
     parser_unified_by_yml.add_argument("yml_command", type=str, help="Command within the YAML file for processing.")
+    parser_unified_by_yml.add_argument(
+        "yml_cmd_parameter", type=str, help="Command parameter within the YAML file for processing."
+    )
 
     # Parser for cif_file_to_specific
     parser_to_specific = subparsers.add_parser(
@@ -140,10 +146,12 @@ def main():
 
     # Handling function calls based on command
     if args.command == "specific_by_yml":
-        cif_file_to_specific_by_yml(args.input_cif_path, args.output_cif_path, args.yml_path, args.yml_command)
+        cif_file_to_specific_by_yml(
+            args.input_cif_path, args.output_cif_path, args.yml_path, args.yml_command, args.yml_cmd_parameter
+        )
     elif args.command == "unified_by_yml":
         cif_file_merge_to_unified_by_yml(
-            args.input_cif_path, args.output_cif_path, None, args.yml_path, args.yml_command
+            args.input_cif_path, args.output_cif_path, None, args.yml_path, args.yml_command, args.yml_cmd_parameter
         )
     elif args.command == "to_unified":
         cif_file_to_unified(

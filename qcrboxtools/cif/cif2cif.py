@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 from collections import namedtuple
+from collections.abc import Mapping
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -516,6 +517,62 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str, paramete
 
     return YmlCifOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
 
+def resolve_special_entries(entries: List[Union[Dict[str, str]], str], block: cif.model.block):
+    """
+    Resolves the 'one_of' entries in a list of entries by checking if one of the values
+    in the 'one_of' list is present in the block.
+
+    Parameters
+    ----------
+    entries : list
+        A list of entries to resolve.
+    block : cif.model.block
+        The block to check for the presence of values in the 'one_of' lists.
+
+    """
+    def resolve_single_entry(entry):
+        if isinstance(entry, Mapping):
+            for value in entry['one_of']:
+                if isinstance(value, str):
+                    if value in block:
+                        return [value]
+                elif isinstance(value, list):
+                    if all(v in block for v in value):
+                        return value
+            raise ValueError(f"None of the values in {entry['one_of']} found in block")
+        return entry
+    unflattened = [resolve_single_entry(entry) for entry in entries]
+    return [item for sublist in unflattened for item in sublist]
+
+def yml_entries_resolve_special(
+        yml_entry: Union[YmlCifInputSettings, YmlCifOutputSettings],
+        cif_block: cif.model.block
+    ):
+    """
+    Resolves the 'one_of' entries in a YmlCifInputSettings or YmlCifOutputSettings by checking if one of the values
+    in the 'one_of' list is present in the block.
+
+    Parameters
+    ----------
+    yml_entry : Union[YmlCifInputSettings, YmlCifOutputSettings]
+        The YmlCifInputSettings or YmlCifOutputSettings to resolve.
+    cif_block : cif.model.block
+        The block to check for the presence of values in the 'one_of' lists.
+
+    Returns
+    -------
+    Union[YmlCifInputSettings, YmlCifOutputSettings]
+        The resolved YmlCifInputSettings or YmlCifOutputSettings.
+    """
+    resolved_required_entries = resolve_special_entries(yml_entry.required_entries, cif_block)
+    resolved_optional_entries = resolve_special_entries(yml_entry.optional_entries, cif_block)
+
+    if isinstance(yml_entry, YmlCifOutputSettings):
+        return YmlCifOutputSettings(
+            resolved_required_entries, resolved_optional_entries, yml_entry.resolved_invalidated_entries, yml_entry.custom_categories, yml_entry.select_block
+        )
+    return YmlCifInputSettings(resolved_required_entries, resolved_optional_entries, yml_entry.custom_categories, yml_entry.merge_su)
+
 
 def cif_file_to_specific_by_yml(
     input_cif_path: Union[str, Path],
@@ -549,6 +606,8 @@ def cif_file_to_specific_by_yml(
         yml_dict = yaml.safe_load(fobj)
 
     yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
+
+    yml_input_settings = yml_entries_resolve_special(yml_input_settings, read_cif_safe(input_cif_path))
 
     cif_file_to_specific(
         input_cif_path,
@@ -599,6 +658,8 @@ def cif_file_merge_to_unified_by_yml(
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
     yml_output_settings = cif_output_entries_from_yml(yml_dict, command, parameter)
+
+    yml_output_settings = yml_entries_resolve_special(yml_output_settings, read_cif_safe(input_cif_path))
 
     input_cif = read_cif_safe(input_cif_path)
     # dataset name will be overwritten if merge_cif is not None

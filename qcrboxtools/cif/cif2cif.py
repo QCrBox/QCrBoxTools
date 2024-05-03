@@ -237,7 +237,7 @@ class InvalidEntrySetError(BaseException):
 
 def command_parameter_dict_from_yml(yml_dict: Dict[str, Any], command: str, parameter: str) -> Dict[str, Any]:
     """
-    Returns the command dictionary for a given command from a YAML configuration dictionary.
+    Returns the parameter dictionary for a given command parameter from a YAML configuration dictionary.
 
     Parameters
     ----------
@@ -245,16 +245,28 @@ def command_parameter_dict_from_yml(yml_dict: Dict[str, Any], command: str, para
         The dictionary obtained from parsing the YAML configuration file.
     command : str
         The command name to look up in the YAML dictionary for extracting the command dictionary.
+    parameter : str
+        The parameter name to look up in the YAML dictionary for extracting the parameter dictionary.
 
     Returns
     -------
     dict
-        The command dictionary for the specified command.
+        The command dictionary for the specified command parameter.
 
     Raises
     ------
-    KeyError
-        If the specified command is not found in the YAML configuration.
+    UnknownCommandError
+        If the command is not found in the YAML configuration.
+    EmptyCommandError
+        If the command is found in the YAML configuration but has no content.
+    UnnamedCommandError
+        If a command in the YAML configuration is missing a name entry.
+    UnknownParameterError
+        If the parameter is not found in the command in the YAML configuration.
+    EmptyParameterError
+        If the parameter is found in the command in the YAML configuration but has no content.
+    UnnamedParameterError
+        If a parameter in a command in the YAML configuration is missing a name entry.
     """
     try:
         selected_command = next(cmd for cmd in yml_dict["commands"] if cmd["name"] == command)
@@ -384,10 +396,10 @@ def cif_entries_from_parameter_dict(
     optional_kws += required
     optional_kws += optional
 
-    optional_kws = (kw for kw in optional_kws if kw not in required_kws)
-    custom_categories = parameter_dict.get("custom_categories", [])
+    optional_kws = list(kw for kw in optional_kws if kw not in required_kws)
+    custom_categories = list(set(parameter_dict.get("custom_categories", [])))
 
-    return (list(set(entries)) for entries in (required_kws, optional_kws, custom_categories))
+    return required_kws, optional_kws, custom_categories
 
 
 YmlCifInputSettings = namedtuple(
@@ -411,12 +423,12 @@ merge_su : bool
 
 def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str, parameter) -> YmlCifInputSettings:
     """
-    Extracts required and optional cif_entries for a given command from a YAML configuration
+    Extracts required and optional cif_entries for a given command parameter from a YAML configuration
     dictionary.
 
     Parses the YAML configuration dictionary to find and compile lists of required and optional
-    CIF entries specified under a given command. This includes directly specified keywords and those
-    included in keyword sets referenced by the command.
+    CIF entries specified under a given command parameter. This includes directly specified keywords and
+    those included in keyword sets referenced by the command.
 
     Parameters
     ----------
@@ -424,6 +436,8 @@ def cif_input_entries_from_yml(yml_dict: Dict[str, Any], command: str, parameter
         The dictionary obtained from parsing the YAML configuration file.
     command : str
         The command name to look up in the YAML dictionary for extracting CIF entry specifications.
+    parameter : str
+        The parameter name to look up in the YAML dictionary for extracting CIF entry specifications.
 
     Returns
     -------
@@ -474,12 +488,12 @@ select_block : str
 
 def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str, parameter: str) -> YmlCifOutputSettings:
     """
-    Extracts required and optional cif_entries for a given command from a YAML configuration
+    Extracts required and optional cif_entries for a given command parameter from a YAML configuration
     dictionary.
 
     Parses the YAML configuration dictionary to find and compile lists of required and optional
-    CIF entries specified under a given command. This includes directly specified keywords and those
-    included in keyword sets referenced by the command.
+    CIF entries specified under a given command parameter. This includes directly specified keywords
+    and those included in keyword sets referenced by the command.
 
     Parameters
     ----------
@@ -487,6 +501,8 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str, paramete
         The dictionary obtained from parsing the YAML configuration file.
     command : str
         The command name to look up in the YAML dictionary for extracting CIF entry specifications.
+    parameter : str
+        The parameter name to look up in the YAML dictionary for extracting CIF entry specifications.
 
     Returns
     -------
@@ -517,7 +533,22 @@ def cif_output_entries_from_yml(yml_dict: Dict[str, Any], command: str, paramete
 
     return YmlCifOutputSettings(required_entries, optional_entries, invalidated_kws, custom_categories, select_block)
 
-def resolve_special_entries(entries: List[Union[Dict[str, str]], str], block: cif.model.block):
+
+class OneOfEntryNotResolvableError(BaseException):
+    """
+    Exception raised when none of the values in a 'one_of' list are found in the block.
+
+    Attributes
+    ----------
+    message : str
+        Explanation of the error
+    """
+
+def resolve_special_entries(
+    entries: List[Union[Dict[str, str], str]],
+    block: cif.model.block,
+    custom_categories: List[str],
+):
     """
     Resolves the 'one_of' entries in a list of entries by checking if one of the values
     in the 'one_of' list is present in the block.
@@ -528,7 +559,13 @@ def resolve_special_entries(entries: List[Union[Dict[str, str]], str], block: ci
         A list of entries to resolve.
     block : cif.model.block
         The block to check for the presence of values in the 'one_of' lists.
+    custom_categories : list
+        A list of custom categories for keyword conversion, if applicable.
 
+    Returns
+    -------
+    list
+        The resolved entries.
     """
     def resolve_single_entry(entry):
         if isinstance(entry, Mapping):
@@ -536,13 +573,19 @@ def resolve_special_entries(entries: List[Union[Dict[str, str]], str], block: ci
                 if isinstance(value, str):
                     if value in block:
                         return [value]
+                    if entry_to_unified_keyword(value, custom_categories) in block:
+                        return [value]
                 elif isinstance(value, list):
                     if all(v in block for v in value):
                         return value
-            raise ValueError(f"None of the values in {entry['one_of']} found in block")
-        return entry
+                    if all(entry_to_unified_keyword(v, custom_categories) in block for v in value):
+                        return value
+            raise OneOfEntryNotResolvableError(
+                f"None of the values in one_of selection: {entry['one_of']} found in block"
+            )
+        return [entry]
     unflattened = [resolve_single_entry(entry) for entry in entries]
-    return [item for sublist in unflattened for item in sublist]
+    return list(set(item for sublist in unflattened for item in sublist))
 
 def yml_entries_resolve_special(
         yml_entry: Union[YmlCifInputSettings, YmlCifOutputSettings],
@@ -564,14 +607,21 @@ def yml_entries_resolve_special(
     Union[YmlCifInputSettings, YmlCifOutputSettings]
         The resolved YmlCifInputSettings or YmlCifOutputSettings.
     """
-    resolved_required_entries = resolve_special_entries(yml_entry.required_entries, cif_block)
-    resolved_optional_entries = resolve_special_entries(yml_entry.optional_entries, cif_block)
+    resolved_required_entries = resolve_special_entries(
+        yml_entry.required_entries, cif_block, yml_entry.custom_categories
+    )
+    resolved_optional_entries = resolve_special_entries(
+        yml_entry.optional_entries, cif_block, yml_entry.custom_categories
+    )
 
     if isinstance(yml_entry, YmlCifOutputSettings):
         return YmlCifOutputSettings(
-            resolved_required_entries, resolved_optional_entries, yml_entry.resolved_invalidated_entries, yml_entry.custom_categories, yml_entry.select_block
+            resolved_required_entries, resolved_optional_entries, yml_entry.invalidated_entries, yml_entry.custom_categories, yml_entry.select_block
         )
-    return YmlCifInputSettings(resolved_required_entries, resolved_optional_entries, yml_entry.custom_categories, yml_entry.merge_su)
+    elif isinstance(yml_entry, YmlCifInputSettings):
+        return YmlCifInputSettings(resolved_required_entries, resolved_optional_entries, yml_entry.custom_categories, yml_entry.merge_su)
+    else:
+        raise ValueError("yml_entry must be of type YmlCifInputSettings or YmlCifOutputSettings.")
 
 
 def cif_file_to_specific_by_yml(
@@ -596,6 +646,8 @@ def cif_file_to_specific_by_yml(
         The file path to the YAML file containing processing instructions.
     command : str
         The specific command within the YAML file to follow for processing the CIF file.
+    parameter : str
+        The specific parameter within the command to follow for processing the CIF file.
 
     Notes
     -----
@@ -607,7 +659,9 @@ def cif_file_to_specific_by_yml(
 
     yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
 
-    yml_input_settings = yml_entries_resolve_special(yml_input_settings, read_cif_safe(input_cif_path))
+    block, _ = cifdata_str_or_index(read_cif_safe(input_cif_path), "0")
+
+    yml_input_settings = yml_entries_resolve_special(yml_input_settings, block)
 
     cif_file_to_specific(
         input_cif_path,
@@ -629,8 +683,8 @@ def cif_file_merge_to_unified_by_yml(
 ) -> None:
     """
     Processes a CIF file based on instructions defined in a YAML configuration, reducing
-    the CIF content to the unified equivalents of the entries defined in a commands
-    "cif_output" section and merging to a prexisting cif file.
+    the CIF content to the unified equivalents of the entries defined in a command parameter
+    of the "QCrBox.output_cif" type and merging to a prexisting cif file.
 
     Parameters
     ----------
@@ -644,11 +698,8 @@ def cif_file_merge_to_unified_by_yml(
         The file path to the YAML file containing processing instructions.
     command : str
         The specific command within the YAML file to follow for processing the CIF file.
-
-    Raises
-    ------
-    KeyError
-        If the specified command is not found in the YAML configuration.
+    parameter : str
+        The specific parameter within the command to follow for processing the CIF file.
 
     Notes
     -----
@@ -659,8 +710,6 @@ def cif_file_merge_to_unified_by_yml(
         yml_dict = yaml.safe_load(fobj)
     yml_output_settings = cif_output_entries_from_yml(yml_dict, command, parameter)
 
-    yml_output_settings = yml_entries_resolve_special(yml_output_settings, read_cif_safe(input_cif_path))
-
     input_cif = read_cif_safe(input_cif_path)
     # dataset name will be overwritten if merge_cif is not None
     input_block, dataset_name = cifdata_str_or_index(input_cif, yml_output_settings.select_block)
@@ -670,6 +719,8 @@ def cif_file_merge_to_unified_by_yml(
         merge_block, dataset_name = cifdata_str_or_index(
             read_cif_safe(merge_cif_path), "0"
         )  # QCrBox cif files have only one block
+
+    yml_output_settings = yml_entries_resolve_special(yml_output_settings, merge_block)
 
     # Cut down the input block to the required entries and convert to unified keywords
     all_entries = yml_output_settings.required_entries + yml_output_settings.optional_entries

@@ -544,6 +544,7 @@ class OneOfEntryNotResolvableError(BaseException):
         Explanation of the error
     """
 
+
 def resolve_special_entries(
     entries: List[Union[Dict[str, str], str]],
     block: cif.model.block,
@@ -567,9 +568,10 @@ def resolve_special_entries(
     list
         The resolved entries.
     """
+
     def resolve_single_entry(entry):
         if isinstance(entry, Mapping):
-            for value in entry['one_of']:
+            for value in entry["one_of"]:
                 if isinstance(value, str):
                     if value in block:
                         return [value]
@@ -584,13 +586,14 @@ def resolve_special_entries(
                 f"None of the values in one_of selection: {entry['one_of']} found in block"
             )
         return [entry]
+
     unflattened = [resolve_single_entry(entry) for entry in entries]
     return list(set(item for sublist in unflattened for item in sublist))
 
+
 def yml_entries_resolve_special(
-        yml_entry: Union[YmlCifInputSettings, YmlCifOutputSettings],
-        cif_block: cif.model.block
-    ):
+    yml_entry: Union[YmlCifInputSettings, YmlCifOutputSettings], cif_block: cif.model.block
+):
     """
     Resolves the 'one_of' entries in a YmlCifInputSettings or YmlCifOutputSettings by checking if one of the values
     in the 'one_of' list is present in the block.
@@ -616,10 +619,16 @@ def yml_entries_resolve_special(
 
     if isinstance(yml_entry, YmlCifOutputSettings):
         return YmlCifOutputSettings(
-            resolved_required_entries, resolved_optional_entries, yml_entry.invalidated_entries, yml_entry.custom_categories, yml_entry.select_block
+            resolved_required_entries,
+            resolved_optional_entries,
+            yml_entry.invalidated_entries,
+            yml_entry.custom_categories,
+            yml_entry.select_block,
         )
     elif isinstance(yml_entry, YmlCifInputSettings):
-        return YmlCifInputSettings(resolved_required_entries, resolved_optional_entries, yml_entry.custom_categories, yml_entry.merge_su)
+        return YmlCifInputSettings(
+            resolved_required_entries, resolved_optional_entries, yml_entry.custom_categories, yml_entry.merge_su
+        )
     else:
         raise ValueError("yml_entry must be of type YmlCifInputSettings or YmlCifOutputSettings.")
 

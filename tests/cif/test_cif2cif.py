@@ -21,6 +21,8 @@ from qcrboxtools.cif.cif2cif import (
     UnknownParameterError,
     UnnamedCommandError,
     UnnamedParameterError,
+    YmlCifInputSettings,
+    YmlCifOutputSettings,
     cif_entries_from_entry_set,
     cif_entries_from_parameter_dict,
     cif_entry_sets_from_yml,
@@ -33,8 +35,6 @@ from qcrboxtools.cif.cif2cif import (
     command_parameter_dict_from_yml,
     resolve_special_entries,
     yml_entries_resolve_special,
-    YmlCifInputSettings,
-    YmlCifOutputSettings,
 )
 
 
@@ -502,12 +502,15 @@ def test_cif_entries_from_parameter_dict_no_kws():
         cif_entries_from_parameter_dict(parameter_dict, entry_sets)
 
 
-@pytest.mark.parametrize("unified_str", ['_', '.'])
-@pytest.mark.parametrize("entries, expected_output", [
-    ([{'one_of': ['_cell_length_a', '_cell_volume']}], ['_cell_length_a']),
-    ([{'one_of': [['_cell_length_a', '_cell_length_b'], '_cell_volume']}], ['_cell_length_a', '_cell_length_b']),
-    (['_cell_length_c'], ['_cell_length_c']),
-])
+@pytest.mark.parametrize("unified_str", ["_", "."])
+@pytest.mark.parametrize(
+    "entries, expected_output",
+    [
+        ([{"one_of": ["_cell_length_a", "_cell_volume"]}], ["_cell_length_a"]),
+        ([{"one_of": [["_cell_length_a", "_cell_length_b"], "_cell_volume"]}], ["_cell_length_a", "_cell_length_b"]),
+        (["_cell_length_c"], ["_cell_length_c"]),
+    ],
+)
 def test_resolve_special_entries(entries, expected_output, unified_str):
     block = model.block()
     block.add_data_item(f"_cell{unified_str}length_a", 10.0)
@@ -515,54 +518,60 @@ def test_resolve_special_entries(entries, expected_output, unified_str):
     block.add_data_item(f"_cell{unified_str}length_c", 30.0)
     assert sorted(resolve_special_entries(entries, block, [])) == sorted(expected_output)
 
-@pytest.mark.parametrize("entries", [
-    ([{'one_of': ['_cell_volume']}]),
-    ([{'one_of': [['_cell_length_a', '_cell_volume']]}]),
-])
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        ([{"one_of": ["_cell_volume"]}]),
+        ([{"one_of": [["_cell_length_a", "_cell_volume"]]}]),
+    ],
+)
 def test_resolve_special_entries_error(entries):
     block = model.block()
     block.add_data_item("_cell_length_a", 10.0)
     with pytest.raises(OneOfEntryNotResolvableError):
         resolve_special_entries(entries, block, [])
 
-@pytest.mark.parametrize("unified_str", ['_', '.'])
+
+@pytest.mark.parametrize("unified_str", ["_", "."])
 def test_yml_entries_resolve_special_output_settings(unified_str):
     block = model.block()
     block.add_data_item(f"_cell{unified_str}length_a", 10.0)
     block.add_data_item(f"_cell{unified_str}length_b", 20.0)
     block.add_data_item(f"_cell{unified_str}length_c", 30.0)
     output_settings_mock = YmlCifOutputSettings(
-        required_entries=[{'one_of': ['_cell_length_a']}],
-        optional_entries=[{'one_of': ['_cell_length_b']}],
+        required_entries=[{"one_of": ["_cell_length_a"]}],
+        optional_entries=[{"one_of": ["_cell_length_b"]}],
         invalidated_entries=[],
         custom_categories=[],
-        select_block="0"
+        select_block="0",
     )
     resolved = yml_entries_resolve_special(output_settings_mock, block)
-    assert resolved.required_entries == ['_cell_length_a']
-    assert resolved.optional_entries == ['_cell_length_b']
+    assert resolved.required_entries == ["_cell_length_a"]
+    assert resolved.optional_entries == ["_cell_length_b"]
     assert resolved.invalidated_entries == []
     assert resolved.custom_categories == []
     assert resolved.select_block == "0"
     assert isinstance(resolved, YmlCifOutputSettings), "The returned object type does not match the expected type."
 
-@pytest.mark.parametrize("unified_str", ['_', '.'])
+
+@pytest.mark.parametrize("unified_str", ["_", "."])
 def test_yml_entries_resolve_special_input_settings(unified_str):
     block = model.block()
     block.add_data_item(f"_cell{unified_str}length_a", 10.0)
     block.add_data_item(f"_cell{unified_str}length_b", 20.0)
     block.add_data_item(f"_cell{unified_str}length_c", 30.0)
     input_settings_mock = YmlCifInputSettings(
-        required_entries=[{'one_of': ['_cell_length_a']}],
-        optional_entries=[{'one_of': ['_cell_length_b']}],
+        required_entries=[{"one_of": ["_cell_length_a"]}],
+        optional_entries=[{"one_of": ["_cell_length_b"]}],
         custom_categories=[],
-        merge_su=True
+        merge_su=True,
     )
     resolved = yml_entries_resolve_special(input_settings_mock, block)
-    assert resolved.required_entries == ['_cell_length_a']
-    assert resolved.optional_entries == ['_cell_length_b']
+    assert resolved.required_entries == ["_cell_length_a"]
+    assert resolved.optional_entries == ["_cell_length_b"]
     assert resolved.custom_categories == []
-    assert resolved.merge_su == True
+    assert resolved.merge_su is True
     assert isinstance(resolved, YmlCifInputSettings), "The returned object type does not match the expected type."
 
 

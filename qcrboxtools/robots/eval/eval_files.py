@@ -9,44 +9,7 @@ from typing import List, Optional, Union
 import numpy as np
 from iotbx.cif import model, reader
 
-
-def infer_and_cast(s: str) -> Union[float, int, bool, np.ndarray, str]:
-    """
-    Attempts to cast a string to an integer, float, boolean, or retains it as
-    a string based on its value.
-
-    Parameters
-    ----------
-    s : str
-        The string to be cast.
-
-    Returns
-    -------
-    Union[int, float, bool, np.ndarray, str]
-        The cast value.
-    """
-    # Try to cast to integer
-    try:
-        return int(s)
-    except ValueError:
-        pass
-
-    # Try to cast to float
-    try:
-        return float(s)
-    except ValueError:
-        pass
-
-    # Try to cast to boolean
-    if s.lower() in ["true", "false"]:
-        return s.lower() == "true"
-
-    # Try to cast to numpy array (if contains space-separated values)
-    if " " in s:
-        return np.array([infer_and_cast(sub_s) for sub_s in s.split()])
-
-    # If all else fails, return as string
-    return s
+from ..utils import infer_and_cast
 
 
 class RelativePathFile:

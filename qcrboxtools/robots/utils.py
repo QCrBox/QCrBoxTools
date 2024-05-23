@@ -12,6 +12,9 @@ def infer_and_cast(s: str, cast_np=True) -> Union[float, int, bool, np.ndarray, 
     ----------
     s : str
         The string to be cast.
+    cast_np : bool, optional
+        Whether to attempt to cast the string to a numpy array if it contains
+        space-separated values. Default is True.
 
     Returns
     -------

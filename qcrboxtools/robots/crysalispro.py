@@ -56,319 +56,6 @@ from typing import Any, Dict, Iterator, Optional, Tuple, Union
 from .utils import infer_and_cast
 
 
-class NoWorkFolder(FileNotFoundError):
-    """Exception raised when the work folder is not found."""
-
-    pass
-
-
-class ListeningModeInactive(Exception):
-    """Exception raised when the listening mode is inactive."""
-
-    pass
-
-
-class CAPBusy(Exception):
-    """Exception raised when CrysAlisPro is busy / is already executing a command."""
-
-    pass
-
-
-class CommandFailedException(Exception):
-    """Exception raised when a command to CrysAlisPro fails."""
-
-    pass
-
-
-class CAPRobot:
-    """
-    A class to control the CrysAlisPro program for integrating frames from
-    Rigaku Synergy X-ray diffractometers in a scripted fashion. Its functionality
-    will be limited unless the dataset parameter file is set explicitly.
-    """
-
-    _dataset_par = "default"
-
-    def __init__(self, command_folder: Path):
-        """
-        Initialize the CAPRobot with a command folder, this needs to match the command folder
-        set as the CAP Listen mode was started.
-
-        Parameters
-        ----------
-        command_folder : Path
-            The path to the command folder.
-        """
-        self.command_folder = Path(command_folder)
-
-    @property
-    def dataset_par(self) -> Path:
-        """
-        Get the dataset parameter path.
-
-        Returns
-        -------
-        str
-            The dataset parameter path.
-        """
-        return self._dataset_par
-
-    @dataset_par.setter
-    def dataset_par(self, par_path: Path):
-        """
-        Set the dataset parameter path and load the dataset in CrysAlisPro.
-
-        Parameters
-        ----------
-        par_path : Path
-            The path to the dataset parameter file.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the dataset parameter file is not found.
-        """
-        par_path = Path(par_path)
-        if not par_path.exists():
-            raise FileNotFoundError("Dataset parameter file not found")
-        self._dataset_par = Path(par_path)
-        self.send_command(f"xx selectexpnogui {str(par_path)}")
-
-    @property
-    def is_busy(self) -> bool:
-        """
-        Check if CrysAlisPro is busy.
-
-        Returns
-        -------
-        bool
-            True if CrysAlisPro is busy, False otherwise.
-        """
-        if (self.command_folder / "command.busy").exists():
-            return True
-        else:
-            return False
-
-    def _check_ready_for_command(self) -> None:
-        """
-        Check if CrysAlisPro is ready for a new command and raise the correct
-        error if not.
-
-        Raises
-        ------
-        NoWorkFolder
-            If the work folder is not found.
-        ListeningModeInactive
-            If the listening mode is inactive.
-        CAPBusy
-            If CrysAlisPro is already busy executing a command.
-        """
-        if not self.command_folder.exists():
-            raise NoWorkFolder("No work folder found")
-
-        if (self.command_folder / "command.closed").exists():
-            raise ListeningModeInactive("Listening mode is inactive")
-
-        if (self.command_folder / "command.busy").exists():
-            raise CAPBusy("CryAlisPro is already busy executing a command")
-
-    def stop(self) -> bool:
-        """
-        Stop execution of the current command in CrysAlisPro if it is busy.
-
-        Returns
-        -------
-        bool
-            True if the stop command was sent, False otherwise.
-        """
-        if self.is_busy:
-            (self.command_folder / "command.stop").touch()
-            return True
-        return False
-
-    def _clean_up_folder(self) -> None:
-        """Clean up the command folder by removing left over files."""
-        possible_files = ["command.stop", "command.error", "command.done"]
-        for file in possible_files:
-            if (self.command_folder / file).exists():
-                (self.command_folder / file).unlink()
-
-    def send_command(self, command: str, in_background: bool = False, test_interval: float = 0.1, timeout: float = 600):
-        """
-        Send a command to CrysAlisPro.
-
-        Parameters
-        ----------
-        command : str
-            The command to send.
-        in_background : bool, optional
-            Whether to run the command in the background instead of blocking the further execution
-            of the python script, by default False.
-        test_interval : float, optional
-            The interval to test for command completion, by default 0.1.
-        timeout : float, optional
-            The timeout for the command to complete, by default 600. Can also be set to None to
-            wait indefinitely.
-
-        Raises
-        ------
-        CommandFailedException
-            If the command fails.
-        TimeoutError
-            If the command times out.
-        """
-        self._check_ready_for_command()
-        self._clean_up_folder()
-        (self.command_folder / "command.in").write_text(command)
-        time.sleep(0.5)
-        if not in_background:
-            try:
-                self.wait_for_command_to_finish(test_interval=test_interval, timeout=timeout)
-            except CommandFailedException as e:
-                raise CommandFailedException(f"Command failed: {command}") from e
-            except TimeoutError as e:
-                raise TimeoutError(f"Timeout ({timeout} s) waiting for command to finish: {command}") from e
-
-    def wait_for_command_to_finish(self, test_interval: float = 0.1, timeout: float = 600) -> bool:
-        """
-        Wait for the command to finish. Only needed to be called by a user, if the command
-        was sent in the background.
-
-        Parameters
-        ----------
-        test_interval : float, optional
-            The interval to test for command completion, by default 0.1.
-        timeout : float, optional
-            The timeout for the command to complete, by default 600. Can also be set to None to
-            wait indefinitely.
-
-        Returns
-        -------
-        bool
-            True if the command completed successfully.
-
-        Raises
-        ------
-        TimeoutError
-            If the command times out.
-        CommandFailedException
-            If the command fails.
-        """
-        if timeout is None:
-            timeout_time = float("inf")
-        else:
-            timeout_time = time.time() + timeout
-        while self.is_busy:
-            time.sleep(test_interval)
-            if time.time() > timeout_time:
-                raise TimeoutError("Timeout waiting for command to finish")
-        if (self.command_folder / "command.error").exists():
-            raise CommandFailedException("Command failed")
-
-        if (self.command_folder / "command.done").exists():
-            (self.command_folder / "command.done").unlink()
-        return True
-
-    def create_xml_file(
-        self,
-        xml_file: Path,
-        file_type: Optional[str] = None,
-        file_path: Optional[Path] = None,
-        output_name: Optional[str] = None,
-    ) -> None:
-        """
-        Create an XML file from a CrysAlisPro binary settings file. Several options are available
-        to specify the file to create the XML from. File type and file path are mutually exclusive.
-
-        Parameters
-        ----------
-        xml_file : Path
-            The path to the XML file to create.
-        file_type : Optional[str], optional
-            The file type to create XML from. This assumes the file is located in the same directory
-            as the robots par file. Possible options for file type are 'proffitgui' for exporting
-            the options selected in the 'Data reductions with options' and 'proffitpars' for a file
-            created by the 'xx proffitloop' procedure, by default None.
-        file_path : Optional[Path], optional
-            The file path to create XML from for the two types see file_type, by default None.
-        output_name : Optional[str], optional
-            The output name for the files generated when executing the newly created XML file, by
-            default None which will use the datasets default.
-
-        Raises
-        ------
-        ValueError
-            If neither or both file_type and file_path are provided, or if dataset_par is not set.
-        FileNotFoundError
-            If the specified file path does not exist.
-        """
-        if file_type is None and file_path is None:
-            raise ValueError("Either file_type or file_path must be provided")
-        if file_type is not None and file_path is not None:
-            raise ValueError("Only one of file_type or file_path can be provided")
-        if file_type is not None and self.dataset_par == "default":
-            raise ValueError("dataset_par must be set before creating xml file by file type only")
-        if file_type is not None:
-            file_path = self.dataset_par.with_suffix(f".{file_type}")
-        else:
-            file_path = Path(file_path)
-        if not file_path.exists():
-            raise FileNotFoundError("File not found")
-        xml_file = Path(xml_file)
-        if output_name is None:
-            output_name = ""
-        else:
-            output_name = f" {output_name}"
-        self.send_command(f"xx partoxml {file_path} {xml_file}{output_name}")
-
-    def run_from_xml_file(self, xml_file: Path) -> None:
-        """
-        Run a data reduction from frames using the settings from an XML file.
-        Valid XML files can be created using the create_xml_file method.
-
-        Parameters
-        ----------
-        xml_file : Path
-            The path to the XML file.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the XML file is not found.
-        """
-        xml_file = Path(xml_file)
-        if not xml_file.exists():
-            raise FileNotFoundError(f"XML file not found at {xml_file}")
-        self.send_command(f"dc proffit xml {xml_file}")
-
-    def fullautoanalyse(self) -> None:
-        """Run the full auto analysis command."""
-        self.send_command("dc fullautoanalyse")
-
-    def run_script(self, script_file: Path) -> None:
-        """
-        Run a script file. All script files must have a .mac extension.
-
-        Parameters
-        ----------
-        script_file : Path
-            The path to the script file.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the script file is not found.
-        ValueError
-            If the script file does not have a .mac extension.
-        """
-        script_file = Path(script_file)
-        if not script_file.exists():
-            raise FileNotFoundError(f"Script file not found at {script_file}")
-        if not script_file.suffix == ".mac":
-            raise ValueError("Script file must have .mac extension")
-        self.send_command(f"dc runscript {script_file.with_suffix('')}")
-
-
 class CAPIndexParameter:
     """
     A class to handle index parameters with translations for CrysAlisPro.
@@ -603,7 +290,7 @@ class CAPSubParameters:
         Dict[str, Any]
             A dictionary representation of the XML section.
         """
-        return {key: self[key] for key in self.keys()}
+        return {key: val for key, val in self.items()}
 
     def keys(self) -> Iterator[str]:
         """
@@ -614,7 +301,7 @@ class CAPSubParameters:
         Iterator[str]
             An iterator over the XML section's keywords.
         """
-        return list(self.__iter__())
+        return list(iter(self))
 
     def values(self) -> Iterator[Any]:
         """
@@ -625,7 +312,7 @@ class CAPSubParameters:
         Iterator[Any]
             An iterator over the XML section's parameter values.
         """
-        return [self[key] for key in self.keys()]
+        return [val for _, val in self.items()]
 
     def items(self) -> Iterator[Tuple[str, Any]]:
         """
@@ -769,3 +456,318 @@ class CAPXml:
         for key, value in new_params.items():
             proffit_el.find(f"__{key}__").text = value
         self._tree.write(self.xml_file)
+
+
+class NoWorkFolder(FileNotFoundError):
+    """Exception raised when the work folder is not found."""
+
+
+class ListeningModeInactive(Exception):
+    """Exception raised when the listening mode is inactive."""
+
+
+class CAPBusy(Exception):
+    """Exception raised when CrysAlisPro is busy / is already executing a command."""
+
+
+class CommandFailedException(Exception):
+    """Exception raised when a command to CrysAlisPro fails."""
+
+
+class CAPRobot:
+    """
+    A class to control the CrysAlisPro program for integrating frames from
+    Rigaku Synergy X-ray diffractometers in a scripted fashion. Its functionality
+    will be limited unless the dataset parameter file is set explicitly.
+    """
+
+    _dataset_par = "default"
+
+    def __init__(self, command_folder: Path):
+        """
+        Initialize the CAPRobot with a command folder, this needs to match the command folder
+        set as the CAP Listen mode was started.
+
+        Parameters
+        ----------
+        command_folder : Path
+            The path to the command folder.
+        """
+        self.command_folder = Path(command_folder)
+
+    @property
+    def dataset_par(self) -> Path:
+        """
+        Get the dataset parameter path.
+
+        Returns
+        -------
+        str
+            The dataset parameter path.
+        """
+        return self._dataset_par
+
+    @dataset_par.setter
+    def dataset_par(self, par_path: Path):
+        """
+        Set the dataset parameter path and load the dataset in CrysAlisPro.
+
+        Parameters
+        ----------
+        par_path : Path
+            The path to the dataset parameter file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the dataset parameter file is not found.
+        """
+        par_path = Path(par_path)
+        if not par_path.exists():
+            raise FileNotFoundError("Dataset parameter file not found")
+        self._dataset_par = Path(par_path)
+        self.send_command(f"xx selectexpnogui {str(par_path)}")
+
+    @property
+    def is_busy(self) -> bool:
+        """
+        Check if CrysAlisPro is busy.
+
+        Returns
+        -------
+        bool
+            True if CrysAlisPro is busy, False otherwise.
+        """
+        if (self.command_folder / "command.busy").exists():
+            return True
+        else:
+            return False
+
+    def _check_ready_for_command(self) -> None:
+        """
+        Check if CrysAlisPro is ready for a new command and raise the correct
+        error if not.
+
+        Raises
+        ------
+        NoWorkFolder
+            If the work folder is not found.
+        ListeningModeInactive
+            If the listening mode is inactive.
+        CAPBusy
+            If CrysAlisPro is already busy executing a command.
+        """
+        if not self.command_folder.exists():
+            raise NoWorkFolder("No work folder found")
+
+        if (self.command_folder / "command.closed").exists():
+            raise ListeningModeInactive("Listening mode is inactive")
+
+        if (self.command_folder / "command.busy").exists():
+            raise CAPBusy("CryAlisPro is already busy executing a command")
+
+    def stop(self) -> bool:
+        """
+        Stop execution of the current command in CrysAlisPro if it is busy.
+
+        Returns
+        -------
+        bool
+            True if the stop command was sent, False otherwise.
+        """
+        if self.is_busy:
+            (self.command_folder / "command.stop").touch()
+            return True
+        return False
+
+    def _clean_up_folder(self) -> None:
+        """Clean up the command folder by removing left over files."""
+        possible_files = ["command.stop", "command.error", "command.done"]
+        for file in possible_files:
+            if (self.command_folder / file).exists():
+                (self.command_folder / file).unlink()
+
+    def send_command(self, command: str, in_background: bool = False, test_interval: float = 0.1, timeout: float = 600):
+        """
+        Send a command to CrysAlisPro.
+
+        Parameters
+        ----------
+        command : str
+            The command to send.
+        in_background : bool, optional
+            Whether to run the command in the background instead of blocking the further execution
+            of the python script, by default False.
+        test_interval : float, optional
+            The interval to test for command completion, by default 0.1.
+        timeout : float, optional
+            The timeout for the command to complete, by default 600. Can also be set to None to
+            wait indefinitely.
+
+        Raises
+        ------
+        CommandFailedException
+            If the command fails.
+        TimeoutError
+            If the command times out.
+        """
+        self._check_ready_for_command()
+        self._clean_up_folder()
+        (self.command_folder / "command.in").write_text(command)
+        time.sleep(0.5)
+        if not in_background:
+            try:
+                self.wait_for_command_to_finish(test_interval=test_interval, timeout=timeout)
+            except CommandFailedException as e:
+                raise CommandFailedException(f"Command failed: {command}") from e
+            except TimeoutError as e:
+                raise TimeoutError(f"Timeout ({timeout} s) waiting for command to finish: {command}") from e
+
+    def wait_for_command_to_finish(self, test_interval: float = 0.1, timeout: float = 600) -> bool:
+        """
+        Wait for the command to finish. Only needed to be called by a user, if the command
+        was sent in the background.
+
+        Parameters
+        ----------
+        test_interval : float, optional
+            The interval to test for command completion, by default 0.1.
+        timeout : float, optional
+            The timeout for the command to complete, by default 600. Can also be set to None to
+            wait indefinitely.
+
+        Returns
+        -------
+        bool
+            True if the command completed successfully.
+
+        Raises
+        ------
+        TimeoutError
+            If the command times out.
+        CommandFailedException
+            If the command fails.
+        """
+        if timeout is None:
+            timeout_time = float("inf")
+        else:
+            timeout_time = time.time() + timeout
+        while self.is_busy:
+            time.sleep(test_interval)
+            if time.time() > timeout_time:
+                raise TimeoutError("Timeout waiting for command to finish")
+        if (self.command_folder / "command.error").exists():
+            raise CommandFailedException("Command failed")
+
+        if (self.command_folder / "command.done").exists():
+            (self.command_folder / "command.done").unlink()
+        return True
+
+    def create_xml_file(
+        self,
+        xml_file: Path,
+        file_type: Optional[str] = None,
+        file_path: Optional[Path] = None,
+        output_name: Optional[str] = None,
+    ) -> CAPXml:
+        """
+        Create an XML file from a CrysAlisPro binary settings file. Several options are available
+        to specify the file to create the XML from. File type and file path are mutually exclusive.
+
+        Parameters
+        ----------
+        xml_file : Path
+            The path to the XML file to create.
+        file_type : Optional[str], optional
+            The file type to create XML from. This assumes the file is located in the same directory
+            as the robots par file. Possible options for file type are 'proffitgui' for exporting
+            the options selected in the 'Data reductions with options' and 'proffitpars' for a file
+            created by the 'xx proffitloop' procedure, by default None.
+        file_path : Optional[Path], optional
+            The file path to create XML from for the two types see file_type, by default None.
+        output_name : Optional[str], optional
+            The output name for the files generated when executing the newly created XML file, by
+            default None which will use the datasets default.
+
+        Returns
+        -------
+        CAPXml
+            The CAPXml object created from the XML file.
+
+        Raises
+        ------
+        ValueError
+            If neither or both file_type and file_path are provided, or if dataset_par is not set.
+        FileNotFoundError
+            If the specified file path does not exist.
+        """
+        if file_type is None and file_path is None:
+            raise ValueError("Either file_type or file_path must be provided")
+        if file_type is not None and file_path is not None:
+            raise ValueError("Only one of file_type or file_path can be provided")
+        if file_type is not None and self.dataset_par == "default":
+            raise ValueError("dataset_par must be set before creating xml file by file type only")
+        if file_type is not None:
+            file_path = self.dataset_par.with_suffix(f".{file_type}")
+        else:
+            file_path = Path(file_path)
+        if not file_path.exists():
+            raise FileNotFoundError("File not found")
+        xml_file = Path(xml_file)
+        if output_name is None:
+            output_name = ""
+        else:
+            output_name = f" {output_name}"
+        self.send_command(f"xx partoxml {file_path} {xml_file}{output_name}")
+
+        return CAPXml(xml_file)
+
+    def run_from_xml_file(self, xml_file: Union[Path, CAPXml]) -> None:
+        """
+        Run a data reduction from frames using the settings from an XML file.
+        Valid XML files can be created using the create_xml_file method.
+
+        Parameters
+        ----------
+        xml_file : Path
+            The path to the XML file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the XML file is not found.
+        """
+        if isinstance(xml_file, CAPXml):
+            xml_file = xml_file.xml_file
+
+        xml_file = Path(xml_file)
+        if not xml_file.exists():
+            raise FileNotFoundError(f"XML file not found at {xml_file}")
+        self.send_command(f"dc proffit xml {xml_file}")
+
+    def fullautoanalyse(self) -> None:
+        """Run the full auto analysis command."""
+        self.send_command("dc fullautoanalyse")
+
+    def run_script(self, script_file: Path) -> None:
+        """
+        Run a script file. All script files must have a .mac extension.
+
+        Parameters
+        ----------
+        script_file : Path
+            The path to the script file.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the script file is not found.
+        ValueError
+            If the script file does not have a .mac extension.
+        """
+        script_file = Path(script_file)
+        if not script_file.exists():
+            raise FileNotFoundError(f"Script file not found at {script_file}")
+        if script_file.suffix != ".mac":
+            raise ValueError("Script file must have .mac extension")
+        self.send_command(f"dc runscript {script_file.with_suffix('')}")

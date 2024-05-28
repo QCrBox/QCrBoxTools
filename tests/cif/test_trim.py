@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from iotbx.cif import model, reader
 
-from qcrboxtools.cif.trim import keep_single_kw, trim_cif_block, trim_cif_file
+from qcrboxtools.cif.trim import keep_single_kw, trim_cif, trim_cif_block, trim_cif_file
 
 
 @pytest.mark.parametrize(
@@ -76,6 +76,18 @@ def test_trim_cif_block_with_loop():
     assert "_loop_key1" in trimmed_block
     assert "_loop_key2" not in trimmed_block
     assert "_loop_key3" not in trimmed_block
+
+
+def test_trim_cif(mock_cif_block):
+    cif = model.cif({"mock_block": mock_cif_block, "other_block": mock_cif_block})
+    trimmed_cif = trim_cif(cif, [r"_empty.*", r"_keep.*"], [r"_delete.*"], delete_empty_entries=True)
+
+    for block_name in ("mock_block", "other_block"):
+        block = trimmed_cif[block_name]
+        assert "_keep_this" in block
+        assert "_keep_also_this" in block
+        assert "_delete_this" not in block
+        assert "_empty_entry" not in block
 
 
 def test_trim_cif_file(mock_cif_block):

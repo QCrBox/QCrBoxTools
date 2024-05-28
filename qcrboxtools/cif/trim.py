@@ -48,6 +48,43 @@ def trim_cif_file(
     Path(file_path).write_text(str(cif), encoding="UTF-8")
 
 
+def trim_cif(
+    cif: model.cif,
+    keep_only_regexes: List[str],
+    delete_regexes: List[str],
+    delete_empty_entries: bool = True,
+) -> model.cif:
+    """
+    Trims entries in a CIF object based on regex patterns.
+
+    Extracts a block from a CIF object, trims its entries based on provided
+    regex patterns for keeping or deleting, and returns the modified CIF object.
+
+    Parameters
+    ----------
+    cif : iotbx.cif.model.cif
+        The CIF object to be modified.
+    keep_only_regexes : List[str]
+        Regex patterns specifying which entries to keep when any is fulfilled.
+        If empty, keep all entries.
+    delete_regexes : List[str]
+        Regex patterns specifying which entries to delete when any is fulfilled.
+    delete_empty_entries : bool, optional
+        Indicates whether to delete entries with '?' as their value, by default True.
+
+    Returns
+    -------
+    iotbx.cif.model.cif
+        The CIF object with the specified block trimmed.
+
+    """
+    for block_name, block in cif.items():
+        new_block = trim_cif_block(block, keep_only_regexes, delete_regexes, delete_empty_entries)
+        cif[block_name] = new_block
+
+    return cif
+
+
 def keep_single_kw(name: str, keep_only_regexes: List[str], delete_regexes: List[str]) -> bool:
     """
     Determines if a CIF entry name should be kept based on regex patterns.
@@ -75,9 +112,9 @@ def keep_single_kw(name: str, keep_only_regexes: List[str], delete_regexes: List
     if len(keep_only_regexes) == 0:
         condition1 = True
     else:
-        condition1 = any(re.match(pattern, name) is not None for pattern in keep_only_regexes)
+        condition1 = any(re.fullmatch(pattern, name) is not None for pattern in keep_only_regexes)
 
-    condition2 = all(re.match(pattern, name) is None for pattern in delete_regexes)
+    condition2 = all(re.fullmatch(pattern, name) is None for pattern in delete_regexes)
     return condition1 and condition2
 
 
@@ -96,7 +133,7 @@ def trim_cif_block(
 
     Parameters
     ----------
-    old_block : model.block
+    old_block : iotbx.cif.model.block
         The original CIF block to trim.
     keep_only_regexes : List[str]
         Regex patterns specifying which entries to keep. If empty, keep all entries.
@@ -107,7 +144,7 @@ def trim_cif_block(
 
     Returns
     -------
-    model.block
+    iotbx.cif.model.block
         The trimmed CIF block with only the desired entries retained.
 
     """

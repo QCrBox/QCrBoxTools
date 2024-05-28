@@ -285,7 +285,7 @@ def check_converged(
     bool
         Returns True if all the evaluated metrics meet the convergence criteria, otherwise False.
     """
-    with np.errstate(divide='ignore'):
+    with np.errstate(divide="ignore"):
         diff_dict = position_difference(cif1_path, cif1_dataset, cif2_path, cif2_dataset)
         diff_dict.update(anisotropic_adp_difference(cif1_path, cif1_dataset, cif2_path, cif2_dataset))
     messages = []

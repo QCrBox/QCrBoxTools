@@ -8,7 +8,7 @@ import pytest
 
 from qcrboxtools.cif.file_converter.hkl import cif2hkl4
 
-test_file_dir = Path("./tests/cif/convert_hkl/test_files")
+test_file_dir = Path("./tests/cif/convert/test_files")
 
 
 def valid_hkl_line(line):

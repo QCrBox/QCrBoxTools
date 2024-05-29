@@ -104,7 +104,7 @@ def test_symm_cards_and_latt2symm_mat_vecs(symm_cards, latt, expected_matrices, 
         # Test rotation and translation
         ([[0, 1, 0], [1, 0, 0], [0, 0, 1]], [0.5, 0, 0], "1/2+y,+x,+z"),
         # Test fraction in the matrix
-        ([[0.5, 0, 0], [0, 1, 0], [0, 0, 1]], [0, 0, 0], "+1/2*x,+y,+z"),
+        ([[0.5, 0, 0], [0, -0.5, 0], [0, 0, 1]], [0, 0, 0], "+1/2*x,-1/2*y,+z"),
         # Test very small non-zero values that should be considered as zero
         ([[1e-11, 1, 0], [0, 1, 0], [0, 0, 1]], [0, 0, 0], "+y,+y,+z"),
     ],

@@ -24,7 +24,23 @@ from typing import Any, Dict, List, Tuple, Union
 import numpy as np
 
 from ..cif.read import cifdata_str_or_index, read_cif_safe
-from ..cif.uncertainties import split_su_array, split_su_single
+
+
+def make_list_float(input_list: List[str]):
+    """
+    Converts a list of strings to a list of floats.
+
+    Parameters
+    ----------
+    input_list : List[str]
+        List of strings to be converted to floats.
+
+    Returns
+    -------
+    List[float]
+        List of floats.
+    """
+    return [float(val) for val in input_list]
 
 
 def cell_dict2atom_sites_dict(
@@ -50,12 +66,12 @@ def cell_dict2atom_sites_dict(
         a string description of the transformation axes) and '_atom_sites_Cartn_tran_matrix'
         (with value being a 3x3 numpy array representing the transformation matrix).
     """
-    a = split_su_single(cell_dict["_cell.length_a"])[0]
-    b = split_su_single(cell_dict["_cell.length_b"])[0]
-    c = split_su_single(cell_dict["_cell.length_c"])[0]
-    alpha = split_su_single(cell_dict["_cell.angle_alpha"])[0] / 180.0 * np.pi
-    beta = split_su_single(cell_dict["_cell.angle_beta"])[0] / 180.0 * np.pi
-    gamma = split_su_single(cell_dict["_cell.angle_gamma"])[0] / 180.0 * np.pi
+    a = float(cell_dict["_cell.length_a"])
+    b = float(cell_dict["_cell.length_b"])
+    c = float(cell_dict["_cell.length_c"])
+    alpha = float(cell_dict["_cell.angle_alpha"]) / 180.0 * np.pi
+    beta = float(cell_dict["_cell.angle_beta"]) / 180.0 * np.pi
+    gamma = float(cell_dict["_cell.angle_gamma"]) / 180.0 * np.pi
     matrix = np.array(
         [
             [a, b * np.cos(gamma), c * np.cos(beta)],
@@ -149,14 +165,15 @@ def position_difference(cif1_path: Path, cif1_dataset: Union[int, str], cif2_pat
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    positions_sus1 = [split_su_array(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")]
-    atom_site_frac1 = {f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus1)}
-    frac1 = np.stack([val[0] for val in positions_sus1], axis=1)
-    frac1_su = np.stack([val[1] for val in positions_sus1], axis=1)
-    positions_sus2 = [split_su_array(block2[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")]
-    atom_site_frac2 = {f"_atom_site.fract_{xyz}": vals[0] for xyz, vals in zip(("x", "y", "z"), positions_sus2)}
-    frac2 = np.stack([val[0] for val in positions_sus2], axis=1)
-    frac2_su = np.stack([val[1] for val in positions_sus2], axis=1)
+    #atom_site_frac1 = {f"_atom_site.fract_{xyz}": make_list_float(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")}
+    #frac1 = np.array(list(atom_site_frac1.values())).T
+    frac1 = np.array([make_list_float(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")])
+    frac1_su = np.array([make_list_float(block1[f"_atom_site.fract_{xyz}_su"]) for xyz in ("x", "y", "z")])
+    atom_site_frac1 = {f"_atom_site.fract_{xyz}": arr for xyz, arr in zip(("x", "y", "z"), frac1)}
+
+    frac2 = np.array([make_list_float(block2[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")])
+    frac2_su = np.array([make_list_float(block2[f"_atom_site.fract_{xyz}_su"]) for xyz in ("x", "y", "z")])
+    atom_site_frac2 = {f"_atom_site.fract_{xyz}": arr for xyz, arr in zip(("x", "y", "z"), frac2)}
 
     atom_site1, _ = add_cart_pos(atom_site_frac1, block1)
     atom_site2, _ = add_cart_pos(atom_site_frac2, block2)
@@ -221,14 +238,11 @@ def anisotropic_adp_difference(
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    uij_sus1 = [split_su_array(block1[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)]
-    uij_sus2 = [split_su_array(block2[f"_atom_site_aniso.u_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)]
+    uij1 = np.array([make_list_float(block1[f"_atom_site_aniso.U_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)])
+    uij1_su = np.array([make_list_float(block1[f"_atom_site_aniso.U_{ij}_su"]) for ij in (11, 22, 33, 12, 13, 23)])
 
-    uij1 = np.stack([val[0] for val in uij_sus1], axis=1)
-    uij1_su = np.stack([val[1] for val in uij_sus1], axis=1)
-
-    uij2 = np.stack([val[0] for val in uij_sus2], axis=1)
-    uij2_su = np.stack([val[1] for val in uij_sus2], axis=1)
+    uij2 = np.array([make_list_float(block2[f"_atom_site_aniso.U_{ij}"]) for ij in (11, 22, 33, 12, 13, 23)])
+    uij2_su = np.array([make_list_float(block2[f"_atom_site_aniso.U_{ij}_su"]) for ij in (11, 22, 33, 12, 13, 23)])
 
     abs_diff = np.abs(uij1 - uij2)
     sus_diff = (uij1_su**2 + uij2_su**2) ** 0.5

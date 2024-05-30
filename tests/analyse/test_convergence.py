@@ -77,9 +77,9 @@ def test_uij_difference_diff():
     su_from2 = (2 * 0.004**2) ** 0.5
 
     assert diff_dict["max abs uij"] == 0.008
-    assert diff_dict["mean abs uij"] == 0.016 / 18
+    assert diff_dict["mean abs uij"] == 0.012 / 18
     assert diff_dict["max uij/su"] == approx(0.008 / su_from2)
-    assert diff_dict["mean uij/su"] == approx(0.016 / 18 / su_from2)
+    assert diff_dict["mean uij/su"] == approx(0.012 / 18 / su_from2)
 
 
 def test_uij_difference_equal():
@@ -124,6 +124,13 @@ def test_check_convergence():
 
     assert check_converged(cif1path, 0, cif2path, 0, criteria) is True
 
+    subset = {key: val for key, val in criteria.items() if "position" in key}
+
+    assert check_converged(cif1path, 0, cif2path, 0, subset) is True
+
     # Adjust criteria to force a non-converged result
     criteria["max abs position"] = 0.001
+    subset["max abs position"] = 0.001
     assert check_converged(cif1path, 0, cif2path, 0, criteria) is False
+
+    assert check_converged(cif1path, 0, cif2path, 0, subset) is False

@@ -729,7 +729,7 @@ def cif_file_merge_to_unified_by_yml(
             read_cif_safe(merge_cif_path), "0"
         )  # QCrBox cif files have only one block
 
-    yml_output_settings = yml_entries_resolve_special(yml_output_settings, merge_block)
+    yml_output_settings = yml_entries_resolve_special(yml_output_settings, input_block)
 
     # Cut down the input block to the required entries and convert to unified keywords
     all_entries = yml_output_settings.required_entries + yml_output_settings.optional_entries

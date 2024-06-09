@@ -4,6 +4,7 @@
 from collections import namedtuple
 from collections.abc import Mapping
 from copy import deepcopy
+from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -762,3 +763,48 @@ def cif_file_merge_to_unified_by_yml(
     output_cif[dataset_name] = output_cif_block
 
     Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")
+
+
+def can_run_command(yml_path: Path, command: str, input_cif_path: Path):
+    """
+    Checks if a specified command can be run on an input CIF file based on instructions
+    defined in a YAML configuration. Only checks for the parameter 'input_cif_path' and
+    will assume all other parameters including additional CIF files are present and
+    valid.
+
+    Parameters
+    ----------
+    yml_path : Path
+        The file path to the YAML file containing processing instructions.
+    command : str
+        The specific command within the YAML file to check for processing the CIF file.
+    input_cif_path : Path
+        The file path to the input CIF file to be checked.
+
+    Returns
+    -------
+    bool
+        True if the command can be run with the provided CIF file, False otherwise.
+
+    Notes
+    -----
+    This function was developed for exposing commands within QCrBox. See the project or
+    the test of this function for an example of how such a YAML file might look.
+    """
+    with open(yml_path, "r", encoding="UTF-8") as fobj:
+        yml_dict = yaml.safe_load(fobj)
+
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, command, "input_cif_path")
+
+    block, _ = cifdata_str_or_index(read_cif_safe(input_cif_path), "0")
+
+    try:
+        yml_input_settings = yml_entries_resolve_special(yml_input_settings, block)
+    except OneOfEntryNotResolvableError:
+        return False
+
+    partial_convert = partial(entry_to_unified_keyword, custom_categories=yml_input_settings.custom_categories)
+
+    required_unified_entries = map(partial_convert, yml_input_settings.required_entries)
+
+    return all(entry in block for entry in required_unified_entries)

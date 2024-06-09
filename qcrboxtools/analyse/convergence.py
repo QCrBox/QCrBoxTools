@@ -165,8 +165,6 @@ def position_difference(cif1_path: Path, cif1_dataset: Union[int, str], cif2_pat
     block1, _ = cifdata_str_or_index(read_cif_safe(cif1_path), cif1_dataset)
     block2, _ = cifdata_str_or_index(read_cif_safe(cif2_path), cif2_dataset)
 
-    #atom_site_frac1 = {f"_atom_site.fract_{xyz}": make_list_float(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")}
-    #frac1 = np.array(list(atom_site_frac1.values())).T
     frac1 = np.array([make_list_float(block1[f"_atom_site.fract_{xyz}"]) for xyz in ("x", "y", "z")])
     frac1_su = np.array([make_list_float(block1[f"_atom_site.fract_{xyz}_su"]) for xyz in ("x", "y", "z")])
     atom_site_frac1 = {f"_atom_site.fract_{xyz}": arr for xyz, arr in zip(("x", "y", "z"), frac1)}

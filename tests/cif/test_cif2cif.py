@@ -23,6 +23,7 @@ from qcrboxtools.cif.cif2cif import (
     UnnamedParameterError,
     YmlCifInputSettings,
     YmlCifOutputSettings,
+    can_run_command,
     cif_entries_from_entry_set,
     cif_entries_from_parameter_dict,
     cif_entry_sets_from_yml,
@@ -874,6 +875,16 @@ def test_cif_file_to_unified_by_yml_missing_entry(test_cif_file_merged, mock_yam
             command="process_cif",
             parameter="output_cif_path",
         )
+
+
+def test_can_run_command_yes(test_cif_file_unmerged, mock_yaml_file):
+    """Test the can_run_command function to ensure it returns the expected results."""
+    assert can_run_command(mock_yaml_file, "process_cif", test_cif_file_unmerged)
+
+
+def test_can_run_command_no(test_cif_file_merged, mock_yaml_file):
+    """Test the can_run_command function to ensure it returns the expected results."""
+    assert not can_run_command(mock_yaml_file, "process_cif", test_cif_file_merged)
 
 
 # CLI tests

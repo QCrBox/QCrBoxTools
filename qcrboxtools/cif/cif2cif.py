@@ -4,7 +4,6 @@
 from collections import namedtuple
 from collections.abc import Mapping
 from copy import deepcopy
-from functools import partial
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -803,8 +802,9 @@ def can_run_command(yml_path: Path, command: str, input_cif_path: Path):
     except OneOfEntryNotResolvableError:
         return False
 
-    partial_convert = partial(entry_to_unified_keyword, custom_categories=yml_input_settings.custom_categories)
-
-    required_unified_entries = map(partial_convert, yml_input_settings.required_entries)
+    required_unified_entries = [
+        entry_to_unified_keyword(entry, yml_input_settings.custom_categories)
+        for entry in yml_input_settings.required_entries
+    ]
 
     return all(entry in block for entry in required_unified_entries)

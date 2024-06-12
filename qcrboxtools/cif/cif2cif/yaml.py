@@ -676,7 +676,10 @@ def can_run_command(yml_path: Path, command: str, input_cif_path: Path):
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
 
-    yml_input_settings = cif_input_entries_from_yml(yml_dict, command, "input_cif_path")
+    try:
+        yml_input_settings = cif_input_entries_from_yml(yml_dict, command, "input_cif_path")
+    except UnknownParameterError:
+        return True
 
     block, _ = cifdata_str_or_index(read_cif_safe(input_cif_path), "0")
 

@@ -709,6 +709,8 @@ def load_aliases():
         "symmetry_int_tables_number": "space_group.it_number",
         "space_group_name_H-M_alt": "space_group.name_h-m_alt",
         "space_group_name_h-m_alt": "space_group.name_h-m_alt",
+        "symmetry_space_group_name_H-M_alt": "space_group.name_h-m_alt",
+        "symmetry_space_group_name_h-m_alt": "space_group.name_h-m_alt",
         "symmetry.space_group_name_H-M": "space_group.name_h-m_full",
         "symmetry.space_group_name_h-m": "space_group.name_h-m_full",
         "symmetry_space_group_name_H-M": "space_group.name_h-m_full",

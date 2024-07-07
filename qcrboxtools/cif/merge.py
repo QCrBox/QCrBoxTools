@@ -261,7 +261,7 @@ def loop_to_row_dict(loop: cif.model.loop, merge_keys: Tuple[str]) -> Dict[Tuple
 
 
 def merge_cif_loops(
-    loop1: cif.model.loop, loop2: cif.model.loop, merge_on: Union[str, List[str]] = r"*\.label"
+    loop1: cif.model.loop, loop2: cif.model.loop, merge_on: Union[str, List[str]] = r".*\.label"
 ) -> cif.model.loop:
     """
     Merge two CIF loops based on matching keys specified by `merge_on`.

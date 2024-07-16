@@ -55,7 +55,8 @@ def split_su_single(input_string: str) -> Tuple[float, float]:
         return float(input_string), 0.0
     if len(match.group(2)) == 0:
         return float(match.group(1)), float(match.group(3))
-    magnitude = 10.0 ** (-len(match.group(2)))
+    n_digits = len(match.group(2))
+    magnitude = 10.0 ** (-n_digits)
     if match.group(1).startswith("-"):
         sign = -1
     else:
@@ -63,7 +64,7 @@ def split_su_single(input_string: str) -> Tuple[float, float]:
     # append the strings to reduce floating point errors (do not use magnitude)
     value = float(match.group(1)) + sign * float("0." + match.group(2))
     su = magnitude * float(match.group(3).replace(".", ""))
-    return value, su
+    return value, round(su, n_digits)
 
 
 def split_su_array(input_strings: Iterable[str]) -> Tuple[np.ndarray, np.ndarray]:

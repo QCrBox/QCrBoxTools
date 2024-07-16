@@ -202,7 +202,10 @@ def create_atom_string(
         atom_string = start + " " + str(atom_site_loop["_atom_site.u_iso_or_equiv"][index])
     return " =\n  ".join(wrap(atom_string))
 
-def create_atom_table_lines(indexes, cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, parent_afix_m=None):
+
+def create_atom_table_lines(
+    indexes, cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, parent_afix_m=None
+):
     non_h_ns = (0, 1, 2, 5, 6, 9)
     non_h_ms = (0, 5, 6, 7, 10, 11)
     lines = []
@@ -231,7 +234,11 @@ def create_atom_table_lines(indexes, cif_block, atom_site_loop, atom_site_aniso_
             uiso_mult = None
         lines.append(create_atom_string(int_index, atom_site_loop, atom_site_aniso_loop, uiso_mult))
         if label in attached_collect:
-            lines.extend(create_atom_table_lines(attached_collect[label], cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, m))
+            lines.extend(
+                create_atom_table_lines(
+                    attached_collect[label], cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, m
+                )
+            )
             if parent_afix_m is not None:
                 lines.append(f"AFIX {parent_afix_m}5")
             else:

@@ -1,5 +1,5 @@
-from collections import namedtuple
 import re
+from collections import namedtuple
 from textwrap import wrap
 
 from iotbx.cif.model import loop
@@ -56,6 +56,7 @@ def afix_line2mn(afix_line: str):
     afix_code = int(afix_line.split()[1])
     return afix2mn(afix_code)
 
+
 def afix2mn(afix_code: int):
     return afix_code // 10, afix_code % 10
 
@@ -102,20 +103,18 @@ def afix_m2cif(afix_m: int):
     }
     return "\n".join(wrap(afix_m_cif_instructions[afix_m]))
 
+
 def afix_n2cif(afix_n: int):
     # unsupported 0 2 (no position constrains) 5 (rigid group continuation),
     # R: Rigid group, D: Distances, O:Orientation, T: Torsion
-    afix_n_cif = {
-        1: ".", 3: "R", 4: "RD", 6: "RO", 7: "RT", 8: "RDT", 9: "RDO"
-    }
+    afix_n_cif = {1: ".", 3: "R", 4: "RD", 6: "RO", 7: "RT", 8: "RDT", 9: "RDO"}
     return afix_n_cif[afix_n]
-
 
 
 def ins2atom_site_dicts(ins_string):
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
     ins_lines = [line.strip() for line in ins_string.split("\n") if len(line) > 0]
-    sfac_line = next(line for line in ins_lines if line.startswith('SFAC')).upper().split()
+    sfac_line = next(line for line in ins_lines if line.startswith("SFAC")).upper().split()
 
     atom_lines = [line for line in ins_lines[: ins_lines.index("END")] if not line.upper().startswith(shelxl_commands)]
     atom_site_collect = {
@@ -141,7 +140,7 @@ def ins2atom_site_dicts(ins_string):
         content = atom_line.split()
         element = sfac_line[int(content[1])].capitalize()
         if content[0].upper().startswith(element.upper()):
-            content[0] = element + content[0][len(element):]
+            content[0] = element + content[0][len(element) :]
         atom_site_collect["_atom_site.label"].append(content[0])
         atom_site_collect["_atom_site.fract_x"].append(float(content[2]))
         atom_site_collect["_atom_site.fract_y"].append(float(content[3]))
@@ -166,20 +165,20 @@ def ins2atom_site_dicts(ins_string):
 def create_atom_site_constraints(ins_string):
     ins_string = ins_string.replace("=\n", " ")
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
-    lines = list(line for line in ins_string.split('\n') if len(line.strip()) > 0)
-    atom_table_start = max(index for index, line in enumerate(lines) if line.upper().startswith('FVAR ')) + 1
-    atom_table_end = next(index for index, line in enumerate(lines) if line.upper().startswith('HKLF'))
+    lines = list(line for line in ins_string.split("\n") if len(line.strip()) > 0)
+    atom_table_start = max(index for index, line in enumerate(lines) if line.upper().startswith("FVAR ")) + 1
+    atom_table_end = next(index for index, line in enumerate(lines) if line.upper().startswith("HKLF"))
 
     non_afix = list(shelxl_commands)
-    non_afix.remove('AFIX')
+    non_afix.remove("AFIX")
     non_afix = tuple(non_afix)
 
-    sfac_line = next(line for line in lines if line.startswith('SFAC')).upper().split()
-    h_index = sfac_line.index('H')
+    sfac_line = next(line for line in lines if line.startswith("SFAC")).upper().split()
+    h_index = sfac_line.index("H")
 
     only_atoms_afix = [line for line in lines[atom_table_start:atom_table_end] if not line.upper().startswith(non_afix)]
 
-    Afix = namedtuple('Afix', ['m', 'n'])
+    Afix = namedtuple("Afix", ["m", "n"])
     connect_atoms = []
     afixes = []
     afix_counts = []
@@ -200,9 +199,9 @@ def create_atom_site_constraints(ins_string):
         "_qcrbox.constraint_posn.instruction": [],
     }
 
-    current_name = ''
+    current_name = ""
     for line in only_atoms_afix:
-        if line.startswith('AFIX'):
+        if line.startswith("AFIX"):
             afix = Afix(*afix_line2mn(line))
             # the non-hydrogen ns also end the previous group
             if afix.n in non_h_ns:
@@ -219,40 +218,42 @@ def create_atom_site_constraints(ins_string):
             sfac_index = int(line.split()[1])
             if len(line.split()) == 7 and float(line.split()[6]) < 0:
                 multiplier = -float(line.split()[6])
-                atom_site_collect_dict["_atom_site.qcrbox_calc_uiso_multiplier"].append(f'{multiplier:.3f}')
+                atom_site_collect_dict["_atom_site.qcrbox_calc_uiso_multiplier"].append(f"{multiplier:.3f}")
             else:
-                atom_site_collect_dict["_atom_site.qcrbox_calc_uiso_multiplier"].append('.')
+                atom_site_collect_dict["_atom_site.qcrbox_calc_uiso_multiplier"].append(".")
             is_h = sfac_index == h_index
             element = sfac_line[sfac_index].capitalize()
             if current_name.upper().startswith(element.upper()):
-                current_name = element + current_name[len(element):]
+                current_name = element + current_name[len(element) :]
             atom_site_collect_dict["_atom_site.label"].append(current_name)
             if len(afixes) == 0:
-                atom_site_collect_dict["_atom_site.calc_attached_atom"].append('.')
-                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_id"].append('.')
-                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_index"].append('.')
+                atom_site_collect_dict["_atom_site.calc_attached_atom"].append(".")
+                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_id"].append(".")
+                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_index"].append(".")
                 last_name = current_name
                 continue
 
-            rigid_group = all((
-                afixes[-1].m in non_h_ms,
-                afixes[-1].n in non_h_ns,
-            ))
+            rigid_group = all(
+                (
+                    afixes[-1].m in non_h_ms,
+                    afixes[-1].n in non_h_ns,
+                )
+            )
             if rigid_group and is_h:
-                atom_site_collect_dict["_atom_site.calc_attached_atom"].append('.')
-                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_id"].append('.')
-                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_index"].append('.')
+                atom_site_collect_dict["_atom_site.calc_attached_atom"].append(".")
+                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_id"].append(".")
+                atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_index"].append(".")
                 continue
             if rigid_group and afix_counts[-1] == 1:
                 connect_atoms.append(current_name)
-                atom_site_collect_dict["_atom_site.calc_attached_atom"].append('.')
+                atom_site_collect_dict["_atom_site.calc_attached_atom"].append(".")
             elif not rigid_group and afix_counts[-1] == 1:
                 connect_atoms.append(last_name)
                 atom_site_collect_dict["_atom_site.calc_attached_atom"].append(connect_atoms[-1])
             else:
                 atom_site_collect_dict["_atom_site.calc_attached_atom"].append(connect_atoms[-1])
 
-            constr_id = f'SXL{afixes[-1].m}{afixes[-1].n}'
+            constr_id = f"SXL{afixes[-1].m}{afixes[-1].n}"
 
             atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_id"].append(constr_id)
             atom_site_collect_dict["_atom_site.qcrbox_constraint_posn_index"].append(str(afix_counts[-1]))

@@ -261,7 +261,7 @@ def loop_to_row_dict(loop: cif.model.loop, merge_keys: Tuple[str]) -> Dict[Tuple
 
 
 def merge_cif_loops(
-    loop1: cif.model.loop, loop2: cif.model.loop, merge_on: Union[str, List[str]] = r"*\.label"
+    loop1: cif.model.loop, loop2: cif.model.loop, merge_on: Union[str, List[str]] = r".*\.label"
 ) -> cif.model.loop:
     """
     Merge two CIF loops based on matching keys specified by `merge_on`.
@@ -321,9 +321,8 @@ def merge_cif_loops(
             start_dict[merge_key].update(inner_dict)
 
     new_dict = {key: val for key, val in zip(merge_keys, zip(*start_dict.keys()))}
-    nonmerge_keys = set(
-        [key for key in loop1.keys() if key not in merge_keys] + [key for key in loop2.keys() if key not in merge_keys]
-    )
+    nonmerge_keys = [key for key in loop1.keys() if key not in merge_keys]
+    nonmerge_keys += [key for key in loop2.keys() if key not in merge_keys and key not in nonmerge_keys]
 
     nonmerge_columns = zip(*[[row[key] for key in nonmerge_keys] for row in start_dict.values()])
     non_merge_dict = {key: val for key, val in zip(nonmerge_keys, nonmerge_columns)}

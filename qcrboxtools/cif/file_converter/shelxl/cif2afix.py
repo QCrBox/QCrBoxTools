@@ -5,7 +5,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 from iotbx.cif.builders import crystal_symmetry_builder
-from iotbx.cif.model import block, cif, loop
+from iotbx.cif.model import block, loop
 from iotbx.shelx.write_ins import LATT_SYMM
 
 from . import element_list
@@ -63,6 +63,7 @@ def block2cell_zerr(cif_block: block) -> Tuple[str, str]:
     )
 
     return cell_line, zerr_line
+
 
 def create_shelx_sfacs(atom_site_atom_types):
     """
@@ -169,10 +170,7 @@ def create_header(cif_block: block) -> str:
 
 
 def create_atom_string(
-    index: int,
-    atom_site_loop: loop,
-    atom_site_aniso_loop: Optional[loop] = None,
-    uiso_mult: Optional[float] = None
+    index: int, atom_site_loop: loop, atom_site_aniso_loop: Optional[loop] = None, uiso_mult: Optional[float] = None
 ) -> str:
     """
     Create a SHELX-formatted atom string from CIF data.

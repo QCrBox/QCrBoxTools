@@ -11,6 +11,10 @@ from iotbx.shelx.write_ins import LATT_SYMM
 from . import element_list
 
 
+class NoWeightingDetailsError(Exception):
+    pass
+
+
 def block2ins_symm(cif_block: block) -> str:
     """
     Convert CIF block symmetry information to SHELX format.
@@ -94,8 +98,6 @@ def block2sfac_unit(cif_block: block) -> Tuple[str, str]:
     sfac_dict = {}
     for sfac_el in sfac_els:
         count = upper_els.count(sfac_el.upper())
-        if count == 0:
-            continue
         sfac_dict[sfac_el] = count
     sfac_line = "SFAC " + " ".join(sfac_dict.keys())
     cell_z = int(cif_block["_cell.formula_units_z"])
@@ -117,7 +119,10 @@ def block2wght(cif_block: block) -> str:
     str
         WGHT instruction for SHELX format.
     """
-    search_a = re.search(r"\(([-+.\d]+?)P\)\^2\^", cif_block["_refine_ls.weighting_details"])
+    try:
+        search_a = re.search(r"\(([-+.\d]+?)P\)\^2\^", cif_block["_refine_ls.weighting_details"])
+    except KeyError:
+        raise NoWeightingDetailsError("No weighting details found in CIF block.")
     if search_a is not None:
         a = float(search_a.group(1))
     else:
@@ -131,7 +136,7 @@ def block2wght(cif_block: block) -> str:
     return f"WGHT {a} {b}"
 
 
-def create_header(cif_block: block) -> str:
+def block2header(cif_block: block) -> str:
     """
     Create the header section of a SHELX instruction file from CIF data.
 
@@ -207,7 +212,7 @@ def create_atom_string(
         uijs = [f'{float(atom_site_aniso_loop[f"_atom_site_aniso.u_{ij}"][index_aniso]): 9.5f}' for ij in uij_indexes]
         atom_string = start + " " + " ".join(uijs)
     else:
-        atom_string = f'{start} {atom_site_loop["_atom_site.u_iso_or_equiv"][index]: 9.5f}'
+        atom_string = f'{start} {float(atom_site_loop["_atom_site.u_iso_or_equiv"][index]): 9.5f}'
     return " =\n  ".join(wrap(atom_string))
 
 
@@ -292,7 +297,7 @@ def create_atom_list(cif_block: block) -> str:
     return "\n".join(body)
 
 
-def cif2ins(cif_block: block) -> str:
+def qcrbox_cif2ins(cif_block: block) -> str:
     """
     Convert a CIF block to a complete SHELX instruction file.
 
@@ -306,5 +311,9 @@ def cif2ins(cif_block: block) -> str:
     str
         Complete SHELX instruction file content.
     """
-    ins_lines = [create_header(cif_block), create_atom_list(cif_block), "HKLF 4", "", "END", ""]
+    for res_name in ("_shelx.res_file", "_iucr.refine_instructions_details"):
+        if res_name in cif_block:
+            if cif_block[res_name].strip().startswith("TITL"):
+                return cif_block[res_name]
+    ins_lines = [block2header(cif_block), create_atom_list(cif_block), "HKLF 4", "", "END", ""]
     return "\n".join(ins_lines)

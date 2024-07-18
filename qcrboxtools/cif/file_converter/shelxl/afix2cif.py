@@ -1,17 +1,55 @@
+"""
+This module enables the conversion of AFIX instructions into new custom CIF entries.
+It is designed to parse res/ins files as written by SHELX or Olex2 and convert the AFIX
+instructions to equivalent CIF format representations.
+
+The module provides functionality to:
+1. Extract atom site information from INS strings
+2. Create atom site constraints based on AFIX instructions
+3. Convert AFIX m and n values to their CIF equivalents
+4. Update CIF blocks with converted AFIX instructions
+
+
+Classes:
+- CifInsAtomsMismatchError: Exception for atom mismatch between INS and CIF
+- MissingRefineInstructionsError: Exception for missing refine instructions
+
+Main functions:
+- ins2atom_site_dicts: Extract atom site information from INS string
+- create_atom_site_constraints: Create atom site constraints from INS string
+- afix_to_cif: Convert AFIX instructions to CIF format
+
+Note: This module requires the iotbx.cif library for CIF file handling.
+
+Usage:
+    from afix_to_cif_converter import afix_to_cif
+    updated_cif_block = afix_to_cif(original_cif_block)
+
+"""
+
 import re
 from collections import namedtuple
 from textwrap import wrap
+from typing import Dict, List, Tuple, Union
 
-from iotbx.cif.model import loop, block
+from iotbx.cif.model import block, loop
 
 from ...merge import merge_cif_loops
 from . import shelxl_commands
 
+
 class CifInsAtomsMismatchError(Exception):
-    pass
+    """
+    Exception raised when there's a mismatch in the number of atoms in INS file and CIF
+    _atom_site or _atom_site_aniso blocks.
+    """
+
 
 class MissingRefineInstructionsError(Exception):
-    pass
+    """
+    Exception raised when there is no SHELXL res file in the CIF block.
+    """
+
 
 non_implemented_instructions = (
     "ABIN",
@@ -56,20 +94,80 @@ non_implemented_instructions = (
     "WIGL",
     "XNPD",
 )
-def keep_ins(ins_string):
+
+
+def keep_ins(ins_string: str) -> bool:
+    """
+    Check if any non-implemented instructions are present in the INS string.
+
+    Parameters
+    ----------
+    ins_string : str
+        The INS file content as a string.
+
+    Returns
+    -------
+    bool
+        True if any non-implemented instructions are found, False otherwise.
+    """
     lines = ins_string.split("\n")
     return any(line.startswith(command) for command in non_implemented_instructions for line in lines)
 
-def afix2mn(afix_code: int):
+
+def afix2mn(afix_code: int) -> Tuple[int, int]:
+    """
+    Convert AFIX code to m and n values.
+
+    Parameters
+    ----------
+    afix_code : int
+        The AFIX code.
+
+    Returns
+    -------
+    Tuple[int, int]
+        A tuple containing m and n values.
+    """
     return afix_code // 10, afix_code % 10
 
 
-def afix_line2mn(afix_line: str):
+def afix_line2mn(afix_line: str) -> Tuple[int, int]:
+    """
+    Extract m and n values from an AFIX line.
+
+    Parameters
+    ----------
+    afix_line : str
+        The AFIX instruction line.
+
+    Returns
+    -------
+    Tuple[int, int]
+        A tuple containing m and n values.
+    """
     afix_code = int(afix_line.split()[1])
     return afix2mn(afix_code)
 
 
-def afix_m2cif(afix_m: int):
+def afix_m2cif(afix_m: int) -> str:
+    """
+    Convert AFIX m value to CIF instruction string.
+
+    Parameters
+    ----------
+    afix_m : int
+        The m value from AFIX instruction.
+
+    Returns
+    -------
+    str
+        CIF instruction string corresponding to the AFIX m value.
+
+    Raises
+    ------
+    KeyError
+        If the AFIX m value is not implemented.
+    """
     afix_m_cif_instructions = {
         0: "Relative posistioning of the atoms was kept fixed.",
         1: "Idealized tertiary C-H with all equal X-C-H angles for all three substituents of C.",
@@ -115,7 +213,25 @@ def afix_m2cif(afix_m: int):
         raise KeyError(f"AFIX with m={afix_m} is not implemented") from e
 
 
-def afix_n2cif(afix_n: int):
+def afix_n2cif(afix_n: int) -> str:
+    """
+    Convert AFIX n value to CIF constraint string.
+
+    Parameters
+    ----------
+    afix_n : int
+        The n value from AFIX instruction.
+
+    Returns
+    -------
+    str
+        CIF constraint string corresponding to the AFIX n value.
+
+    Raises
+    ------
+    KeyError
+        If the AFIX n value is not implemented.
+    """
     # unsupported 0 2 (no position constrains) 5 (rigid group continuation),
     # R: Rigid group, D: Distances, O:Orientation, T: Torsion
     afix_n_cif = {1: ".", 3: "R", 4: "RD", 6: "RO", 7: "RT", 8: "RDT", 9: "RDO"}
@@ -125,7 +241,28 @@ def afix_n2cif(afix_n: int):
         raise KeyError(f"AFIX with n={afix_n} is not implemented") from e
 
 
-def ins2atom_site_dicts(ins_string: str):
+def ins2atom_site_dicts(
+    ins_string: str,
+) -> Tuple[Dict[str, List[Union[str, float]]], Dict[str, List[Union[str, float]]], Dict[str, List[Union[str, float]]]]:
+    """
+    Extract atom site information from INS string to parse them into (unified)
+    CIF formatted dictionaries. Is used to update the CIF loops with values
+    that are more (numerically) accurate than the precision-rounded values in the CIF file.
+
+    Parameters
+    ----------
+    ins_string : str
+        The SHELXL INS format file content as a string.
+
+    Returns
+    -------
+    Tuple[Dict[str, List[Union[str, float]]], Dict[str, List[Union[str, float]]], Dict[str, List[Union[str, float]]]]
+        A tuple containing three dictionaries:
+        1. atom_site_collect: General atom site information
+        2. atom_site_iso_collect: Isotropic displacement information for all non-isotropic or
+           constrained atoms.
+        3. atom_site_aniso_collect: Anisotropic displacement information if atoms are anisotropic.
+    """
     ins_string = ins_string.replace("=\n", " ")
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
     ins_lines = [line.strip() for line in ins_string.split("\n") if len(line) > 0]
@@ -155,7 +292,7 @@ def ins2atom_site_dicts(ins_string: str):
         content = atom_line.split()
         element = sfac_line[int(content[1])].capitalize()
         if content[0].upper().startswith(element.upper()):
-            content[0] = element + content[0][len(element):]
+            content[0] = element + content[0][len(element) :]
         atom_site_collect["_atom_site.label"].append(content[0])
         atom_site_collect["_atom_site.fract_x"].append(float(content[2]))
         atom_site_collect["_atom_site.fract_y"].append(float(content[3]))
@@ -177,7 +314,22 @@ def ins2atom_site_dicts(ins_string: str):
     return atom_site_collect, atom_site_iso_collect, atom_site_aniso_collect
 
 
-def create_atom_site_constraints(ins_string: str):
+def create_atom_site_constraints(ins_string: str) -> Tuple[Dict[str, List[str]], Dict[str, List[str]]]:
+    """
+    Create the QCrBox specific dictionaries for position constraints from INS string.
+
+    Parameters
+    ----------
+    ins_string : str
+        The SHELXL INS format file content as a string.
+
+    Returns
+    -------
+    Tuple[Dict[str, List[str]], Dict[str, List[str]]]
+        A tuple containing two dictionaries:
+        1. atom_site_collect_dict: Atom site dict with added columns for the individual constraints
+        2. constraint_posn_dict: Description of the constraints used in the atom_site_collect_dict.
+    """
     ins_string = ins_string.replace("=\n", " ")
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
     lines = list(line for line in ins_string.split("\n") if len(line.strip()) > 0)
@@ -281,7 +433,31 @@ def create_atom_site_constraints(ins_string: str):
     return atom_site_collect_dict, constraint_posn_dict
 
 
-def afix_to_cif(cif_block: block):
+def afix_to_cif(cif_block: block) -> block:
+    """
+    Convert AFIX instructions to CIF format.
+
+    Parameters
+    ----------
+    cif_block : iotbx.cif.model.block
+        The CIF block containing the atomic tables, as well as the ins file embedded
+        as either _iucr.refine_instructions_details or _shelx.res_file.
+
+    Returns
+    -------
+    iotbx.cif.model.block
+        Updated CIF block with AFIX instructions converted to entries in the atom_site table
+        and an additional table for the constraint description. Also updates the atom_site
+        and atom_site_aniso tables with the values from the ins to enable convergence between
+        programs in QCrBox.
+
+    Raises
+    ------
+    MissingRefineInstructionsError
+        If refine instructions are missing in the CIF block.
+    CifInsAtomsMismatchError
+        If there's a mismatch between atoms in INS file and CIF block.
+    """
     ins_string = cif_block.get("_iucr.refine_instructions_details", cif_block.get("_shelx.res_file"))
     if ins_string is None:
         raise MissingRefineInstructionsError(
@@ -315,21 +491,19 @@ def afix_to_cif(cif_block: block):
     try:
         cif_block.loops["_atom_site"].update(atom_site_loop)
     except AssertionError as e:
-        raise CifInsAtomsMismatchError(
-            "The atoms in the INS file do not match the ones in the atom_site_table"
-            ) from e
+        raise CifInsAtomsMismatchError("The atoms in the INS file do not match the ones in the atom_site_table") from e
     try:
         cif_block.loops["_atom_site_aniso"].update(atom_site_aniso_loop)
     except AssertionError as e:
         raise CifInsAtomsMismatchError(
             "The atoms in the INS file do not match the ones in the atom_site_aniso_table"
-            ) from e
+        ) from e
     cif_block.add_loop(constr_posn_loop)
 
     scaling = re.search(r"FVAR\s+(\d+\.\d+)", ins_string).group(1)
     cif_block.add_data_item("_qcrbox.shelx.scale_factor", scaling)
     if not keep_ins(ins_string) and "_iucr.refine_instructions_details" in cif_block:
-        del(cif_block["_iucr.refine_instructions_details"])
+        del cif_block["_iucr.refine_instructions_details"]
     elif not keep_ins(ins_string) and "_shelx.res_file" in cif_block:
-        del(cif_block["_shelx.res_file"])
+        del cif_block["_shelx.res_file"]
     return cif_block

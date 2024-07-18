@@ -2,10 +2,16 @@ import re
 from collections import namedtuple
 from textwrap import wrap
 
-from iotbx.cif.model import loop
+from iotbx.cif.model import loop, block
 
 from ...merge import merge_cif_loops
 from . import shelxl_commands
+
+class CifInsAtomsMismatchError(Exception):
+    pass
+
+class MissingRefineInstructionsError(Exception):
+    pass
 
 non_implemented_instructions = (
     "ABIN",
@@ -50,15 +56,17 @@ non_implemented_instructions = (
     "WIGL",
     "XNPD",
 )
+def keep_ins(ins_string):
+    lines = ins_string.split("\n")
+    return any(line.startswith(command) for command in non_implemented_instructions for line in lines)
+
+def afix2mn(afix_code: int):
+    return afix_code // 10, afix_code % 10
 
 
 def afix_line2mn(afix_line: str):
     afix_code = int(afix_line.split()[1])
     return afix2mn(afix_code)
-
-
-def afix2mn(afix_code: int):
-    return afix_code // 10, afix_code % 10
 
 
 def afix_m2cif(afix_m: int):
@@ -101,17 +109,24 @@ def afix_m2cif(afix_m: int):
         15: "BH group with hydrogen placed along the negative sum vector of unit vectors of the other bonds to boron.",
         16: "Acetylenic C-H with linear X-C-H.",
     }
-    return "\n".join(wrap(afix_m_cif_instructions[afix_m]))
+    try:
+        return "\n".join(wrap(afix_m_cif_instructions[afix_m]))
+    except KeyError as e:
+        raise KeyError(f"AFIX with m={afix_m} is not implemented") from e
 
 
 def afix_n2cif(afix_n: int):
     # unsupported 0 2 (no position constrains) 5 (rigid group continuation),
     # R: Rigid group, D: Distances, O:Orientation, T: Torsion
     afix_n_cif = {1: ".", 3: "R", 4: "RD", 6: "RO", 7: "RT", 8: "RDT", 9: "RDO"}
-    return afix_n_cif[afix_n]
+    try:
+        return afix_n_cif[afix_n]
+    except KeyError as e:
+        raise KeyError(f"AFIX with n={afix_n} is not implemented") from e
 
 
-def ins2atom_site_dicts(ins_string):
+def ins2atom_site_dicts(ins_string: str):
+    ins_string = ins_string.replace("=\n", " ")
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
     ins_lines = [line.strip() for line in ins_string.split("\n") if len(line) > 0]
     sfac_line = next(line for line in ins_lines if line.startswith("SFAC")).upper().split()
@@ -140,7 +155,7 @@ def ins2atom_site_dicts(ins_string):
         content = atom_line.split()
         element = sfac_line[int(content[1])].capitalize()
         if content[0].upper().startswith(element.upper()):
-            content[0] = element + content[0][len(element) :]
+            content[0] = element + content[0][len(element):]
         atom_site_collect["_atom_site.label"].append(content[0])
         atom_site_collect["_atom_site.fract_x"].append(float(content[2]))
         atom_site_collect["_atom_site.fract_y"].append(float(content[3]))
@@ -162,7 +177,7 @@ def ins2atom_site_dicts(ins_string):
     return atom_site_collect, atom_site_iso_collect, atom_site_aniso_collect
 
 
-def create_atom_site_constraints(ins_string):
+def create_atom_site_constraints(ins_string: str):
     ins_string = ins_string.replace("=\n", " ")
     ins_string = re.sub(r"TITL.*(\n  .*)*", "", ins_string)
     lines = list(line for line in ins_string.split("\n") if len(line.strip()) > 0)
@@ -195,8 +210,8 @@ def create_atom_site_constraints(ins_string):
 
     constraint_posn_dict = {
         "_qcrbox_constraint_posn.id": [],
-        "_qcrbox.constraint_posn.refined_pars": [],
-        "_qcrbox.constraint_posn.instruction": [],
+        "_qcrbox_constraint_posn.refined_pars": [],
+        "_qcrbox_constraint_posn.instruction": [],
     }
 
     current_name = ""
@@ -260,22 +275,18 @@ def create_atom_site_constraints(ins_string):
             afix_counts[-1] += 1
             if constr_id not in constraint_posn_dict["_qcrbox_constraint_posn.id"]:
                 constraint_posn_dict["_qcrbox_constraint_posn.id"].append(constr_id)
-                constraint_posn_dict["_qcrbox.constraint_posn.instruction"].append(afix_m2cif(afix.m))
-                constraint_posn_dict["_qcrbox.constraint_posn.refined_pars"].append(afix_n2cif(afix.n))
+                constraint_posn_dict["_qcrbox_constraint_posn.instruction"].append(afix_m2cif(afix.m))
+                constraint_posn_dict["_qcrbox_constraint_posn.refined_pars"].append(afix_n2cif(afix.n))
             last_name = current_name
     return atom_site_collect_dict, constraint_posn_dict
 
 
-def afix_to_cif(cif_block):
-    try:
-        ins_string = cif_block.get("_iucr.refine_instructions_details", cif_block.get("_shelx.res_file"))
-    except KeyError as e:
-        raise KeyError(
+def afix_to_cif(cif_block: block):
+    ins_string = cif_block.get("_iucr.refine_instructions_details", cif_block.get("_shelx.res_file"))
+    if ins_string is None:
+        raise MissingRefineInstructionsError(
             "No refine instructions (_iucr.refine_instructions_details, _shelx.res_file) found in CIF block"
-        ) from e
-
-    # handle SHELXL line continuation
-    ins_string = ins_string.replace("=\n", " ")
+        )
 
     atom_posn_dict, atom_iso_dict, atom_aniso_dict = ins2atom_site_dicts(ins_string)
     atom_site_posn_loop = loop()
@@ -301,10 +312,24 @@ def afix_to_cif(cif_block):
     atom_site_aniso_loop = merge_cif_loops(
         cif_block.loops["_atom_site_aniso"], atom_site_aniso_loop, merge_on=[r"_atom_site_aniso\.label"]
     )
-    cif_block.loops["_atom_site"].update(atom_site_loop)
-    cif_block.loops["_atom_site_aniso"].update(atom_site_aniso_loop)
+    try:
+        cif_block.loops["_atom_site"].update(atom_site_loop)
+    except AssertionError as e:
+        raise CifInsAtomsMismatchError(
+            "The atoms in the INS file do not match the ones in the atom_site_table"
+            ) from e
+    try:
+        cif_block.loops["_atom_site_aniso"].update(atom_site_aniso_loop)
+    except AssertionError as e:
+        raise CifInsAtomsMismatchError(
+            "The atoms in the INS file do not match the ones in the atom_site_aniso_table"
+            ) from e
     cif_block.add_loop(constr_posn_loop)
 
     scaling = re.search(r"FVAR\s+(\d+\.\d+)", ins_string).group(1)
     cif_block.add_data_item("_qcrbox.shelx.scale_factor", scaling)
+    if not keep_ins(ins_string) and "_iucr.refine_instructions_details" in cif_block:
+        del(cif_block["_iucr.refine_instructions_details"])
+    elif not keep_ins(ins_string) and "_shelx.res_file" in cif_block:
+        del(cif_block["_shelx.res_file"])
     return cif_block

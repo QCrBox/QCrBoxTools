@@ -4,7 +4,7 @@ from textwrap import wrap
 from typing import Optional, Tuple
 
 import numpy as np
-from iotbx.cif import cctbx_data_structures_from_cif
+from iotbx.cif.builders import crystal_symmetry_builder
 from iotbx.cif.model import block, cif, loop
 from iotbx.shelx.write_ins import LATT_SYMM
 
@@ -25,15 +25,11 @@ def block2ins_symm(cif_block: block) -> str:
     str
         SHELX formatted symmetry instructions.
     """
-    new_cif = cif()
-    new_cif["qcrbox"] = cif_block
-    mill_array = cctbx_data_structures_from_cif(cif_model=new_cif).miller_arrays["qcrbox"][
-        "_diffrn_refln.intensity_net"
-    ]
+    symmetry = crystal_symmetry_builder(cif_block).crystal_symmetry
     with StringIO() as fobj:
-        LATT_SYMM(fobj, mill_array.crystal_symmetry().space_group())
+        LATT_SYMM(fobj, symmetry.space_group())
         instr = fobj.getvalue()
-    return instr
+    return instr.strip()
 
 
 def block2cell_zerr(cif_block: block) -> Tuple[str, str]:
@@ -68,6 +64,14 @@ def block2cell_zerr(cif_block: block) -> Tuple[str, str]:
 
     return cell_line, zerr_line
 
+def create_shelx_sfacs(atom_site_atom_types):
+    """
+    Create a list of elements in SFAC ordering from atom types in the CIF file.
+    """
+    atom_types = [x.upper() for x in atom_site_atom_types]
+    sfac_elements = [x for x in element_list if x.upper() in atom_types]
+    return sfac_elements
+
 
 def block2sfac_unit(cif_block: block) -> Tuple[str, str]:
     """
@@ -83,7 +87,7 @@ def block2sfac_unit(cif_block: block) -> Tuple[str, str]:
     tuple of str
         SFAC and UNIT lines for SHELX format.
     """
-    sfac_els = ["C", "H"] + [el for el in element_list if el not in ("C", "H")]
+    sfac_els = create_shelx_sfacs(cif_block["_atom_site.type_symbol"])
     upper_els = [el.upper() for el in cif_block["_atom_site.type_symbol"]]
 
     sfac_dict = {}
@@ -145,16 +149,19 @@ def create_header(cif_block: block) -> str:
     cell_line, zerr_line = block2cell_zerr(cif_block)
     ins_lines.append(cell_line)
     ins_lines.append(zerr_line)
+    symm_lines = block2ins_symm(cif_block)
+    ins_lines.append(symm_lines)
     sfac_line, unit_line = block2sfac_unit(cif_block)
     ins_lines.append(sfac_line)
     ins_lines.append(unit_line)
 
     if "_diffrn.ambient_temperature" in cif_block:
-        ins_lines.append(f"TEMP {cif_block['_diffrn.ambient_temperature']}")
+        temp_c = float(cif_block["_diffrn.ambient_temperature"]) - 273.0
+        ins_lines.append(f"TEMP {temp_c}")
     if all(f"_exptl_crystal.size_{val}" in cif_block for val in ("max", "mid", "min")):
         ins_lines.append("SIZE " + " ".join(cif_block[f"_exptl_crystal.size_{val}"] for val in ("max", "mid", "min")))
 
-    ins_lines.append("CONF\nBOND $H\nLIST 4\nACTA\nBOND\nFMAP 2\nMORE -1")
+    ins_lines.append("CONF\nBOND $H\nL.S. 10\nLIST 4\nACTA\nBOND\nFMAP 2\nMORE -1")
     ins_lines.append(block2wght(cif_block))
     ins_lines.append(f'FVAR {cif_block["_qcrbox.shelx.scale_factor"]}')
 
@@ -162,7 +169,10 @@ def create_header(cif_block: block) -> str:
 
 
 def create_atom_string(
-    index: int, atom_site_loop: loop, atom_site_aniso_loop: Optional[loop] = None, uiso_mult: Optional[float] = None
+    index: int,
+    atom_site_loop: loop,
+    atom_site_aniso_loop: Optional[loop] = None,
+    uiso_mult: Optional[float] = None
 ) -> str:
     """
     Create a SHELX-formatted atom string from CIF data.
@@ -183,23 +193,23 @@ def create_atom_string(
     str
         SHELX-formatted atom string.
     """
+    sfac_list = create_shelx_sfacs(atom_site_loop["_atom_site.type_symbol"])
     uij_indexes = (11, 22, 33, 23, 13, 12)
     label = atom_site_loop["_atom_site.label"][index]
-    atom_type = atom_site_loop["_atom_site.type_symbol"][index]
-    x = atom_site_loop["_atom_site.fract_x"][index]
-    y = atom_site_loop["_atom_site.fract_y"][index]
-    z = atom_site_loop["_atom_site.fract_z"][index]
+    atom_type = sfac_list.index(atom_site_loop["_atom_site.type_symbol"][index]) + 1
+    x = float(atom_site_loop["_atom_site.fract_x"][index])
+    y = float(atom_site_loop["_atom_site.fract_y"][index])
+    z = float(atom_site_loop["_atom_site.fract_z"][index])
     occ = 11.0
-    start = f"{label} {atom_type} {x} {y} {z} {occ}"
+    start = f"{label} {atom_type} {x: 9.5f} {y: 9.5f} {z: 9.5f} {occ: 9.5f}"
     if uiso_mult is not None:
-        atom_string = start + " " + str(-uiso_mult)
+        atom_string = f"{start} {float(-uiso_mult): 4.2f}"
     elif (atom_site_aniso_loop is not None) and (label in atom_site_aniso_loop["_atom_site_aniso.label"]):
         index_aniso = list(atom_site_aniso_loop["_atom_site_aniso.label"]).index(label)
-
-        uijs = [str(atom_site_aniso_loop[f"_atom_site_aniso.u_{ij}"][index_aniso]) for ij in uij_indexes]
+        uijs = [f'{float(atom_site_aniso_loop[f"_atom_site_aniso.u_{ij}"][index_aniso]): 9.5f}' for ij in uij_indexes]
         atom_string = start + " " + " ".join(uijs)
     else:
-        atom_string = start + " " + str(atom_site_loop["_atom_site.u_iso_or_equiv"][index])
+        atom_string = f'{start} {atom_site_loop["_atom_site.u_iso_or_equiv"][index]: 9.5f}'
     return " =\n  ".join(wrap(atom_string))
 
 

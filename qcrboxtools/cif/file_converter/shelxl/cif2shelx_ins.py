@@ -1,7 +1,7 @@
 import re
 from io import StringIO
 from textwrap import wrap
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 from iotbx.cif.builders import crystal_symmetry_builder
@@ -12,7 +12,10 @@ from . import element_list
 
 
 class NoWeightingDetailsError(Exception):
-    pass
+    """
+    Raised when no weighting details are found in the CIF block,
+    i.e. there is no _refine_ls.weighting_details key in the block.
+    """
 
 
 def block2ins_symm(cif_block: block) -> str:
@@ -21,7 +24,7 @@ def block2ins_symm(cif_block: block) -> str:
 
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing symmetry information.
 
     Returns
@@ -42,7 +45,7 @@ def block2cell_zerr(cif_block: block) -> Tuple[str, str]:
 
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing the necessary information.
 
     Returns
@@ -69,9 +72,19 @@ def block2cell_zerr(cif_block: block) -> Tuple[str, str]:
     return cell_line, zerr_line
 
 
-def create_shelx_sfacs(atom_site_atom_types):
+def create_shelx_sfacs(atom_site_atom_types: List[str]) -> List[str]:
     """
     Create a list of elements in SFAC ordering from atom types in the CIF file.
+
+    Parameters
+    ----------
+    atom_site_atom_types : list of str
+        List of atom types from the CIF file.
+
+    Returns
+    -------
+    list of str
+        List of elements in SFAC ordering.
     """
     atom_types = [x.upper() for x in atom_site_atom_types]
     sfac_elements = [x for x in element_list if x.upper() in atom_types]
@@ -84,7 +97,7 @@ def block2sfac_unit(cif_block: block) -> Tuple[str, str]:
 
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing atom information.
 
     Returns
@@ -111,18 +124,23 @@ def block2wght(cif_block: block) -> str:
 
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing weighting details.
 
     Returns
     -------
     str
         WGHT instruction for SHELX format.
+
+    Raises
+    ------
+    NoWeightingDetailsError
+        If no weighting details are found in the CIF block.
     """
     try:
         search_a = re.search(r"\(([-+.\d]+?)P\)\^2\^", cif_block["_refine_ls.weighting_details"])
-    except KeyError:
-        raise NoWeightingDetailsError("No weighting details found in CIF block.")
+    except KeyError as e:
+        raise NoWeightingDetailsError("No weighting details found in CIF block.") from e
     if search_a is not None:
         a = float(search_a.group(1))
     else:
@@ -142,7 +160,7 @@ def block2header(cif_block: block) -> str:
 
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing structure information.
 
     Returns
@@ -184,12 +202,12 @@ def create_atom_string(
     ----------
     index : int
         Index of the atom in the atom_site_loop.
-    atom_site_loop : iotbx.cif.model.loop
+    atom_site_loop : loop
         CIF loop object containing atom site information.
-    atom_site_aniso_loop : iotbx.cif.model.loop, optional
+    atom_site_aniso_loop : loop, optional
         CIF loop object containing anisotropic displacement parameters.
     uiso_mult : float, optional
-        Uiso is set to a multiple of the calculated value of the bound atom
+        Uiso is set to a multiple of the calculated value of the bound atom.
 
     Returns
     -------
@@ -217,8 +235,32 @@ def create_atom_string(
 
 
 def create_atom_table_lines(
-    indexes, cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, parent_afix_m=None
-):
+    indexes: List[int], cif_block: block, attached_collect: Dict[str, List[int]], parent_afix_m: Optional[int] = None
+) -> List[str]:
+    """
+    Create SHELX-formatted atom table lines from CIF data with included AFIX
+    instructions. Recursively process nested instructions and their atoms.
+
+    Parameters
+    ----------
+    indexes : list of int
+        List of atom indices to process. Indexes when called from the outside
+        correspond to the atom indices in the atom_site_loop that do not have
+        a constraint attached to them
+    cif_block : block
+        CIF block containing structure information.
+    attached_collect : dict of str: list of int
+        Dictionary mapping atom labels to lists of attached atom indices.
+    parent_afix_m : int, optional
+        Parent AFIX m value.
+
+    Returns
+    -------
+    list of str
+        SHELX-formatted atom table lines.
+    """
+    atom_site_loop = cif_block.loops["_atom_site"]
+    atom_site_aniso_loop = cif_block.loops["_atom_site_aniso"]
     non_h_ns = (0, 1, 2, 5, 6, 9)
     non_h_ms = (0, 5, 6, 7, 10, 11)
     lines = []
@@ -247,11 +289,7 @@ def create_atom_table_lines(
             uiso_mult = None
         lines.append(create_atom_string(int_index, atom_site_loop, atom_site_aniso_loop, uiso_mult))
         if label in attached_collect:
-            lines.extend(
-                create_atom_table_lines(
-                    attached_collect[label], cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect, m
-                )
-            )
+            lines.extend(create_atom_table_lines(attached_collect[label], cif_block, attached_collect, m))
             if parent_afix_m is not None:
                 lines.append(f"AFIX {parent_afix_m}5")
             else:
@@ -274,7 +312,6 @@ def create_atom_list(cif_block: block) -> str:
         Atom list section of SHELX instruction file.
     """
     atom_site_loop = cif_block.loops["_atom_site"]
-    atom_site_aniso_loop = cif_block.loops["_atom_site_aniso"]
     (non_afix_indexes,) = np.where(np.array(atom_site_loop["_atom_site.calc_attached_atom"]) == ".")
     non_afix_indexes = non_afix_indexes.tolist()
 
@@ -292,7 +329,7 @@ def create_atom_list(cif_block: block) -> str:
             sorted(indexes, key=lambda x: atom_site_loop["_atom_site.qcrbox_constraint_posn_index"][int(x)])
         )
 
-    body = create_atom_table_lines(non_afix_indexes, cif_block, atom_site_loop, atom_site_aniso_loop, attached_collect)
+    body = create_atom_table_lines(non_afix_indexes, cif_block, attached_collect)
 
     return "\n".join(body)
 
@@ -301,9 +338,13 @@ def qcrbox_cif2ins(cif_block: block) -> str:
     """
     Convert a CIF block to a complete SHELX instruction file.
 
+    This function checks for existing SHELX instructions in the CIF block and
+    returns them if found. Otherwise, it generates a new SHELX instruction
+    file from the CIF data.
+
     Parameters
     ----------
-    cif_block : iotbx.cif.model.block
+    cif_block : block
         CIF block containing full structure information.
 
     Returns

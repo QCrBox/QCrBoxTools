@@ -118,8 +118,6 @@ class DefaultExecutor(Executor):
         return arg
 
 
-class MoProImportInpFile: ...
-
 
 class MoProImportRobot:
     def __init__(self, executor: Executor = OptionalWineExecutor(), executable_path: Optional[Path] = None):
@@ -137,15 +135,10 @@ class MoProImportRobot:
             raise FileNotFoundError(f"No executable not found at {executable_path}")
         self.executable_path = executable_path
 
-    def cif2par(self, cif_path: Path, par_name: Path):
-        input_file_str = self.create_input_file(cif_path, par_name)
-        input_file_path = cif_path.parent / "imopro.inp"
-        input_file_path.write_text(input_file_str)
-        cmd_args = [str(self.executable_path)]
+    def cif2par(self, cif_path: Path):
+        cmd_args = [str(self.executable_path), f"%{cif_path.absolute()}"]
         self.executor.execute(cmd_args, cwd=cif_path.parent)
-
-    def create_input_file(self, cif_path: PureWindowsPath, par_name: str): ...
-
+        return cif_path.with_name(cif_path.stem + "_00.par")
 
 class MoProInpFile:
     files: Dict[str, Path]

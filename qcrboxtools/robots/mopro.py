@@ -152,7 +152,7 @@ class WinePathHelper:
         )
         return PureWindowsPath(process.stdout.strip())
 
-    def get_wine_path(self, windows_path: PureWindowsPath) -> PurePosixPath:
+    def get_unix_path(self, windows_path: PureWindowsPath) -> PurePosixPath:
         """
         Converts a Windows path to a Unix path using winepath.
 

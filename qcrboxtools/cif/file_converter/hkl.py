@@ -8,9 +8,9 @@ This module provides utilities for the conversion of CIF data to the SHELX HKL f
 from typing import Union
 
 import numpy as np
-from iotbx import cif
 
 from ..merge import cifdata_str_or_index
+from ..read import read_cif_as_unified
 
 
 def format_floats(val: float) -> str:
@@ -41,10 +41,9 @@ def cif2hkl4(cif_path: str, cif_dataset: Union[int, str], hkl_path: str) -> None
     Returns:
     - None
     """
-    with open(cif_path, "r", encoding="UTF-8") as fo:
-        cif_content = fo.read()
+    cif_model = read_cif_as_unified(cif_path)
 
-    cif_data, _ = cifdata_str_or_index(cif.reader(input_string=cif_content).model(), cif_dataset)
+    cif_data, _ = cifdata_str_or_index(cif_model, cif_dataset)
 
     if "_shelx.hkl_file" in cif_data:
         hkl_content = cif_data["_shelx.hkl_file"]

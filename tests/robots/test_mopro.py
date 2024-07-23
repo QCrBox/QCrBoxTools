@@ -160,7 +160,7 @@ def test_wine_path_helper_get_wine_path(wine_path_helper):
     with patch("subprocess.run") as mock_run:
         mock_run.return_value.stdout = "/home/user/file.txt\n"
         windows_path = PureWindowsPath("Z:\\home\\user\\file.txt")
-        result = wine_path_helper.get_wine_path(windows_path)
+        result = wine_path_helper.get_unix_path(windows_path)
         assert isinstance(result, PurePosixPath)
         assert str(result) == "/home/user/file.txt"
         mock_run.assert_called_once_with(

@@ -35,8 +35,8 @@ Example:
     To process a CIF file using a YAML configuration:
     `$ python -m qcrboxtools.cif specific_by_yml input.cif output.cif config.yml process_command`
 
-    To convert a CIF file to unified format based on YAML configuration:
-    `$ python -m qcrboxtools.cif unified_by_yml input.cif output.cif config.yml command_name`
+    To convert a CIF file to unified format, cut it based on YAML configuration and then merge:
+    `$ python -m qcrboxtools.cif unified_by_yml input.cif output.cif merge.cif config.yml command_name`
 
     To merge standard uncertainties and filter by specified keywords:
     `$ python -m qcrboxtools.cif to_specific input.cif output.cif --required_entries
@@ -82,11 +82,12 @@ def main():
         "unified_by_yml",
         help=(
             "Process a CIF file to unified format based on a QCrBox YAML configuration, trimming to the keywords from"
-            + "cif_output before conversion"
+            + "cif_output before conversion and then merge to the file in merge_cif_path."
         ),
     )
-    parser_unified_by_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path.")
+    parser_unified_by_yml.add_argument("input_cif_path", type=Path, help="Input CIF file path. (specific format)")
     parser_unified_by_yml.add_argument("output_cif_path", type=Path, help="Output CIF file path.")
+    parser_unified_by_yml.add_argument("merge_cif_path", type=Path, help="unified CIF file path for merging.")
     parser_unified_by_yml.add_argument("yml_path", type=Path, help="YAML configuration file path.")
     parser_unified_by_yml.add_argument("yml_command", type=str, help="Command within the YAML file for processing.")
     parser_unified_by_yml.add_argument(
@@ -151,7 +152,12 @@ def main():
         )
     elif args.command == "unified_by_yml":
         cif_file_merge_to_unified_by_yml(
-            args.input_cif_path, args.output_cif_path, None, args.yml_path, args.yml_command, args.yml_cmd_parameter
+            args.input_cif_path,
+            args.output_cif_path,
+            args.merge_cif_path,
+            args.yml_path,
+            args.yml_command,
+            args.yml_cmd_parameter
         )
     elif args.command == "to_unified":
         cif_file_to_unified(

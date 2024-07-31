@@ -540,9 +540,8 @@ def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp
         assert re.search(pattern, output_content) is not None
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
-
-def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
-    output_cif_path = tmp_path / "output.cif"
+@pytest.fixture(name="merge_cif_path")
+def fixture_merge_cif_path(tmp_path):
     merge_cif = dedent("""
         data_merge_name
         _test_value.with_su 5.67
@@ -557,9 +556,13 @@ def test_cif_file_to_unified_by_yml(test_cif_file_merged, mock_yaml_file, tmp_pa
         1 1.11 6.66
         2 2.22 7.77
     """)
-
     merge_cif_path = tmp_path / "merge_data.cif"
     merge_cif_path.write_text(merge_cif, encoding="UTF-8")
+    return merge_cif_path
+
+
+def test_cif_file_to_unified_by_yml(merge_cif_path, test_cif_file_merged, mock_yaml_file, tmp_path):
+    output_cif_path = tmp_path / "output.cif"
 
     cif_file_merge_to_unified_by_yml(
         input_cif_path=test_cif_file_merged,
@@ -712,21 +715,21 @@ def test_cli_command_keywords_yml(test_cif_file_unmerged, mock_yaml_file, tmp_pa
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
 
-def test_cli_command_unify_yml(test_cif_file_merged, mock_yaml_file, tmp_path):
+def test_cli_command_unify_yml(merge_cif_path, test_cif_file_merged, mock_yaml_file, tmp_path):
     command = "unified_by_yml"
     args = [str(mock_yaml_file), "process_cif", "output_cif_path"]
     expected_output_patterns = [
-        "data_test",
-        r"_test_value.with_su\s+1\.23",
-        r"_test_value.with_su_su\s+0\.04",
-        "loop_",
+        "data_merge_name",
+        r"_test_value\.with_su\s+1\.23",  # in required-> from input
+        r"_test_value\.with_su_su\s+0\.04",  # in required-> from input
+        r"_test_value\.without_su\s+9\.99",  # not required or optional -> from merge
+        # correctly merged loop
         r"_test_loop\.id",
+        r"_test_loop\.value_to_merge",
         r"_test_loop\.value_without_su",
-        r"\s*1\s+7\.89",
-        r"\s*2\s+8\.90",
     ]
     output_cif_path = tmp_path / "output.cif"
-    cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path)] + args
+    cli_args = CLI_COMMAND + [command, str(test_cif_file_merged), str(output_cif_path), str(merge_cif_path)] + args
 
     # Execute the CLI command
     result = subprocess.run(cli_args, capture_output=True, text=True)

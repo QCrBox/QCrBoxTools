@@ -157,7 +157,7 @@ def main():
             args.merge_cif_path,
             args.yml_path,
             args.yml_command,
-            args.yml_cmd_parameter
+            args.yml_cmd_parameter,
         )
     elif args.command == "to_unified":
         cif_file_to_unified(

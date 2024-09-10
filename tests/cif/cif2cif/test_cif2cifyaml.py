@@ -540,6 +540,7 @@ def test_cif_file_to_specific_by_yml(test_cif_file_unmerged, mock_yaml_file, tmp
         assert re.search(pattern, output_content) is not None
     assert "_atom_site_fract_z" not in output_content, "Included _atom_site.fract_z entry unexpectedly"
 
+
 @pytest.fixture(name="merge_cif_path")
 def fixture_merge_cif_path(tmp_path):
     merge_cif = dedent("""

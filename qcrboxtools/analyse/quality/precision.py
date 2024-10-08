@@ -279,8 +279,9 @@ def diederichs_plot(input_cif_path: Path) -> Tuple[np.ndarray, np.ndarray]:
     cif_block, _ = cifdata_str_or_index(cif_model, 0)
     intensity = np.array(cif_block["_diffrn_refln.intensity_net"]).astype(np.float16)
     sigma = np.array(cif_block["_diffrn_refln.intensity_net_su"]).astype(np.float64)
-    sigma = sigma[intensity > 0.0]
-    intensity = intensity[intensity > 0.0]
+    valid = np.logical_and(sigma > 0, intensity > 0)
+    sigma = sigma[valid]
+    intensity = intensity[valid]
     log10i = np.log10(intensity)
     i_over_sigma = intensity / sigma
     return log10i, i_over_sigma

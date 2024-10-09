@@ -4,6 +4,8 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
+from iotbx.cif import model
+
 from ..entries import cif_to_specific_keywords, cif_to_unified_keywords, entry_to_unified_keyword
 from ..read import read_cif_as_unified, read_cif_safe
 from ..uncertainties import merge_su_cif
@@ -48,6 +50,67 @@ def cif_file_to_unified(
 
     # Write the modified CIF model to the specified output file.
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
+
+
+def cif_model_to_specific(
+    cif_model: model,
+    required_entries: Optional[List[str]] = None,
+    optional_entries: Optional[List[str]] = None,
+    custom_categories: Optional[List[str]] = None,
+    merge_su: bool = False,
+) -> model:
+    """
+    Filters and processes an iotbx CIF model to include only specific entries.
+
+    Converts the CIF model to include only the required and optional entries
+    and, if specified, merges standard uncertainties (SUs).
+
+    Parameters
+    ----------
+    cif_model : model
+        The CIF model object to be processed.
+    required_entries : Optional[List[str]], optional
+        List of required entry names that must be included in the CIF model.
+        If "all_unified" is contained in this list a unified cif is returned
+        instead.
+        Default is an empty list.
+    optional_entries : Optional[List[str]], optional
+        List of optional entry names that will be included if present.
+        Default is an empty list.
+    custom_categories : Optional[List[str]], optional
+        List of custom categories for keyword conversion, if applicable.
+        Default is an empty list.
+    merge_su : bool, optional
+        If True, merges numerical values with their SUs before other processing.
+        Default is False.
+
+    Returns
+    -------
+    model
+        The processed CIF model with the specified modifications.
+    """
+    if required_entries is None:
+        required_entries = []
+    if optional_entries is None:
+        optional_entries = []
+    if custom_categories is None:
+        custom_categories = []
+
+    all_keywords = set(required_entries + optional_entries)
+
+    if merge_su:
+        unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords]
+
+        # entries are explicitely requested and therefore should not be merged
+        exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith("_su")]
+        cif_model = merge_su_cif(cif_model, exclude=exclude_entries)
+
+    if "all_unified" in all_keywords:
+        cif_model = cif_to_unified_keywords(cif_model, custom_categories)
+    elif len(all_keywords) > 0:
+        cif_model = cif_to_specific_keywords(cif_model, required_entries, optional_entries, custom_categories)
+
+    return cif_model
 
 
 def cif_file_to_specific(
@@ -98,29 +161,15 @@ def cif_file_to_specific(
     Returns
     -------
     None
-        The function writes directly to the file specified by `output_cif_path`.
     """
     cif_model = read_cif_safe(input_cif_path)
 
-    if required_entries is None:
-        required_entries = []
-    if optional_entries is None:
-        optional_entries = []
-    if custom_categories is None:
-        custom_categories = []
-
-    all_keywords = set(required_entries + optional_entries)
-
-    if merge_su:
-        unified_entries = [entry_to_unified_keyword(entry, custom_categories) for entry in all_keywords]
-
-        # entries are explicitely requested and therefore should not be merged
-        exclude_entries = [entry[:-3] for entry in unified_entries if entry.endswith("_su")]
-        cif_model = merge_su_cif(cif_model, exclude=exclude_entries)
-
-    if "all_unified" in all_keywords:
-        cif_model = cif_to_unified_keywords(cif_model, custom_categories)
-    elif len(all_keywords) > 0:
-        cif_model = cif_to_specific_keywords(cif_model, required_entries, optional_entries, custom_categories)
+    cif_model = cif_model_to_specific(
+        cif_model,
+        required_entries,
+        optional_entries,
+        custom_categories,
+        merge_su,
+    )
 
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")

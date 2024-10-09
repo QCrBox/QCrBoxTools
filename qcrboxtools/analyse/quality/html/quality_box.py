@@ -6,7 +6,8 @@ from . import convert_to_mathjax, data_quality_to_css_name
 
 
 class QualityIndicatorBox(NamedTuple):
-    """Represents a data quality indicator box with attributes for display.
+    """
+    Represents a data quality indicator box with attributes for display.
 
     Attributes
     ----------

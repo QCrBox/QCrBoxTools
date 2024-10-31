@@ -459,5 +459,5 @@ def cif2ortep_glb(
         If bonds_used parameter is not 'cctbx' or 'cif'.
     """
     block = read_cif_as_unified(cif_path, dataset_index)
-    scene = create_scene(block)
+    scene = create_scene(block, bonds_used=bonds_used)
     scene.export(glb_output_path)

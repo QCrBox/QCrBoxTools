@@ -12,4 +12,5 @@ dependencies:
   - flake8
   - python
   - pyyaml
+  - trimesh
 prefix: C:\Users\vzmc42\.conda\envs\test

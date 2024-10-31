@@ -113,30 +113,6 @@ element_dict = {
 }
 
 
-def mean_plane2(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """Calculate mean plane normal vector using least squares.
-
-    Parameters
-    ----------
-    points : np.ndarray
-        Nx3 array of point coordinates.
-
-    Returns
-    -------
-    np.ndarray
-        Unit normal vector of the mean plane.
-    np.ndarray
-        Center point of the plane.
-    """
-    points = points.T
-    centre = points.mean(axis=0)
-    centred = points - centre
-    A = np.concatenate((centred[:, :2], np.ones((points.shape[0], 1))), axis=1)
-    b = centred[:, 2, np.newaxis]
-    vector = np.linalg.inv(np.dot(A.T, A)) @ A.T @ b
-    return vector[:, 0] / np.linalg.norm(vector), centre[:, None]
-
-
 def mean_plane(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate mean plane normal vector using covariance matrix.
 
@@ -159,10 +135,7 @@ def mean_plane(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
     centre = points.mean(axis=0)
     centred = points - centre
-    try:
-        _, eigenvectors = np.linalg.eigh(np.einsum("ab, ac -> bc", centred, centred))
-    except (np.linalg.LinAlgError, ValueError):
-        return mean_plane2(points)
+    _, eigenvectors = np.linalg.eigh(np.einsum("ab, ac -> bc", centred, centred))
     return eigenvectors[:, 0], centre
 
 
@@ -185,6 +158,8 @@ def calc_ellipsoid_matrix(uij_cart: List[float]) -> np.ndarray:
     For conversion from CIF convention, see R. W. Grosse-Kunstleve,
     J. Appl. Cryst. (2002). 35, 477-480.
     """
+    if len(uij_cart) != 6:
+        raise ValueError("This function needs six cartesian Uij parameters.")
     uij_mat = np.array(uij_cart)[np.array([[0, 3, 4], [3, 1, 5], [4, 5, 2]])]
 
     eigenvalues, eigenvectors = np.linalg.eig(uij_mat)
@@ -277,8 +252,8 @@ def generate_geometries(elements: Set[str]) -> Dict[str, ElementGeometry]:
     Returns
     -------
     Dict[str, ElementGeometry]
-    Element names are the keys, values are ElementGeometry namedtuples with a sphere and ring attribute for every element,
-    containing a trimesh.Trimesh object with the geometries respectively
+    Element names are the keys, values are ElementGeometry namedtuples with a sphere and ring attribute for every
+    element, containing a trimesh.Trimesh object with the geometries respectively
     """
     rings = {}
     element_geometries = {}
@@ -419,9 +394,12 @@ def create_scene(
 
     labels = [scatterer.label for scatterer in structure.scatterers()]
     if bonds_used == "cif":
-        atom_labels1 = list(block["_geom_bond_atom_site_label_1"])
-        atom_labels2 = list(block["_geom_bond_atom_site_label_2"])
-        atom_symms = list(block["_geom_bond_site_symmetry_2"])
+        try:
+            atom_labels1 = list(block["_geom_bond_atom_site_label_1"])
+            atom_labels2 = list(block["_geom_bond_atom_site_label_2"])
+            atom_symms = list(block["_geom_bond_site_symmetry_2"])
+        except KeyError as e:
+            raise KeyError("The bonds are supposed to be read from cif but _geom_bond* entries are missing") from e
         bonds = [
             (labels.index(l1), labels.index(l2))
             for l1, l2, symm in zip(atom_labels1, atom_labels2, atom_symms)

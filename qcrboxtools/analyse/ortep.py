@@ -1,5 +1,6 @@
+import pathlib
 from collections import namedtuple
-from typing import List, Tuple, Set, Dict
+from typing import Dict, List, Set, Tuple, Union
 
 import numpy as np
 import trimesh
@@ -8,107 +9,109 @@ from iotbx import cif
 from scitbx.array_family import flex
 
 from ..cif.entries.entry_conversion import block_to_specific_keywords
+from ..cif.read import read_cif_as_unified
 
 ElementValues = namedtuple("ElementValues", ["radius", "atom_colour", "ring_colour"])
 
 element_dict = {
-    'H': ElementValues(radius=0.31, atom_colour='#ffffff', ring_colour='#000000'),
-    'He': ElementValues(radius=0.28, atom_colour='#d9ffff', ring_colour='#000000'),
-    'Li': ElementValues(radius=1.28, atom_colour='#cc80ff', ring_colour='#000000'),
-    'Be': ElementValues(radius=0.96, atom_colour='#c2ff00', ring_colour='#000000'),
-    'B': ElementValues(radius=0.85, atom_colour='#ffb5b5', ring_colour='#000000'),
-    'C': ElementValues(radius=0.76, atom_colour='#000000', ring_colour='#ffffff'),
-    'N': ElementValues(radius=0.71, atom_colour='#3050f8', ring_colour='#ffffff'),
-    'O': ElementValues(radius=0.66, atom_colour='#ff0d0d', ring_colour='#ffffff'),
-    'F': ElementValues(radius=0.57, atom_colour='#90e050', ring_colour='#000000'),
-    'Ne': ElementValues(radius=0.58, atom_colour='#b3e3f5', ring_colour='#000000'),
-    'Na': ElementValues(radius=1.66, atom_colour='#ab5cf2', ring_colour='#ffffff'),
-    'Mg': ElementValues(radius=1.41, atom_colour='#8aff00', ring_colour='#000000'),
-    'Al': ElementValues(radius=1.21, atom_colour='#bfa6a6', ring_colour='#000000'),
-    'Si': ElementValues(radius=1.11, atom_colour='#f0c8a0', ring_colour='#000000'),
-    'P': ElementValues(radius=1.07, atom_colour='#ff8000', ring_colour='#000000'),
-    'S': ElementValues(radius=1.05, atom_colour='#ffff30', ring_colour='#000000'),
-    'Cl': ElementValues(radius=1.02, atom_colour='#1ff01f', ring_colour='#000000'),
-    'Ar': ElementValues(radius=1.06, atom_colour='#80d1e3', ring_colour='#000000'),
-    'K': ElementValues(radius=2.03, atom_colour='#8f40d4', ring_colour='#ffffff'),
-    'Ca': ElementValues(radius=1.76, atom_colour='#3dff00', ring_colour='#000000'),
-    'Sc': ElementValues(radius=1.7, atom_colour='#e6e6e6', ring_colour='#000000'),
-    'Ti': ElementValues(radius=1.6, atom_colour='#bfc2c7', ring_colour='#000000'),
-    'V': ElementValues(radius=1.53, atom_colour='#a6a6ab', ring_colour='#000000'),
-    'Cr': ElementValues(radius=1.39, atom_colour='#8a99c7', ring_colour='#000000'),
-    'Mn': ElementValues(radius=1.39, atom_colour='#9c7ac7', ring_colour='#000000'),
-    'Fe': ElementValues(radius=1.32, atom_colour='#e06633', ring_colour='#ffffff'),
-    'Co': ElementValues(radius=1.26, atom_colour='#f090a0', ring_colour='#000000'),
-    'Ni': ElementValues(radius=1.24, atom_colour='#50d050', ring_colour='#000000'),
-    'Cu': ElementValues(radius=1.32, atom_colour='#c88033', ring_colour='#000000'),
-    'Zn': ElementValues(radius=1.22, atom_colour='#7d80b0', ring_colour='#000000'),
-    'Ga': ElementValues(radius=1.22, atom_colour='#c28f8f', ring_colour='#000000'),
-    'Ge': ElementValues(radius=1.2, atom_colour='#668f8f', ring_colour='#000000'),
-    'As': ElementValues(radius=1.19, atom_colour='#bd80e3', ring_colour='#000000'),
-    'Se': ElementValues(radius=1.2, atom_colour='#ffa100', ring_colour='#000000'),
-    'Br': ElementValues(radius=1.2, atom_colour='#a62929', ring_colour='#ffffff'),
-    'Kr': ElementValues(radius=1.16, atom_colour='#5cb8d1', ring_colour='#000000'),
-    'Rb': ElementValues(radius=2.2, atom_colour='#702eb0', ring_colour='#ffffff'),
-    'Sr': ElementValues(radius=1.95, atom_colour='#00ff00', ring_colour='#000000'),
-    'Y': ElementValues(radius=1.9, atom_colour='#94ffff', ring_colour='#000000'),
-    'Zr': ElementValues(radius=1.75, atom_colour='#94e0e0', ring_colour='#000000'),
-    'Nb': ElementValues(radius=1.64, atom_colour='#73c2c9', ring_colour='#000000'),
-    'Mo': ElementValues(radius=1.54, atom_colour='#54b5b5', ring_colour='#000000'),
-    'Tc': ElementValues(radius=1.47, atom_colour='#3b9e9e', ring_colour='#000000'),
-    'Ru': ElementValues(radius=1.46, atom_colour='#248f8f', ring_colour='#000000'),
-    'Rh': ElementValues(radius=1.42, atom_colour='#0a7d8c', ring_colour='#000000'),
-    'Pd': ElementValues(radius=1.39, atom_colour='#006985', ring_colour='#ffffff'),
-    'Ag': ElementValues(radius=1.45, atom_colour='#c0c0c0', ring_colour='#000000'),
-    'Cd': ElementValues(radius=1.44, atom_colour='#ffd98f', ring_colour='#000000'),
-    'In': ElementValues(radius=1.42, atom_colour='#a67573', ring_colour='#000000'),
-    'Sn': ElementValues(radius=1.39, atom_colour='#668080', ring_colour='#000000'),
-    'Sb': ElementValues(radius=1.39, atom_colour='#9e63b5', ring_colour='#ffffff'),
-    'Te': ElementValues(radius=1.38, atom_colour='#d47a00', ring_colour='#000000'),
-    'I': ElementValues(radius=1.39, atom_colour='#940094', ring_colour='#ffffff'),
-    'Xe': ElementValues(radius=1.4, atom_colour='#429eb0', ring_colour='#000000'),
-    'Cs': ElementValues(radius=2.44, atom_colour='#57178f', ring_colour='#ffffff'),
-    'Ba': ElementValues(radius=2.15, atom_colour='#00c900', ring_colour='#000000'),
-    'La': ElementValues(radius=2.07, atom_colour='#70d4ff', ring_colour='#000000'),
-    'Ce': ElementValues(radius=2.04, atom_colour='#ffffc7', ring_colour='#000000'),
-    'Pr': ElementValues(radius=2.03, atom_colour='#d9ffc7', ring_colour='#000000'),
-    'Nd': ElementValues(radius=2.01, atom_colour='#c7ffc7', ring_colour='#000000'),
-    'Pm': ElementValues(radius=1.99, atom_colour='#a3ffc7', ring_colour='#000000'),
-    'Sm': ElementValues(radius=1.98, atom_colour='#8fffc7', ring_colour='#000000'),
-    'Eu': ElementValues(radius=1.98, atom_colour='#61ffc7', ring_colour='#000000'),
-    'Gd': ElementValues(radius=1.96, atom_colour='#45ffc7', ring_colour='#000000'),
-    'Tb': ElementValues(radius=1.94, atom_colour='#30ffc7', ring_colour='#000000'),
-    'Dy': ElementValues(radius=1.92, atom_colour='#1fffc7', ring_colour='#000000'),
-    'Ho': ElementValues(radius=1.92, atom_colour='#00ff9c', ring_colour='#000000'),
-    'Er': ElementValues(radius=1.89, atom_colour='#00e675', ring_colour='#000000'),
-    'Tm': ElementValues(radius=1.9, atom_colour='#00d452', ring_colour='#000000'),
-    'Yb': ElementValues(radius=1.87, atom_colour='#00bf38', ring_colour='#000000'),
-    'Lu': ElementValues(radius=1.87, atom_colour='#00ab24', ring_colour='#000000'),
-    'Hf': ElementValues(radius=1.75, atom_colour='#4dc2ff', ring_colour='#000000'),
-    'Ta': ElementValues(radius=1.7, atom_colour='#4da6ff', ring_colour='#000000'),
-    'W': ElementValues(radius=1.62, atom_colour='#2194d6', ring_colour='#000000'),
-    'Re': ElementValues(radius=1.51, atom_colour='#267dab', ring_colour='#000000'),
-    'Os': ElementValues(radius=1.44, atom_colour='#266696', ring_colour='#ffffff'),
-    'Ir': ElementValues(radius=1.41, atom_colour='#175487', ring_colour='#ffffff'),
-    'Pt': ElementValues(radius=1.36, atom_colour='#d0d0e0', ring_colour='#000000'),
-    'Au': ElementValues(radius=1.36, atom_colour='#ffd123', ring_colour='#000000'),
-    'Hg': ElementValues(radius=1.32, atom_colour='#b8b8d0', ring_colour='#000000'),
-    'Tl': ElementValues(radius=1.45, atom_colour='#a6544d', ring_colour='#ffffff'),
-    'Pb': ElementValues(radius=1.46, atom_colour='#575961', ring_colour='#ffffff'),
-    'Bi': ElementValues(radius=1.48, atom_colour='#9e4fb5', ring_colour='#ffffff'),
-    'Po': ElementValues(radius=1.4, atom_colour='#ab5c00', ring_colour='#ffffff'),
-    'At': ElementValues(radius=1.5, atom_colour='#754f45', ring_colour='#ffffff'),
-    'Rn': ElementValues(radius=1.5, atom_colour='#428296', ring_colour='#000000'),
-    'Fr': ElementValues(radius=2.6, atom_colour='#420066', ring_colour='#ffffff'),
-    'Ra': ElementValues(radius=2.21, atom_colour='#007d00', ring_colour='#000000'),
-    'Ac': ElementValues(radius=2.15, atom_colour='#70abfa', ring_colour='#000000'),
-    'Th': ElementValues(radius=2.06, atom_colour='#00baff', ring_colour='#000000'),
-    'Pa': ElementValues(radius=2.0, atom_colour='#00a1ff', ring_colour='#000000'),
-    'U': ElementValues(radius=1.96, atom_colour='#008fff', ring_colour='#000000'),
-    'Np': ElementValues(radius=1.9, atom_colour='#0080ff', ring_colour='#000000'),
-    'Pu': ElementValues(radius=1.87, atom_colour='#006bff', ring_colour='#ffffff'),
-    'Am': ElementValues(radius=1.8, atom_colour='#545cf2', ring_colour='#ffffff'),
-    'Cm': ElementValues(radius=1.69, atom_colour='#785ce3', ring_colour='#ffffff')
+    "H": ElementValues(radius=0.31, atom_colour="#ffffff", ring_colour="#000000"),
+    "He": ElementValues(radius=0.28, atom_colour="#d9ffff", ring_colour="#000000"),
+    "Li": ElementValues(radius=1.28, atom_colour="#cc80ff", ring_colour="#000000"),
+    "Be": ElementValues(radius=0.96, atom_colour="#c2ff00", ring_colour="#000000"),
+    "B": ElementValues(radius=0.85, atom_colour="#ffb5b5", ring_colour="#000000"),
+    "C": ElementValues(radius=0.76, atom_colour="#000000", ring_colour="#ffffff"),
+    "N": ElementValues(radius=0.71, atom_colour="#3050f8", ring_colour="#ffffff"),
+    "O": ElementValues(radius=0.66, atom_colour="#ff0d0d", ring_colour="#ffffff"),
+    "F": ElementValues(radius=0.57, atom_colour="#90e050", ring_colour="#000000"),
+    "Ne": ElementValues(radius=0.58, atom_colour="#b3e3f5", ring_colour="#000000"),
+    "Na": ElementValues(radius=1.66, atom_colour="#ab5cf2", ring_colour="#ffffff"),
+    "Mg": ElementValues(radius=1.41, atom_colour="#8aff00", ring_colour="#000000"),
+    "Al": ElementValues(radius=1.21, atom_colour="#bfa6a6", ring_colour="#000000"),
+    "Si": ElementValues(radius=1.11, atom_colour="#f0c8a0", ring_colour="#000000"),
+    "P": ElementValues(radius=1.07, atom_colour="#ff8000", ring_colour="#000000"),
+    "S": ElementValues(radius=1.05, atom_colour="#ffff30", ring_colour="#000000"),
+    "Cl": ElementValues(radius=1.02, atom_colour="#1ff01f", ring_colour="#000000"),
+    "Ar": ElementValues(radius=1.06, atom_colour="#80d1e3", ring_colour="#000000"),
+    "K": ElementValues(radius=2.03, atom_colour="#8f40d4", ring_colour="#ffffff"),
+    "Ca": ElementValues(radius=1.76, atom_colour="#3dff00", ring_colour="#000000"),
+    "Sc": ElementValues(radius=1.7, atom_colour="#e6e6e6", ring_colour="#000000"),
+    "Ti": ElementValues(radius=1.6, atom_colour="#bfc2c7", ring_colour="#000000"),
+    "V": ElementValues(radius=1.53, atom_colour="#a6a6ab", ring_colour="#000000"),
+    "Cr": ElementValues(radius=1.39, atom_colour="#8a99c7", ring_colour="#000000"),
+    "Mn": ElementValues(radius=1.39, atom_colour="#9c7ac7", ring_colour="#000000"),
+    "Fe": ElementValues(radius=1.32, atom_colour="#e06633", ring_colour="#ffffff"),
+    "Co": ElementValues(radius=1.26, atom_colour="#f090a0", ring_colour="#000000"),
+    "Ni": ElementValues(radius=1.24, atom_colour="#50d050", ring_colour="#000000"),
+    "Cu": ElementValues(radius=1.32, atom_colour="#c88033", ring_colour="#000000"),
+    "Zn": ElementValues(radius=1.22, atom_colour="#7d80b0", ring_colour="#000000"),
+    "Ga": ElementValues(radius=1.22, atom_colour="#c28f8f", ring_colour="#000000"),
+    "Ge": ElementValues(radius=1.2, atom_colour="#668f8f", ring_colour="#000000"),
+    "As": ElementValues(radius=1.19, atom_colour="#bd80e3", ring_colour="#000000"),
+    "Se": ElementValues(radius=1.2, atom_colour="#ffa100", ring_colour="#000000"),
+    "Br": ElementValues(radius=1.2, atom_colour="#a62929", ring_colour="#ffffff"),
+    "Kr": ElementValues(radius=1.16, atom_colour="#5cb8d1", ring_colour="#000000"),
+    "Rb": ElementValues(radius=2.2, atom_colour="#702eb0", ring_colour="#ffffff"),
+    "Sr": ElementValues(radius=1.95, atom_colour="#00ff00", ring_colour="#000000"),
+    "Y": ElementValues(radius=1.9, atom_colour="#94ffff", ring_colour="#000000"),
+    "Zr": ElementValues(radius=1.75, atom_colour="#94e0e0", ring_colour="#000000"),
+    "Nb": ElementValues(radius=1.64, atom_colour="#73c2c9", ring_colour="#000000"),
+    "Mo": ElementValues(radius=1.54, atom_colour="#54b5b5", ring_colour="#000000"),
+    "Tc": ElementValues(radius=1.47, atom_colour="#3b9e9e", ring_colour="#000000"),
+    "Ru": ElementValues(radius=1.46, atom_colour="#248f8f", ring_colour="#000000"),
+    "Rh": ElementValues(radius=1.42, atom_colour="#0a7d8c", ring_colour="#000000"),
+    "Pd": ElementValues(radius=1.39, atom_colour="#006985", ring_colour="#ffffff"),
+    "Ag": ElementValues(radius=1.45, atom_colour="#c0c0c0", ring_colour="#000000"),
+    "Cd": ElementValues(radius=1.44, atom_colour="#ffd98f", ring_colour="#000000"),
+    "In": ElementValues(radius=1.42, atom_colour="#a67573", ring_colour="#000000"),
+    "Sn": ElementValues(radius=1.39, atom_colour="#668080", ring_colour="#000000"),
+    "Sb": ElementValues(radius=1.39, atom_colour="#9e63b5", ring_colour="#ffffff"),
+    "Te": ElementValues(radius=1.38, atom_colour="#d47a00", ring_colour="#000000"),
+    "I": ElementValues(radius=1.39, atom_colour="#940094", ring_colour="#ffffff"),
+    "Xe": ElementValues(radius=1.4, atom_colour="#429eb0", ring_colour="#000000"),
+    "Cs": ElementValues(radius=2.44, atom_colour="#57178f", ring_colour="#ffffff"),
+    "Ba": ElementValues(radius=2.15, atom_colour="#00c900", ring_colour="#000000"),
+    "La": ElementValues(radius=2.07, atom_colour="#70d4ff", ring_colour="#000000"),
+    "Ce": ElementValues(radius=2.04, atom_colour="#ffffc7", ring_colour="#000000"),
+    "Pr": ElementValues(radius=2.03, atom_colour="#d9ffc7", ring_colour="#000000"),
+    "Nd": ElementValues(radius=2.01, atom_colour="#c7ffc7", ring_colour="#000000"),
+    "Pm": ElementValues(radius=1.99, atom_colour="#a3ffc7", ring_colour="#000000"),
+    "Sm": ElementValues(radius=1.98, atom_colour="#8fffc7", ring_colour="#000000"),
+    "Eu": ElementValues(radius=1.98, atom_colour="#61ffc7", ring_colour="#000000"),
+    "Gd": ElementValues(radius=1.96, atom_colour="#45ffc7", ring_colour="#000000"),
+    "Tb": ElementValues(radius=1.94, atom_colour="#30ffc7", ring_colour="#000000"),
+    "Dy": ElementValues(radius=1.92, atom_colour="#1fffc7", ring_colour="#000000"),
+    "Ho": ElementValues(radius=1.92, atom_colour="#00ff9c", ring_colour="#000000"),
+    "Er": ElementValues(radius=1.89, atom_colour="#00e675", ring_colour="#000000"),
+    "Tm": ElementValues(radius=1.9, atom_colour="#00d452", ring_colour="#000000"),
+    "Yb": ElementValues(radius=1.87, atom_colour="#00bf38", ring_colour="#000000"),
+    "Lu": ElementValues(radius=1.87, atom_colour="#00ab24", ring_colour="#000000"),
+    "Hf": ElementValues(radius=1.75, atom_colour="#4dc2ff", ring_colour="#000000"),
+    "Ta": ElementValues(radius=1.7, atom_colour="#4da6ff", ring_colour="#000000"),
+    "W": ElementValues(radius=1.62, atom_colour="#2194d6", ring_colour="#000000"),
+    "Re": ElementValues(radius=1.51, atom_colour="#267dab", ring_colour="#000000"),
+    "Os": ElementValues(radius=1.44, atom_colour="#266696", ring_colour="#ffffff"),
+    "Ir": ElementValues(radius=1.41, atom_colour="#175487", ring_colour="#ffffff"),
+    "Pt": ElementValues(radius=1.36, atom_colour="#d0d0e0", ring_colour="#000000"),
+    "Au": ElementValues(radius=1.36, atom_colour="#ffd123", ring_colour="#000000"),
+    "Hg": ElementValues(radius=1.32, atom_colour="#b8b8d0", ring_colour="#000000"),
+    "Tl": ElementValues(radius=1.45, atom_colour="#a6544d", ring_colour="#ffffff"),
+    "Pb": ElementValues(radius=1.46, atom_colour="#575961", ring_colour="#ffffff"),
+    "Bi": ElementValues(radius=1.48, atom_colour="#9e4fb5", ring_colour="#ffffff"),
+    "Po": ElementValues(radius=1.4, atom_colour="#ab5c00", ring_colour="#ffffff"),
+    "At": ElementValues(radius=1.5, atom_colour="#754f45", ring_colour="#ffffff"),
+    "Rn": ElementValues(radius=1.5, atom_colour="#428296", ring_colour="#000000"),
+    "Fr": ElementValues(radius=2.6, atom_colour="#420066", ring_colour="#ffffff"),
+    "Ra": ElementValues(radius=2.21, atom_colour="#007d00", ring_colour="#000000"),
+    "Ac": ElementValues(radius=2.15, atom_colour="#70abfa", ring_colour="#000000"),
+    "Th": ElementValues(radius=2.06, atom_colour="#00baff", ring_colour="#000000"),
+    "Pa": ElementValues(radius=2.0, atom_colour="#00a1ff", ring_colour="#000000"),
+    "U": ElementValues(radius=1.96, atom_colour="#008fff", ring_colour="#000000"),
+    "Np": ElementValues(radius=1.9, atom_colour="#0080ff", ring_colour="#000000"),
+    "Pu": ElementValues(radius=1.87, atom_colour="#006bff", ring_colour="#ffffff"),
+    "Am": ElementValues(radius=1.8, atom_colour="#545cf2", ring_colour="#ffffff"),
+    "Cm": ElementValues(radius=1.69, atom_colour="#785ce3", ring_colour="#ffffff"),
 }
+
 
 def mean_plane2(points: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Calculate mean plane normal vector using least squares.
@@ -257,13 +260,15 @@ def get_unique_bonds(structure, disorder_groups: List[str]) -> Tuple[Tuple[int, 
     same_group = [disorder_groups[index1] == disorder_groups[index2] for index1, index2 in unique_bonds]
     return tuple(indexes for indexes, cond1, cond2 in zip(unique_bonds, one_nondisorder, same_group) if cond1 or cond2)
 
+
 ElementGeometry = namedtuple("ElementGeometry", ["sphere", "ring"])
+
 
 def generate_geometries(elements: Set[str]) -> Dict[str, ElementGeometry]:
     """
     Generate the geometries to be reused for every individual ellipsoid, ensures that every object is only generated
     once per element and therefore saves memory in the final output
-    
+
     Parameters
     ----------
     elements: Set[str]
@@ -279,22 +284,28 @@ def generate_geometries(elements: Set[str]) -> Dict[str, ElementGeometry]:
     element_geometries = {}
     for element in elements:
         element_values = element_dict[element]
-        visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(
-            baseColorFactor=trimesh.visual.color.hex_to_rgba(element_values.atom_colour)
-        ))
+        visual = trimesh.visual.TextureVisuals(
+            material=trimesh.visual.material.PBRMaterial(
+                baseColorFactor=trimesh.visual.color.hex_to_rgba(element_values.atom_colour)
+            )
+        )
         sphere = trimesh.creation.icosphere(radius=1, visual=visual)
         if element_values.ring_colour not in rings:
-            ring_visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(
-                baseColorFactor=trimesh.visual.color.hex_to_rgba(element_values.ring_colour)
-            ))
-            rings[element_values.ring_colour] = trimesh.creation.torus(major_radius=1, minor_radius=0.05, minor_sections=10, visual=ring_visual)
+            ring_visual = trimesh.visual.TextureVisuals(
+                material=trimesh.visual.material.PBRMaterial(
+                    baseColorFactor=trimesh.visual.color.hex_to_rgba(element_values.ring_colour)
+                )
+            )
+            rings[element_values.ring_colour] = trimesh.creation.torus(
+                major_radius=1, minor_radius=0.05, minor_sections=10, visual=ring_visual
+            )
         element_geometries[element] = ElementGeometry(sphere, rings[element_values.ring_colour])
     return element_geometries
 
 
 def create_scene(
     block: cif.model.block,
-    bonds_used: str = 'cctbx',
+    bonds_used: str = "cctbx",
 ) -> trimesh.Scene:
     """Create 3D visualization of crystal structure.
 
@@ -302,6 +313,9 @@ def create_scene(
     ----------
     block : cif.model.block
         CIF data block containing structure information.
+    bonds_used : str
+        can be either cctbx (generate a new bond table with cctbx) or
+        cif (use the bond_table in the cif file)
 
     Returns
     -------
@@ -350,7 +364,7 @@ def create_scene(
             "_geom_bond_site_symmetry_2",
             "_geom_bond_publ_flag",
         ],
-        custom_categories=[]
+        custom_categories=[],
     )
 
     name = "qcrbox"
@@ -378,7 +392,7 @@ def create_scene(
             transform = np.eye(4)
             transform[:3, :3] = ell_rot
             transform[:3, 3] = xyz_cart
-            
+
             scene.add_geometry(geometry.sphere, node_name=scatterer.label, transform=transform)
             # Add ring for anisotropic atoms
             scene.add_geometry(geometry.ring, node_name=f"{scatterer.label}_ring", transform=transform)
@@ -404,30 +418,68 @@ def create_scene(
             scene.add_geometry(geometry.sphere, node_name=scatterer.label, transform=transform)
 
     labels = [scatterer.label for scatterer in structure.scatterers()]
-    if bonds_used == 'cif':
-        atom_labels1 = list(block['_geom_bond_atom_site_label_1'])
-        atom_labels2 = list(block['_geom_bond_atom_site_label_2'])
-        atom_symms = list(block['_geom_bond_site_symmetry_2'])
+    if bonds_used == "cif":
+        atom_labels1 = list(block["_geom_bond_atom_site_label_1"])
+        atom_labels2 = list(block["_geom_bond_atom_site_label_2"])
+        atom_symms = list(block["_geom_bond_site_symmetry_2"])
         bonds = [
-            (labels.index(l1), labels.index(l2)) for l1, l2, symm in zip(atom_labels1, atom_labels2, atom_symms)
-            if symm == '.'
+            (labels.index(l1), labels.index(l2))
+            for l1, l2, symm in zip(atom_labels1, atom_labels2, atom_symms)
+            if symm == "."
         ]
-    elif bonds_used == 'cctbx':
+    elif bonds_used == "cctbx":
         disorder_groups = block.get("_atom_site_disorder_group", ["."] * len(block["_atom_site_fract_x"]))
         bonds = get_unique_bonds(structure, disorder_groups)
+    else:
+        raise NotImplementedError("bonds_used has to be either 'cctbx' or 'cif'")
 
-    visual = trimesh.visual.TextureVisuals(material=trimesh.visual.material.PBRMaterial(
-        baseColorFactor=[100, 100, 100, 255]
-    ))
+    visual = trimesh.visual.TextureVisuals(
+        material=trimesh.visual.material.PBRMaterial(baseColorFactor=[100, 100, 100, 255])
+    )
     bond_geometry = trimesh.creation.cylinder(radius=0.04, height=1, visual=visual)
 
     for index1, index2 in bonds:
         mean_position, length, rot = calc_bond_length_rot(xyz_carts[index1], xyz_carts[index2])
         stretch_z = np.eye(4)
-        stretch_z[2,2] = length
+        stretch_z[2, 2] = length
         transform = np.eye(4)
         transform[:3, :3] = rot.T
         transform[:3, 3] = mean_position
-        scene.add_geometry(bond_geometry, node_name=f"bond_{labels[index1]}_{labels[index2]}", transform=transform @ stretch_z)
+        scene.add_geometry(
+            bond_geometry, node_name=f"bond_{labels[index1]}_{labels[index2]}", transform=transform @ stretch_z
+        )
 
     return scene
+
+
+def cif2ortep_glb(
+    cif_path: pathlib.Path, glb_output_path: pathlib.Path, dataset_index: Union[int, str] = 0, bonds_used: str = "cctbx"
+):
+    """Convert a CIF (Crystallographic Information File) to an ORTEP representation in GLB (GL Binary) format.
+
+    Parameters
+    ----------
+    cif_path : pathlib.Path
+        Path to the input CIF file containing crystallographic structure data.
+    glb_output_path : pathlib.Path
+        Path where the output GLB file will be saved.
+    dataset_index : Union[int, str], optional
+        Index or name of the dataset to use from the CIF file if multiple datasets exist.
+        Defaults to 0 (first dataset).
+    bonds_used : str, optional
+        Method to determine molecular bonds. Can be either:
+        - 'cctbx': Generate a new bond table using CCTBX (default)
+        - 'cif': Use the bond table from the CIF file
+
+    Notes
+    -----
+    The resulting GLB file can be used in 3D visualization software or web-based viewers.
+
+    Raises
+    ------
+    NotImplementedError
+        If bonds_used parameter is not 'cctbx' or 'cif'.
+    """
+    block = read_cif_as_unified(cif_path, dataset_index)
+    scene = create_scene(block)
+    scene.export(glb_output_path)

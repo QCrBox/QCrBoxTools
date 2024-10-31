@@ -1,16 +1,13 @@
+from collections import namedtuple
+from typing import List, Tuple
+
 import numpy as np
-
-from ..cif.entries.entry_conversion import block_to_specific_keywords
-
+import trimesh
 from cctbx.crystal.distance_based_connectivity import build_simple_two_way_bond_sets
 from iotbx import cif
-from iotbx.cif import reader
-from collections import namedtuple
-
-import trimesh
 from scitbx.array_family import flex
-from typing import Tuple, List
 
+from ..cif.entries.entry_conversion import block_to_specific_keywords
 
 elements = [
     "H",
@@ -600,7 +597,6 @@ def get_unique_bonds(structure, disorder_groups: List[str]) -> Tuple[Tuple[int, 
     return tuple(indexes for indexes, cond1, cond2 in zip(unique_bonds, one_nondisorder, same_group) if cond1 or cond2)
 
 
-
 def create_scene(
     block: cif.model.block,
 ) -> trimesh.Scene:
@@ -622,7 +618,7 @@ def create_scene(
     Atoms are colored by element and bonds are shown in dark gray.
     """
     block = block_to_specific_keywords(
-        compulsory_entries=[          
+        compulsory_entries=[
             "_space_group_crystal_system",
             "_space_group_symop_operation_xyz",
             "_cell_length_a",
@@ -637,8 +633,8 @@ def create_scene(
             "_atom_site_fract_y",
             "_atom_site_fract_z",
             "_atom_site_U_iso_or_equiv",
-            "_atom_site_adp_type"
-          ],
+            "_atom_site_adp_type",
+        ],
         optional_entries=[
             "_atom_site_disorder_assembly",
             "_atom_site_disorder_group",
@@ -653,8 +649,8 @@ def create_scene(
             "_geom_bond_atom_site_label_2",
             "_geom_bond_distance",
             "_geom_bond_site_symmetry_2",
-            "_geom_bond_publ_flag"
-        ]
+            "_geom_bond_publ_flag",
+        ],
     )
 
     name = "qcrbox"

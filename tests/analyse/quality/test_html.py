@@ -48,6 +48,11 @@ from qcrboxtools.analyse.quality.html.quality_box import QualityIndicatorBox, qu
             r"An empty inline formula: $$Display$$ and $$$$. What happens?",
             r"An empty inline formula: $$Display$$ and $$$$. What happens?",
         ),
+        # Mathjax compatible Angstrom symbol
+        (
+            r'The C-O bond length is 1.46 $\AA$',
+            r'The C-O bond length is 1.46 \(\unicode[.8,0]{x212B}\)',
+        )
     ],
 )
 def test_convert_to_mathjax(input_text, expected_output):

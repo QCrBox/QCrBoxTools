@@ -13,12 +13,13 @@ data_quality_to_css_name = {
 
 
 def convert_to_mathjax(text):
-    """
+    r"""
     Converts math expressions in the text to MathJax format.
 
     - Rewrites $...$ to \( ... \) for inline math.
     - Leaves $$...$$ intact for display math.
     - Rewrites \$ to $.
+    - Rewrites \AA to \unicode[.8,0]{x212B}
 
     Parameters
     ----------
@@ -35,4 +36,5 @@ def convert_to_mathjax(text):
     text = re.sub(r"(?<!\\)\$(.*?)(?<!\\)\$", r"\\(\1\\)", text)
     text = text.replace(display_math_placeholder, "$$")
     text = text.replace(r"\$", "$")
+    text = text.replace(r"\AA", r"\unicode[.8,0]{x212B}")
     return text

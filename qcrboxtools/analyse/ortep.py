@@ -363,6 +363,13 @@ def create_scene(
         if scatterer.u_star[0] != -1.0:
             ell_rot = calc_ellipsoid_matrix(uij_cart)
 
+            if not np.all(np.isfinite(ell_rot)):
+                transform = np.eye(4)
+                transform[:3, 3] = xyz_cart
+                box = trimesh.creation.box((0.5, 0.5, 0.50), visual=geometry.sphere.visual)
+                scene.add_geometry(box, node_name=scatterer.label, transform=transform)
+                continue
+
             # Create a 4x4 transformation matrix
             transform = np.eye(4)
             transform[:3, :3] = ell_rot

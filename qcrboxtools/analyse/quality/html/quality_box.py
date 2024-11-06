@@ -67,4 +67,4 @@ def quality_div_group(indicators: List[QualityIndicatorBox]) -> str:
     """
     strings = (quality_box_div(indicator) for indicator in indicators)
     string = indent("\n".join(strings), prefix="    ")
-    return f'<div class="container">\n{string}\n</div>'
+    return f'<div class="indicators-container">\n{string}\n</div>'

@@ -50,9 +50,9 @@ from qcrboxtools.analyse.quality.html.quality_box import QualityIndicatorBox, qu
         ),
         # Mathjax compatible Angstrom symbol
         (
-            r'The C-O bond length is 1.46 $\AA$',
-            r'The C-O bond length is 1.46 \(\unicode[.8,0]{x212B}\)',
-        )
+            r"The C-O bond length is 1.46 $\AA$",
+            r"The C-O bond length is 1.46 \(\unicode[.8,0]{x212B}\)",
+        ),
     ],
 )
 def test_convert_to_mathjax(input_text, expected_output):
@@ -115,7 +115,7 @@ def test_quality_div_group():
     ]
 
     expected_html = dedent("""
-        <div class="container">
+        <div class="indicators-container">
             <div class="indicator data-quality-good">
                 <div class="name">Accuracy</div>
                 <div class="value">98</div>

@@ -2,13 +2,12 @@ import random
 
 import numpy as np
 import pytest
-from iotbx.cif.model import block, cif, loop
+from iotbx.cif.model import block, loop
 
 from qcrboxtools.analyse.quality.base import DataQuality
 from qcrboxtools.analyse.quality.precision import (
     cif_block2intensity_array,
     diederichs_plot,
-    input_cif_path2intensity_array,
     precision_all_data,
     precision_all_data_quality,
     precision_vs_resolution,
@@ -51,22 +50,7 @@ def test_cifblock2intensity_array(hkl_cell_cif_block):
     intensity_array = cif_block2intensity_array(hkl_cell_cif_block)
     assert intensity_array.is_xray_intensity_array()
 
-
-@pytest.fixture(name="hkl_cell_cif_file")
-def fixture_hkl_cell_cif_file(tmp_path, hkl_cell_cif_block):
-    cif_obj = cif()
-    cif_obj["test"] = hkl_cell_cif_block
-    cif_path = tmp_path / "cell_hkl.cif"
-    cif_path.write_text(str(cif_obj))
-    return cif_path
-
-
-def test_input_cif_path2intensity_array(hkl_cell_cif_file):
-    intensity_array = input_cif_path2intensity_array(hkl_cell_cif_file)
-    assert intensity_array.is_xray_intensity_array()
-
-
-def test_precision_all_data(hkl_cell_cif_file):
+def test_precision_all_data(hkl_cell_cif_block):
     possible_indicators = [
         "d_min lower",
         "d_min upper",
@@ -80,34 +64,34 @@ def test_precision_all_data(hkl_cell_cif_file):
         "Completeness",
     ]
     # test None -> select all
-    precision_dict = precision_all_data(hkl_cell_cif_file)
+    precision_dict = precision_all_data(hkl_cell_cif_block)
     assert len(precision_dict) == len(possible_indicators)
     for indicator in possible_indicators:
         assert indicator in precision_dict
 
     # only one
     test_index = 2
-    precision_dict = precision_all_data(hkl_cell_cif_file, indicators=[possible_indicators[test_index]])
+    precision_dict = precision_all_data(hkl_cell_cif_block, indicators=[possible_indicators[test_index]])
     assert len(precision_dict) == 1
     assert possible_indicators[test_index] in precision_dict
 
     # two
     test_indexes = [3, 4]
     indicators = [possible_indicators[i] for i in test_indexes]
-    precision_dict = precision_all_data(hkl_cell_cif_file, indicators=indicators)
+    precision_dict = precision_all_data(hkl_cell_cif_block, indicators=indicators)
     assert len(precision_dict) == len(test_indexes)
     for indicator in indicators:
         assert indicator in precision_dict
 
 
-def test_precision_all_data_quality(hkl_cell_cif_file):
-    precision_dict = precision_all_data(hkl_cell_cif_file)
+def test_precision_all_data_quality(hkl_cell_cif_block):
+    precision_dict = precision_all_data(hkl_cell_cif_block)
     data_quality = precision_all_data_quality(precision_dict)
     assert len(data_quality) == len(precision_dict)
     assert data_quality["d_min lower"] is DataQuality.INFORMATION
 
 
-def test_precision_vs_resolution(hkl_cell_cif_file):
+def test_precision_vs_resolution(hkl_cell_cif_block):
     possible_indicators = [
         "d_min lower",
         "d_min upper",
@@ -122,7 +106,7 @@ def test_precision_vs_resolution(hkl_cell_cif_file):
     ]
     n_bins = 3
     # test None -> select all
-    precision_dict = precision_vs_resolution(hkl_cell_cif_file, n_bins=n_bins)
+    precision_dict = precision_vs_resolution(hkl_cell_cif_block, n_bins=n_bins)
     assert len(precision_dict) == len(possible_indicators)
     for indicator in possible_indicators:
         assert indicator in precision_dict
@@ -132,7 +116,7 @@ def test_precision_vs_resolution(hkl_cell_cif_file):
     n_bins = 4
     test_index = 2
     indicator = possible_indicators[test_index]
-    precision_dict = precision_vs_resolution(hkl_cell_cif_file, n_bins=n_bins, indicators=[indicator])
+    precision_dict = precision_vs_resolution(hkl_cell_cif_block, n_bins=n_bins, indicators=[indicator])
     assert len(precision_dict) == 1
     assert indicator in precision_dict
     assert len(precision_dict[indicator]) == n_bins
@@ -141,13 +125,13 @@ def test_precision_vs_resolution(hkl_cell_cif_file):
     n_bins = 2
     test_indexes = [3, 4]
     indicators = [possible_indicators[i] for i in test_indexes]
-    precision_dict = precision_vs_resolution(hkl_cell_cif_file, n_bins=n_bins, indicators=indicators)
+    precision_dict = precision_vs_resolution(hkl_cell_cif_block, n_bins=n_bins, indicators=indicators)
     assert len(precision_dict) == len(test_indexes)
     for indicator in indicators:
         assert indicator in precision_dict
         assert len(precision_dict[indicator]) == n_bins
 
 
-def test_diederichs_plot(hkl_cell_cif_file):
-    log10i, i_over_sigma = diederichs_plot(hkl_cell_cif_file)
+def test_diederichs_plot(hkl_cell_cif_block):
+    log10i, i_over_sigma = diederichs_plot(hkl_cell_cif_block)
     assert log10i.shape == i_over_sigma.shape

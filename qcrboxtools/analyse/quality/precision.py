@@ -11,25 +11,6 @@ from ...cif.read import cifdata_str_or_index, read_cif_safe
 from .base import DataQuality, ascending_levels2func, data_quality_from_level
 
 
-def input_cif_path2intensity_array(input_cif_path: Path) -> miller.array:
-    """
-    Convert input CIF file to intensity array.
-
-    Parameters
-    ----------
-    input_cif_path : Path
-        Path to the input CIF file.
-
-    Returns
-    -------
-    miller.array
-        Intensity array created from the CIF file.
-    """
-    cif_model = read_cif_safe(input_cif_path)
-    cif_block, _ = cifdata_str_or_index(cif_model, 0)
-    return cif_block2intensity_array(cif_block)
-
-
 def cif_block2intensity_array(cif_block: block) -> miller.array:
     """
     Convert CIF block to intensity array.
@@ -63,14 +44,14 @@ def cif_block2intensity_array(cif_block: block) -> miller.array:
     return intensity_array
 
 
-def precision_all_data(input_cif_path: Path, indicators: Optional[List[str]] = None) -> Dict[str, float]:
+def precision_all_data(cif_block: block, indicators: Optional[List[str]] = None) -> Dict[str, float]:
     """
     Calculate precision indicators for all data.
 
     Parameters
     ----------
-    input_cif_path : Path
-        Path to the input CIF file.
+    cif_block : iotbx.cif.model.block
+        CIF block containing reflection data.
     indicators : Optional[List[str]], optional
         List of indicators to calculate. If None, all indicators are calculated.
         Possible values are:
@@ -103,7 +84,7 @@ def precision_all_data(input_cif_path: Path, indicators: Optional[List[str]] = N
             "I/sigma(I)",
             "Completeness",
         ]
-    intensity_array = input_cif_path2intensity_array(input_cif_path)
+    intensity_array = cif_block2intensity_array(cif_block)
 
     int_merged = intensity_array.merge_equivalents()
 
@@ -174,15 +155,15 @@ def precision_all_data_quality(results_overall: Dict[str, float]) -> Dict[str, D
 
 
 def precision_vs_resolution(
-    input_cif_path: Path, n_bins: int, indicators: Optional[List[str]] = None
+    cif_block: block, n_bins: int, indicators: Optional[List[str]] = None
 ) -> Dict[str, np.ndarray]:
     """
     Calculate precision indicators versus resolution.
 
     Parameters
     ----------
-    input_cif_path : Path
-        Path to the input CIF file.
+    cif_block : iotbx.cif.model.block
+        CIF block containing reflection data.
     n_bins : int
         Number of resolution bins.
     indicators : Optional[List[str]], optional
@@ -218,7 +199,7 @@ def precision_vs_resolution(
             "I/sigma(I)",
             "Completeness",
         ]
-    intensity_array = input_cif_path2intensity_array(input_cif_path)
+    intensity_array = cif_block2intensity_array(cif_block)
 
     intensity_array.setup_binner(n_bins=n_bins)
 
@@ -261,7 +242,7 @@ def precision_vs_resolution(
     return results_binned
 
 
-def diederichs_plot(input_cif_path: Path) -> Tuple[np.ndarray, np.ndarray]:
+def diederichs_plot(cif_block: block) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generate data for Diederichs plot.
 
@@ -275,8 +256,6 @@ def diederichs_plot(input_cif_path: Path) -> Tuple[np.ndarray, np.ndarray]:
     Tuple[np.ndarray, np.ndarray]
         Arrays of log10(intensity) and I/sigma(I) values for plotting.
     """
-    cif_model = read_cif_safe(input_cif_path)
-    cif_block, _ = cifdata_str_or_index(cif_model, 0)
     intensity = np.array(cif_block["_diffrn_refln.intensity_net"]).astype(np.float16)
     sigma = np.array(cif_block["_diffrn_refln.intensity_net_su"]).astype(np.float64)
     valid = np.logical_and(sigma > 0, intensity > 0)

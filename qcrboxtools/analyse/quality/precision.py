@@ -30,10 +30,13 @@ def cif_block2intensity_array(cif_block: block) -> miller.array:
     ls = cif_block["_diffrn_refln.index_l"]
     intensities = cif_block["_diffrn_refln.intensity_net"]
     intensities_esd = cif_block["_diffrn_refln.intensity_net_su"]
+
+    symm = crystal_symmetry_builder(cif_block).crystal_symmetry
+    anomalous = not symm.space_group().is_centric
     millerset = miller.set(
-        crystal_symmetry=crystal_symmetry_builder(cif_block).crystal_symmetry,
+        crystal_symmetry=symm,
         indices=flex.miller_index([(int(mil_h), int(mil_k), int(mil_l)) for mil_h, mil_k, mil_l in zip(hs, ks, ls)]),
-        anomalous_flag=True,
+        anomalous_flag=anomalous,
     )
 
     intensity_array = millerset.array(
@@ -86,31 +89,50 @@ def precision_all_data(cif_block: block, indicators: Optional[List[str]] = None)
         ]
     intensity_array = cif_block2intensity_array(cif_block)
 
-    int_merged = intensity_array.merge_equivalents()
+    int_nonsym = intensity_array.remove_systematic_absences()
+
+    already_merged = int_nonsym.is_unique_set_under_symmetry()
 
     results_overall = {}
-    if "Mean Redundancy" in indicators:
-        results_overall["Mean Redundancy"] = int_merged.redundancies().as_double().mean()
-    if "R_meas" in indicators:
-        results_overall["R_meas"] = int_merged.r_meas()  # is equal to R_rim
-    if "R_pim" in indicators:
-        results_overall["R_pim"] = int_merged.r_pim()
-    if "R_int" in indicators:
-        results_overall["R_int"] = int_merged.r_int()
-    if "R_sigma" in indicators:
-        results_overall["R_sigma"] = int_merged.r_sigma()
-    if "CC1/2" in indicators:
-        results_overall["CC1/2"] = int_merged.array().cc_one_half()
+
     if any(val in indicators for val in ("d_min lower", "d_min upper")):
         lowlim, highlim = intensity_array.d_max_min()
         if "d_min lower" in indicators:
             results_overall["d_min lower"] = lowlim
         if "d_min upper" in indicators:
             results_overall["d_min upper"] = highlim
-    if "I/sigma(I)" in indicators:
-        results_overall["I/sigma(I)"] = int_merged.array().i_over_sig_i()
-    if "Completeness" in indicators:
-        results_overall["Completeness"] = int_merged.array().completeness()
+        if "I/sigma(I)" in indicators:
+            results_overall["I/sigma(I)"] = int_nonsym.i_over_sig_i()
+        if "Completeness" in indicators:
+            results_overall["Completeness"] = int_nonsym.completeness()
+
+    if not already_merged:
+        int_merged = int_nonsym.merge_equivalents()    
+        if "Mean Redundancy" in indicators:
+            results_overall["Mean Redundancy"] = int_merged.redundancies().as_double().mean()
+        if "R_meas" in indicators:
+            results_overall["R_meas"] = int_merged.r_meas()  # is equal to R_rim
+        if "R_pim" in indicators:
+            results_overall["R_pim"] = int_merged.r_pim()
+        if "R_int" in indicators:
+            results_overall["R_int"] = int_merged.r_int()
+        if "R_sigma" in indicators:
+            results_overall["R_sigma"] = int_merged.r_sigma()
+        if "CC1/2" in indicators:
+            results_overall["CC1/2"] = int_nonsym.cc_one_half()
+    else: 
+        non_sensical_entries = [
+            "Mean Redundancy",
+            "R_meas",
+            "R_pim",
+            "R_int",
+            "R_sigma",
+            "CC1/2"
+        ]
+        for indicator in non_sensical_entries:
+            if indicator in indicators:
+                results_overall[indicator] = 'N/A'
+    
     return results_overall
 
 
@@ -144,7 +166,7 @@ def precision_all_data_quality(results_overall: Dict[str, float]) -> Dict[str, D
     }
     quality_values = {}
     for indicator, value in results_overall.items():
-        if indicator == "d_min lower":
+        if indicator == "d_min lower" or value == 'N/A':
             quality_values[indicator] = DataQuality.INFORMATION
         else:
             operation = value2level_dict[indicator]
@@ -201,21 +223,32 @@ def precision_vs_resolution(
         ]
     intensity_array = cif_block2intensity_array(cif_block)
 
+    if intensity_array.is_unique_set_under_symmetry():
+        non_sensical_entries = [
+            "Mean Redundancy",
+            "R_meas",
+            "R_pim",
+            "R_int",
+            "R_sigma",
+            "CC1/2"
+        ]
+        indicators = [ind for ind in indicators if ind not in non_sensical_entries]    
+
     intensity_array.setup_binner(n_bins=n_bins)
 
     binning_range = intensity_array.binner().range_used()
-    results_binned = {name: np.zeros(binning_range.stop - binning_range.start) for name in indicators}
+    results_binned = {name: np.zeros(len(binning_range)) for name in indicators}
     for i_bin in intensity_array.binner().range_used():
         array_index = i_bin - binning_range.start
         sel = intensity_array.binner().selection(i_bin)
         bin_array = intensity_array.select(sel)
         bin_merged = bin_array.merge_equivalents()
-        if any(val in indicators for val in ("d_min lower", "d_min upper")):
-            lowlim, highlim = intensity_array.binner().bin_d_range(i_bin)
-            if "d_min lower" in indicators:
-                results_binned["d_min lower"][array_index] = lowlim
-            if "d_min upper" in indicators:
-                results_binned["d_min upper"][array_index] = highlim
+        lowlim, highlim = intensity_array.binner().bin_d_range(i_bin)
+            
+        if "d_min lower" in indicators:
+            results_binned["d_min lower"][array_index] = lowlim
+        if "d_min upper" in indicators:
+            results_binned["d_min upper"][array_index] = highlim
         if "Mean Redundancy" in indicators:
             results_binned["Mean Redundancy"][array_index] = bin_merged.redundancies().as_double().mean()
         if "R_meas" in indicators:
@@ -231,13 +264,13 @@ def precision_vs_resolution(
                 results_binned["R_sigma"][array_index] = None
         if "CC1/2" in indicators:
             try:
-                results_binned["CC1/2"][array_index] = bin_merged.array().cc_one_half()
+                results_binned["CC1/2"][array_index] = bin_array.cc_one_half()
             except ZeroDivisionError:
                 results_binned["CC1/2"][array_index] = None
         if "I/sigma(I)" in indicators:
             results_binned["I/sigma(I)"][array_index] = bin_merged.array().i_over_sig_i()
         if "Completeness" in indicators:
-            results_binned["Completeness"][array_index] = bin_merged.array().completeness()
+            results_binned["Completeness"][array_index] = bin_array.completeness(d_max=lowlim)
 
     return results_binned
 

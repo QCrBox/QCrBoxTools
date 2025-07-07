@@ -160,7 +160,7 @@ def precision_all_data_quality(results_overall: Dict[str, float]) -> Dict[str, D
         "CC1/2": descending_levels2func((0.995, 0.99, 0.98, 0.95, -1)),
         "d_min upper": ascending_levels2func((0.75, 0.841, 0.86, 0.88, np.inf)),
         "I/sigma(I)": descending_levels2func((15, 12, 9, 6, -1)),
-        "Completeness": descending_levels2func((99.0, 95.0, 90.0, 80.0, -1)),
+        "Completeness": descending_levels2func((0.99, 0.95, 0.90, 0.8, -1.0)),
     }
     quality_values = {}
     for indicator, value in results_overall.items():

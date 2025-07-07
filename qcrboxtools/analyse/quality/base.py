@@ -78,3 +78,31 @@ def ascending_levels2func(levels: Tuple[float, ...]) -> Callable[[float], int]:
     3
     """
     return lambda x: next((i for i, v in enumerate(levels) if x < v))
+
+def descending_levels2func(levels: Tuple[float, ...]) -> Callable[[float], int]:
+    """
+    Create a function that maps a value to its corresponding level index in descending order.
+
+    This function returns a lambda function that takes a single float value
+    and returns the index of the first level in the given tuple that the value
+    is greater than.
+
+    Parameters
+    ----------
+    levels : Tuple[float, ...]
+        A tuple of floats representing the descending levels.
+
+    Returns
+    -------
+    Callable[[float], int]
+        A function that takes a float and returns the corresponding level index.
+
+    Examples
+    --------
+    >>> func = descending_levels2func((4.0, 3.0, 2.0, 1.0))
+    >>> func(3.5)
+    1
+    >>> func(1.5)
+    3
+    """
+    return lambda x: next((i for i, v in enumerate(levels) if x > v))

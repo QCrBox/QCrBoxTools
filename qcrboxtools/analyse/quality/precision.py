@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import numpy as np
@@ -7,8 +6,7 @@ from cctbx.array_family import flex
 from iotbx.cif.builders import crystal_symmetry_builder
 from iotbx.cif.model import block
 
-from ...cif.read import cifdata_str_or_index, read_cif_safe
-from .base import DataQuality, ascending_levels2func, data_quality_from_level
+from .base import DataQuality, ascending_levels2func, data_quality_from_level, descending_levels2func
 
 
 def cif_block2intensity_array(cif_block: block) -> miller.array:
@@ -154,15 +152,15 @@ def precision_all_data_quality(results_overall: Dict[str, float]) -> Dict[str, D
         Dictionary of indicators and their corresponding data quality.
     """
     value2level_dict = {
-        "Mean Redundancy": lambda x: next(i for i, v in enumerate((10, 5, 4, 3, -1)) if x > v),
+        "Mean Redundancy": descending_levels2func((10, 5, 4, 3, -1)),
         "R_meas": ascending_levels2func((4.0, 6.0, 10.0, 15.0, np.inf)),
         "R_pim": ascending_levels2func((2.0, 3.0, 5.0, 15.0, np.inf)),
         "R_int": ascending_levels2func((4, 6, 10, 15, np.inf)),
         "R_sigma": ascending_levels2func((4, 6, 10, 15, np.inf)),
-        "CC1/2": lambda x: next(i for i, v in enumerate((0.995, 0.99, 0.98, 0.95, -1)) if x > v),
+        "CC1/2": descending_levels2func((0.995, 0.99, 0.98, 0.95, -1)),
         "d_min upper": ascending_levels2func((0.75, 0.841, 0.86, 0.88, np.inf)),
-        "I/sigma(I)": lambda x: next(i for i, v in enumerate((15, 12, 9, 6, -1)) if x > v),
-        "Completeness": lambda x: next(i for i, v in enumerate((99.0, 95.0, 90.0, 80.0, -1)) if x > v),
+        "I/sigma(I)": descending_levels2func((15, 12, 9, 6, -1)),
+        "Completeness": descending_levels2func((99.0, 95.0, 90.0, 80.0, -1)),
     }
     quality_values = {}
     for indicator, value in results_overall.items():

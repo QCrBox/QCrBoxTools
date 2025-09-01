@@ -15,7 +15,7 @@ from ..merge import merge_cif_blocks
 from ..read import cifdata_str_or_index, read_cif_safe
 from ..trim import trim_cif_block
 from ..uncertainties import split_su_block
-from .base import cif_file_to_specific
+from .base import cif_model_to_specific
 
 
 class NoKeywordsError(BaseException):
@@ -516,6 +516,51 @@ def yml_entries_resolve_special(
         raise ValueError("yml_entry must be of type YmlCifInputSettings or YmlCifOutputSettings.")
 
 
+def cif_text_to_specific_by_yml(input_cif_text: str, yml_path: Union[str, Path], command: str, parameter: str) -> str:
+    """
+    Processes a CIF text based on instructions defined in a YAML configuration, applying
+    specified keyword transformations defined in a commands parameter as well as its standard
+    uncertainty merge settings.
+
+    Parameters
+    ----------
+    input_cif_text : str
+        The CIF text to be processed.
+    yml_path : Union[str, Path]
+        The file path to the YAML file containing processing instructions.
+    command : str
+        The specific command within the YAML file to follow for processing the CIF text.
+    parameter : str
+        The specific parameter within the command to follow for processing the CIF text.
+
+    Returns
+    -------
+    str
+        The processed CIF text.
+    """
+    with open(yml_path, "r", encoding="UTF-8") as fobj:
+        yml_dict = yaml.safe_load(fobj)
+
+    yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
+
+    model = cif.reader(input_string=input_cif_text).model()
+    block, _ = cifdata_str_or_index(model, 0)
+
+    yml_input_settings = yml_entries_resolve_special(yml_input_settings, block)
+
+    cif_model = cif.reader(input_string=input_cif_text).model()
+
+    specific_cif_model = cif_model_to_specific(
+        cif_model,
+        yml_input_settings.required_entries,
+        yml_input_settings.optional_entries,
+        yml_input_settings.custom_categories,
+        yml_input_settings.merge_su,
+    )
+
+    return str(specific_cif_model)
+
+
 def cif_file_to_specific_by_yml(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
@@ -546,23 +591,11 @@ def cif_file_to_specific_by_yml(
     This file was developed for exposing commands within QCrBox. See this project or the
     test of this function for an example of how such a yml file might look like.
     """
-    with open(yml_path, "r", encoding="UTF-8") as fobj:
-        yml_dict = yaml.safe_load(fobj)
+    input_cif_text = Path(input_cif_path).read_text(encoding="UTF-8")
 
-    yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
+    output_cif_text = cif_text_to_specific_by_yml(input_cif_text, yml_path, command, parameter)
 
-    block, _ = cifdata_str_or_index(read_cif_safe(input_cif_path), "0")
-
-    yml_input_settings = yml_entries_resolve_special(yml_input_settings, block)
-
-    cif_file_to_specific(
-        input_cif_path,
-        output_cif_path,
-        yml_input_settings.required_entries,
-        yml_input_settings.optional_entries,
-        yml_input_settings.custom_categories,
-        yml_input_settings.merge_su,
-    )
+    Path(output_cif_path).write_text(output_cif_text, encoding="UTF-8")
 
 
 def cif_file_merge_to_unified_by_yml(
@@ -598,18 +631,45 @@ def cif_file_merge_to_unified_by_yml(
     This file was developed for exposeing commands within QCrBox. See this project or the
     test of this function for an example of how such a yml file might look like.
     """
+    input_cif_text = Path(input_cif_path).read_text(encoding="UTF-8")
+    merge_cif_text = Path(merge_cif_path).read_text(encoding="UTF-8") if merge_cif_path else None
+
+    output_cif_text = cif_text_merge_to_unified_by_yml(input_cif_text, merge_cif_text, yml_path, command, parameter)
+
+    Path(output_cif_path).write_text(output_cif_text, encoding="UTF-8")
+
+
+def cif_text_merge_to_unified_by_yml(input_cif_text, merge_cif_text, yml_path, command, parameter):
+    """
+    Merges two CIF texts into a unified format based on YAML configuration.
+
+    Parameters
+    ----------
+    input_cif_text : str
+        The CIF text to be processed.
+    merge_cif_text : str
+        The CIF text to be merged with the input CIF text.
+    yml_path : str
+        The file path to the YAML file containing processing instructions.
+    command : str
+        The specific command within the YAML file to follow for processing the CIF texts.
+    parameter : str
+        The specific parameter within the command to follow for processing the CIF texts.
+
+    """
+
     with open(yml_path, "r", encoding="UTF-8") as fobj:
         yml_dict = yaml.safe_load(fobj)
     yml_output_settings = cif_output_entries_from_yml(yml_dict, command, parameter)
 
-    input_cif = read_cif_safe(input_cif_path)
+    input_cif = cif.reader(input_string=input_cif_text).model()
     # dataset name will be overwritten if merge_cif is not None
     input_block, dataset_name = cifdata_str_or_index(input_cif, yml_output_settings.select_block)
-    if merge_cif_path is None:
+    if merge_cif_text is None:
         merge_block = cif.model.block()
     else:
         merge_block, dataset_name = cifdata_str_or_index(
-            read_cif_safe(merge_cif_path), "0"
+            cif.reader(input_string=merge_cif_text).model(), 0
         )  # QCrBox cif files have only one block
 
     yml_output_settings = yml_entries_resolve_special(yml_output_settings, input_block)
@@ -644,7 +704,7 @@ def cif_file_merge_to_unified_by_yml(
     output_cif = cif.model.cif()
     output_cif[dataset_name] = output_cif_block
 
-    Path(output_cif_path).write_text(str(output_cif), encoding="UTF-8")
+    return str(output_cif)
 
 
 def can_run_command(yml_path: Path, command: str, input_cif_path: Path):

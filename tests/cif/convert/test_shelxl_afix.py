@@ -188,9 +188,9 @@ def test_afix2cif_update_tables(minimal_cif_block):
         "_atom_site_aniso.u_33",
     ]
     for column in changed_columns:
-        assert all(
-            float(new) != float(old) for new, old in zip(result[column], original[column])
-        ), f"{column} should be different"
+        assert all(float(new) != float(old) for new, old in zip(result[column], original[column])), (
+            f"{column} should be different"
+        )
 
 
 def test_afix2cif_add_columns(minimal_cif_block):

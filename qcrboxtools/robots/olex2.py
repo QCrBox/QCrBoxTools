@@ -100,9 +100,9 @@ class Olex2Socket(SocketRobot):
         self.wait_for_completion(2000, "startup", cmd)
 
         load_cmds = [
-            f'file {path.with_suffix(".ins").name}',
-            f'export {path.with_suffix(".hkl").name}',
-            f'reap {path.with_suffix(".ins").name}',
+            f"file {path.with_suffix('.ins').name}",
+            f"export {path.with_suffix('.hkl').name}",
+            f"reap {path.with_suffix('.ins').name}",
         ]
         try:
             self.send_command("\n".join(load_cmds))

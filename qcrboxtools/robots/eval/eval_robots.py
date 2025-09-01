@@ -798,7 +798,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
         if focus_type is None:
             focus_type = "synchrotron"
         if focus_type not in possible_focusses:
-            raise ValueError(f'Invalid focus type, choose one of: {", ".join(possible_focusses)}')
+            raise ValueError(f"Invalid focus type, choose one of: {', '.join(possible_focusses)}")
 
         if polarisation_type is None:
             polarisation_type = "none"
@@ -820,7 +820,7 @@ class EvalBuildeval15Robot(EvalBaseRobot):
             "o",
         )
         if polarisation_type not in possible_polarisations:
-            raise ValueError(f'Invalid polarisation, choose one of: {", ".join(possible_polarisations)}')
+            raise ValueError(f"Invalid polarisation, choose one of: {', '.join(possible_polarisations)}")
 
         if self.p4p_file is None:
             command_base = (

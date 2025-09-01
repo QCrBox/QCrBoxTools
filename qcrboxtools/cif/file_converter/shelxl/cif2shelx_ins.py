@@ -187,7 +187,7 @@ def block2header(cif_block: block) -> str:
 
     ins_lines.append("CONF\nBOND $H\nL.S. 10\nLIST 4\nACTA\nBOND\nFMAP 2\nMORE -1")
     ins_lines.append(block2wght(cif_block))
-    ins_lines.append(f'FVAR {cif_block["_qcrbox.shelx.scale_factor"]}')
+    ins_lines.append(f"FVAR {cif_block['_qcrbox.shelx.scale_factor']}")
 
     return "\n".join(ins_lines)
 
@@ -227,10 +227,10 @@ def create_atom_string(
         atom_string = f"{start} {float(-uiso_mult): 4.2f}"
     elif (atom_site_aniso_loop is not None) and (label in atom_site_aniso_loop["_atom_site_aniso.label"]):
         index_aniso = list(atom_site_aniso_loop["_atom_site_aniso.label"]).index(label)
-        uijs = [f'{float(atom_site_aniso_loop[f"_atom_site_aniso.u_{ij}"][index_aniso]): 9.5f}' for ij in uij_indexes]
+        uijs = [f"{float(atom_site_aniso_loop[f'_atom_site_aniso.u_{ij}'][index_aniso]): 9.5f}" for ij in uij_indexes]
         atom_string = start + " " + " ".join(uijs)
     else:
-        atom_string = f'{start} {float(atom_site_loop["_atom_site.u_iso_or_equiv"][index]): 9.5f}'
+        atom_string = f"{start} {float(atom_site_loop['_atom_site.u_iso_or_equiv'][index]): 9.5f}"
     return " =\n  ".join(wrap(atom_string))
 
 
@@ -322,9 +322,9 @@ def create_atom_list(cif_block: block) -> str:
         if attached_atom == ".":
             continue
         indexes = np.nonzero(atom_site_loop["_atom_site.calc_attached_atom"] == attached_atom)[0]
-        assert all(
-            (psn_id[int(i)] == psn_id[int(indexes[0])] for i in indexes[1:])
-        ), f"not all constrain posn ids are equal for {attached_atom}"
+        assert all((psn_id[int(i)] == psn_id[int(indexes[0])] for i in indexes[1:])), (
+            f"not all constrain posn ids are equal for {attached_atom}"
+        )
         attached_collect[attached_atom] = list(
             sorted(indexes, key=lambda x: atom_site_loop["_atom_site.qcrbox_constraint_posn_index"][int(x)])
         )

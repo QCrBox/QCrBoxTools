@@ -50,6 +50,7 @@ def test_cifblock2intensity_array(hkl_cell_cif_block):
     intensity_array = cif_block2intensity_array(hkl_cell_cif_block)
     assert intensity_array.is_xray_intensity_array()
 
+
 def test_precision_all_data(hkl_cell_cif_block):
     possible_indicators = [
         "d_min lower",

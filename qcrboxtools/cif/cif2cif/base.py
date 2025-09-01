@@ -53,12 +53,12 @@ def cif_file_to_unified(
 
 
 def cif_model_to_specific(
-    cif_model: model,
+    cif_model: model.cif,
     required_entries: Optional[List[str]] = None,
     optional_entries: Optional[List[str]] = None,
     custom_categories: Optional[List[str]] = None,
     merge_su: bool = False,
-) -> model:
+) -> model.cif:
     """
     Filters and processes an iotbx CIF model to include only specific entries.
 
@@ -116,9 +116,9 @@ def cif_model_to_specific(
 def cif_file_to_specific(
     input_cif_path: Union[str, Path],
     output_cif_path: Union[str, Path],
-    required_entries: List[str] = None,
-    optional_entries: List[str] = None,
-    custom_categories: List[str] = None,
+    required_entries: Optional[List[str]] = None,
+    optional_entries: Optional[List[str]] = None,
+    custom_categories: Optional[List[str]] = None,
     merge_su: bool = False,
 ):
     """

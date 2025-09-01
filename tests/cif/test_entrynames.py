@@ -135,9 +135,9 @@ def test_block_to_specific_keywords(unified_block, custom_categories):
     # Ensure all non-optional requested entries are present in the converted block
     for entry_name in requested_entries:
         if entry_name != "_nonexistent_entry":
-            assert (
-                entry_name in converted_block
-            ), f"Requested entry '{entry_name}' was not found in the converted block."
+            assert entry_name in converted_block, (
+                f"Requested entry '{entry_name}' was not found in the converted block."
+            )
 
     # Ensure the optional, non-existent entry does not cause an error and is rightly not present
     assert "_nonexistent_entry" not in converted_block, "Optional, non-existent entry was generated from nothing."
@@ -195,11 +195,11 @@ def test_cif_entries_present(mock_block):
     absent_entries = ["_missing_entry"]
 
     # Test with entries that are present
-    assert cif_entries_present(
-        mock_block, custom_categories, present_entries
-    ), "Function should return True when all entries are present."
+    assert cif_entries_present(mock_block, custom_categories, present_entries), (
+        "Function should return True when all entries are present."
+    )
 
     # Test with at least one absent entry
-    assert not cif_entries_present(
-        mock_block, custom_categories, present_entries + absent_entries
-    ), "Function should return False when any specified entry is absent."
+    assert not cif_entries_present(mock_block, custom_categories, present_entries + absent_entries), (
+        "Function should return False when any specified entry is absent."
+    )

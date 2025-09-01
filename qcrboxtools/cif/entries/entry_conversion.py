@@ -31,7 +31,7 @@ def entry_to_unified_keyword(old_name: str, custom_categories: List[str]) -> str
     cut_name = old_name[1:]
     for category in custom_categories:
         if cut_name.startswith(category):
-            return f"_{category}.{cut_name[len(category)+1:]}"
+            return f"_{category}.{cut_name[len(category) + 1 :]}"
     return "_" + aliases.get(cut_name, cut_name)
 
 

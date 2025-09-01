@@ -105,7 +105,7 @@ def precision_all_data(cif_block: block, indicators: Optional[List[str]] = None)
             results_overall["Completeness"] = int_nonsym.completeness()
 
     if not already_merged:
-        int_merged = int_nonsym.merge_equivalents()    
+        int_merged = int_nonsym.merge_equivalents()
         if "Mean Redundancy" in indicators:
             results_overall["Mean Redundancy"] = int_merged.redundancies().as_double().mean()
         if "R_meas" in indicators:
@@ -118,19 +118,12 @@ def precision_all_data(cif_block: block, indicators: Optional[List[str]] = None)
             results_overall["R_sigma"] = int_merged.r_sigma()
         if "CC1/2" in indicators:
             results_overall["CC1/2"] = int_nonsym.cc_one_half()
-    else: 
-        non_sensical_entries = [
-            "Mean Redundancy",
-            "R_meas",
-            "R_pim",
-            "R_int",
-            "R_sigma",
-            "CC1/2"
-        ]
+    else:
+        non_sensical_entries = ["Mean Redundancy", "R_meas", "R_pim", "R_int", "R_sigma", "CC1/2"]
         for indicator in non_sensical_entries:
             if indicator in indicators:
-                results_overall[indicator] = 'N/A'
-    
+                results_overall[indicator] = "N/A"
+
     return results_overall
 
 
@@ -164,7 +157,7 @@ def precision_all_data_quality(results_overall: Dict[str, float]) -> Dict[str, D
     }
     quality_values = {}
     for indicator, value in results_overall.items():
-        if indicator == "d_min lower" or value == 'N/A':
+        if indicator == "d_min lower" or value == "N/A":
             quality_values[indicator] = DataQuality.INFORMATION
         else:
             operation = value2level_dict[indicator]
@@ -222,15 +215,8 @@ def precision_vs_resolution(
     intensity_array = cif_block2intensity_array(cif_block)
 
     if intensity_array.is_unique_set_under_symmetry():
-        non_sensical_entries = [
-            "Mean Redundancy",
-            "R_meas",
-            "R_pim",
-            "R_int",
-            "R_sigma",
-            "CC1/2"
-        ]
-        indicators = [ind for ind in indicators if ind not in non_sensical_entries]    
+        non_sensical_entries = ["Mean Redundancy", "R_meas", "R_pim", "R_int", "R_sigma", "CC1/2"]
+        indicators = [ind for ind in indicators if ind not in non_sensical_entries]
 
     intensity_array.setup_binner(n_bins=n_bins)
 
@@ -242,7 +228,7 @@ def precision_vs_resolution(
         bin_array = intensity_array.select(sel)
         bin_merged = bin_array.merge_equivalents()
         lowlim, highlim = intensity_array.binner().bin_d_range(i_bin)
-            
+
         if "d_min lower" in indicators:
             results_binned["d_min lower"][array_index] = lowlim
         if "d_min upper" in indicators:

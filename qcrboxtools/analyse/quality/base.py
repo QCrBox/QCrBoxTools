@@ -79,6 +79,7 @@ def ascending_levels2func(levels: Tuple[float, ...]) -> Callable[[float], int]:
     """
     return lambda x: next((i for i, v in enumerate(levels) if x < v))
 
+
 def descending_levels2func(levels: Tuple[float, ...]) -> Callable[[float], int]:
     """
     Create a function that maps a value to its corresponding level index in descending order.

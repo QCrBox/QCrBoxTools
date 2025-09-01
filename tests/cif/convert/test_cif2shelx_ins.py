@@ -223,9 +223,9 @@ def test_create_atom_string_with_uiso_mult(atom_site_data, index, uiso_mult, exp
 
     result = cif2shelx_ins.create_atom_string(index, atom_site_loop, atom_site_aniso_loop, uiso_mult)
 
-    assert (
-        result == expected_output
-    ), f"For atom at index {index} with uiso_mult {uiso_mult}, expected:\n{expected_output}\nbut got:\n{result}"
+    assert result == expected_output, (
+        f"For atom at index {index} with uiso_mult {uiso_mult}, expected:\n{expected_output}\nbut got:\n{result}"
+    )
 
 
 @pytest.fixture(name="afix_objects")

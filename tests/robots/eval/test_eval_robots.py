@@ -39,14 +39,14 @@ def mock_for_subprocess_call_factory(
         Instead of calling the program, check if init file was created.
         """
         init_file = Path(cwd) / f"{program_name}.init"
-        assert (
-            program_name == expected_program_name
-        ), f"Expected program name {expected_program_name}, got {program_name}"
+        assert program_name == expected_program_name, (
+            f"Expected program name {expected_program_name}, got {program_name}"
+        )
         assert init_file.exists(), f"Init file {init_file} was not created."
         if expected_init_content is not None:
-            assert (
-                init_file.read_text(encoding="UTF-8") == expected_init_content
-            ), "Init file content does not match the expected value."
+            assert init_file.read_text(encoding="UTF-8") == expected_init_content, (
+                "Init file content does not match the expected value."
+            )
         if raise_os_error and not shell:
             raise OSError("Mocked OS error")
 

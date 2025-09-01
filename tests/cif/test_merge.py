@@ -82,23 +82,23 @@ def test_merge_block_conflicts():
         "C1",
         "C2",
     ], "Unique block 1 atom_site.label not correctly copied"
-    assert "?" not in list(
-        merged_block["_atom_site_aniso.u_11"]
-    ), "atom_site_aniso not correctly merged from both blocks"
-    assert "?" not in list(
-        merged_block["_atom_site_aniso.u_23"]
-    ), "atom_site_aniso not correctly merged from both blocks"
-    assert (
-        list(merged_block["_diffrn_refln.test_column"]).count("?") == 3
-    ), "Unknown values in diffrn_refln.test_column not filled as expected"
-    assert (
-        merged_block["_space_group_symop.test_entry"][0] == "copy this"
-    ), "Additional value from block1 (merged by .id) not present"
+    assert "?" not in list(merged_block["_atom_site_aniso.u_11"]), (
+        "atom_site_aniso not correctly merged from both blocks"
+    )
+    assert "?" not in list(merged_block["_atom_site_aniso.u_23"]), (
+        "atom_site_aniso not correctly merged from both blocks"
+    )
+    assert list(merged_block["_diffrn_refln.test_column"]).count("?") == 3, (
+        "Unknown values in diffrn_refln.test_column not filled as expected"
+    )
+    assert merged_block["_space_group_symop.test_entry"][0] == "copy this", (
+        "Additional value from block1 (merged by .id) not present"
+    )
     assert float(merged_block["_cell.length_c"]) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
     assert float(merged_block["_cell.volume"]) == 1200.0, "Block2's unique value cell.volume not copied as expected"
-    assert (
-        merged_block["_space_group.name_h-m_alt"] == "P 1"
-    ), "Block1's unique value space_group.name_h-m_alt not correctly copied"
+    assert merged_block["_space_group.name_h-m_alt"] == "P 1", (
+        "Block1's unique value space_group.name_h-m_alt not correctly copied"
+    )
 
 
 def test_merge_block_string_marker(loop1, loop2):
@@ -157,20 +157,20 @@ def test_merge_cif_files(selection_markers, tmp_path):
         "C1",
         "C2",
     ], "Unique block 1 atom_site.label not correctly copied"
-    assert "?" not in list(
-        merged_block["_atom_site_aniso.u_11"]
-    ), "atom_site_aniso not correctly merged from both blocks"
-    assert "?" not in list(
-        merged_block["_atom_site_aniso.u_23"]
-    ), "atom_site_aniso not correctly merged from both blocks"
-    assert (
-        list(merged_block["_diffrn_refln.test_column"]).count("?") == 3
-    ), "Unknown values in diffrn_refln.test_column not filled as expected"
-    assert (
-        merged_block["_space_group_symop.test_entry"][0] == "copy this"
-    ), "Additional value from block1 (merged by .id) not present"
+    assert "?" not in list(merged_block["_atom_site_aniso.u_11"]), (
+        "atom_site_aniso not correctly merged from both blocks"
+    )
+    assert "?" not in list(merged_block["_atom_site_aniso.u_23"]), (
+        "atom_site_aniso not correctly merged from both blocks"
+    )
+    assert list(merged_block["_diffrn_refln.test_column"]).count("?") == 3, (
+        "Unknown values in diffrn_refln.test_column not filled as expected"
+    )
+    assert merged_block["_space_group_symop.test_entry"][0] == "copy this", (
+        "Additional value from block1 (merged by .id) not present"
+    )
     assert float(merged_block["_cell.length_c"]) == 12.0, "Block2's cell.length_c does not overwrite block1 as expected"
     assert float(merged_block["_cell.volume"]) == 1200.0, "Block2's unique value cell.volume not copied as expected"
-    assert (
-        merged_block["_space_group.name_h-m_alt"] == "P 1"
-    ), "Block1's unique value space_group.name_h-m_alt not correctly copied"
+    assert merged_block["_space_group.name_h-m_alt"] == "P 1", (
+        "Block1's unique value space_group.name_h-m_alt not correctly copied"
+    )

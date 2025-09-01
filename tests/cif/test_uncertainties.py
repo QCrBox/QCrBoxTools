@@ -286,20 +286,20 @@ def test_merge_su_block(exclude, sample_block_with_su):
     if exclude is not None:
         # Tests for non-looped entries with exclusion
         assert merged_block["_cell.length_a"] == "10.0", "Failed to exclude _cell.length_a from merging"
-        assert (
-            "_cell.length_a_su" in merged_block
-        ), "_cell.length_a_su should not be deleted when _cell.length_a is excluded"
+        assert "_cell.length_a_su" in merged_block, (
+            "_cell.length_a_su should not be deleted when _cell.length_a is excluded"
+        )
 
         # Test for looped entries with exclusion
         assert merged_block["_atom_site.fract_x"][0] == "0.234", "Failed to exclude _atom_site.fract_x from merging"
-        assert (
-            "_atom_site.fract_x_su" in merged_block
-        ), "_atom_site.fract_x_su should not be deleted when _atom_site.fract_x is excluded"
+        assert "_atom_site.fract_x_su" in merged_block, (
+            "_atom_site.fract_x_su should not be deleted when _atom_site.fract_x is excluded"
+        )
 
     # Test for su entry without an existing base entry
-    assert (
-        "_cell.length_c_su" in merged_block
-    ), "_cell.length_c_su should not be deleted when _cell.length_c does not exist"
+    assert "_cell.length_c_su" in merged_block, (
+        "_cell.length_c_su should not be deleted when _cell.length_c does not exist"
+    )
 
     # Ensure other entries not in exclude list are merged correctly
     assert merged_block["_cell.length_b"] == "20.00(2)", "Failed to merge cell.length.b and its SU correctly"
@@ -307,9 +307,9 @@ def test_merge_su_block(exclude, sample_block_with_su):
 
     # Additional tests for looped entries not excluded
     assert merged_block["_atom_site.fract_y"][1] == "0.68", "Failed to merge _atom_site.fract_y and format correctly"
-    assert (
-        merged_block["_atom_site.fract_z"][2] == "-0.012(9)"
-    ), "Failed to merge _atom_site.fract_z and its SU correctly"
+    assert merged_block["_atom_site.fract_z"][2] == "-0.012(9)", (
+        "Failed to merge _atom_site.fract_z and its SU correctly"
+    )
     assert "_atom_site.fract_y_su" not in merged_block, "Did not delete SU entry where corresponding entry existed"
     assert "_atom_site.fract_z_su" not in merged_block, "Did not delete SU entry where corresponding entry existed"
 
@@ -371,12 +371,12 @@ def test_merge_su_cif(cif_model_with_mergable_blocks):
     assert "_cell.length_c" not in block1, "Block1: Unexpectedly found _cell.length_c which shouldn't exist"
     # Check looped entries in block1 for correct merging
     assert block1["_atom_site.fract_x"][0] == "0.234", "Block1: Failed to exclude _atom_site.fract_x from merge"
-    assert (
-        block1["_atom_site.fract_y"][2] == "-0.79(7)"
-    ), "Block1: Failed to merge _atom_site.fract_y and its SU correctly"
-    assert (
-        block1["_atom_site.fract_z"][1] == "-0.90(9)"
-    ), "Block1: Failed to merge _atom_site.fract_z and its SU correctly"
+    assert block1["_atom_site.fract_y"][2] == "-0.79(7)", (
+        "Block1: Failed to merge _atom_site.fract_y and its SU correctly"
+    )
+    assert block1["_atom_site.fract_z"][1] == "-0.90(9)", (
+        "Block1: Failed to merge _atom_site.fract_z and its SU correctly"
+    )
 
     # Assertions for block2, ensuring modifications are processed and merged correctly
     block2 = processed_cif["block2"]
@@ -385,9 +385,9 @@ def test_merge_su_cif(cif_model_with_mergable_blocks):
     assert block2["_cell.length_c"] == "30.00(4)", "Block2: Failed to add and merge _cell.length_c and its SU correctly"
     # Check looped entries in block2 for correct merging
     assert block2["_atom_site.fract_x"][0] == "0.123", "Block1: Failed to exclude _atom_site.fract_x from merge"
-    assert (
-        block2["_atom_site.fract_y"][2] == "-0.68(7)"
-    ), "Block2: Failed to merge _atom_site.fract_y and its SU correctly"
-    assert (
-        block2["_atom_site.fract_z"][1] == "-0.89(9)"
-    ), "Block2: Failed to merge _atom_site.fract_z and its SU correctly"
+    assert block2["_atom_site.fract_y"][2] == "-0.68(7)", (
+        "Block2: Failed to merge _atom_site.fract_y and its SU correctly"
+    )
+    assert block2["_atom_site.fract_z"][1] == "-0.89(9)", (
+        "Block2: Failed to merge _atom_site.fract_z and its SU correctly"
+    )

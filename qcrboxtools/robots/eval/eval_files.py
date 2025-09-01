@@ -828,7 +828,7 @@ class RmatFile(RelativePathFile, dict):
         for key, pattern in patterns.items():
             matches = re.findall(pattern, text, re.DOTALL)
             for i, match in enumerate(matches):
-                formatted_key = f"{key}_{i+1}" if key == "QVEC" and len(matches) > 1 else key
+                formatted_key = f"{key}_{i + 1}" if key == "QVEC" and len(matches) > 1 else key
                 if key in second_entry:
                     extracted_data[second_entry[key]] = match[0].strip()
                     extracted_data[formatted_key] = self.convert_to_numpy(match[1])
@@ -854,15 +854,15 @@ class RmatFile(RelativePathFile, dict):
         value = self[key]
         if isinstance(value, np.ndarray) and value.ndim == 2:
             if key == "RMAT":
-                key_string = f'RMAT {self["CENTRING"]}\n'
+                key_string = f"RMAT {self['CENTRING']}\n"
             elif key == "TMAT":
-                key_string = f'TMAT {self["CENTRING"]} {self["POINTGROUP"]}\n'
+                key_string = f"TMAT {self['CENTRING']} {self['POINTGROUP']}\n"
             else:
                 key_string = key + " "
             return key_string + "\n".join("".join(f"{num: 12.7f}" for num in row) for row in value)
         elif isinstance(value, np.ndarray) and value.ndim == 1:
             key = "QVEC" if key.startswith("QVEC") else key
-            return f'{key} {" ".join(f"{num:.5f}" for num in value)}'
+            return f"{key} {' '.join(f'{num:.5f}' for num in value)}"
         else:
             return key + " " + " ".join(value)
 

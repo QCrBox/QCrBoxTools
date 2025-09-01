@@ -248,9 +248,9 @@ def test_rmat_to_rmat_file(tmp_path):
 
     # Compare each line of the file content with the expected content
     for line, expected_line in zip(content, expected_content):
-        assert (
-            line == expected_line
-        ), f"Line in file does not match expected line: {line.strip()} != {expected_line.strip()}"
+        assert line == expected_line, (
+            f"Line in file does not match expected line: {line.strip()} != {expected_line.strip()}"
+        )
 
 
 def test_rmat_to_cif_file(tmp_path):

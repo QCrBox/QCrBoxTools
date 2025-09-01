@@ -88,9 +88,9 @@ def generate_aliases(
     aliases = {key: val for key, val in aliases.items() if key != val}
 
     # ensure there are no circular translations
-    assert not any(
-        val in aliases for val in values
-    ), "One of the common references has gotten an alias, creating a circle"
+    assert not any(val in aliases for val in values), (
+        "One of the common references has gotten an alias, creating a circle"
+    )
 
     return aliases
 

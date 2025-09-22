@@ -51,6 +51,8 @@ class SocketRobot:
                 s.sendall(input_str.encode("UTF-8"))
                 data = s.recv(1024)
             except (ConnectionRefusedError, OSError) as ex:
-                raise ConnectionError(f"Could not connect to Socket server, {self.server}:{self.port}") from ex
+                raise ConnectionError(
+                    f"Could not connect to {self.__class__.__name__} at {self.server}:{self.port}"
+                ) from ex
 
         return data.decode("UTF-8").rstrip("\n")

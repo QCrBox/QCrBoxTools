@@ -346,10 +346,7 @@ def test_move_refined_files_no_files(tmp_path):
     test_cif.touch()
 
     # Should not raise an error when files don't exist
-    try:
-        olex2.move_refined_files(test_cif)
-    except Exception as e:
-        pytest.fail(f"move_refined_files raised an exception when files don't exist: {e}")
+    olex2.move_refined_files(test_cif)
 
 
 def test_move_refined_files_partial_files(tmp_path):

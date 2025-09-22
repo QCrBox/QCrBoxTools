@@ -113,7 +113,14 @@ class Olex2Socket(SocketRobot):
         if olex_server == "localhost" and "OLEX2SERVER" in os.environ:
             olex_server = os.environ["OLEX2SERVER"]
         if port == 8899 and "OLEX2PORT" in os.environ:
-            port = int(os.environ["OLEX2PORT"])
+            try:
+                port = int(os.environ["OLEX2PORT"])
+            except ValueError:
+                warnings.warn(
+                    f"OLEX2PORT environment variable ('{os.environ['OLEX2PORT']}')"
+                    + " is not a valid integer. Using default port 8899."
+                )
+                port = 8899
 
         super().__init__(olex_server, port)
         self._task_id_counter = count()

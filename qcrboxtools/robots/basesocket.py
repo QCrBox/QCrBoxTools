@@ -46,7 +46,11 @@ class SocketRobot:
         """
         input_str += "\n"
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self.server, self.port))
-            s.sendall(input_str.encode("UTF-8"))
-            data = s.recv(1024)
-        return data.decode()
+            try:
+                s.connect((self.server, self.port))
+                s.sendall(input_str.encode("UTF-8"))
+                data = s.recv(1024)
+            except (ConnectionRefusedError, OSError) as ex:
+                raise ConnectionError(f"Could not connect to Socket server, {self.server}:{self.port}") from ex
+
+        return data.decode("UTF-8").rstrip("\n")

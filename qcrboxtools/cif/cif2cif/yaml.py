@@ -10,11 +10,11 @@ from typing import Any, Dict, List, Tuple, Union
 import yaml
 from iotbx import cif
 
-from ..entries import block_to_unified_keywords, entry_to_unified_keyword
+from ..entries import block_to_unified_keywords, cif_to_unified_keywords, entry_to_unified_keyword
 from ..merge import merge_cif_blocks
 from ..read import cifdata_str_or_index, read_cif_safe
 from ..trim import trim_cif_block
-from ..uncertainties import split_su_block
+from ..uncertainties import split_su_block, split_su_cif
 from .base import cif_model_to_specific
 
 
@@ -543,12 +543,14 @@ def cif_text_to_specific_by_yml(input_cif_text: str, yml_path: Union[str, Path],
 
     yml_input_settings = cif_input_entries_from_yml(yml_dict, command, parameter)
 
-    model = cif.reader(input_string=input_cif_text).model()
-    block, _ = cifdata_str_or_index(model, 0)
+    cif_model = cif.reader(input_string=input_cif_text).model()
+    cif_model = cif_to_unified_keywords(cif_model, yml_input_settings.custom_categories)
+    cif_model = split_su_cif(cif_model)
+    block, _ = cifdata_str_or_index(cif_model, 0)
+    block = block_to_unified_keywords(block, yml_input_settings.custom_categories)
+    block = split_su_block(block)
 
     yml_input_settings = yml_entries_resolve_special(yml_input_settings, block)
-
-    cif_model = cif.reader(input_string=input_cif_text).model()
 
     specific_cif_model = cif_model_to_specific(
         cif_model,

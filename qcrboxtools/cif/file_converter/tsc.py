@@ -145,19 +145,14 @@ class TSCBase(ABC):
             If an unknown atom site label is used for indexing.
         """
         try:
-            if isinstance(atom_site_label, str):
-                index = self.scatterers.index(atom_site_label)
-                return {hkl: f0js[index] for hkl, f0js in self.data.items()}
-            elif isinstance(atom_site_label, Iterable):
+            if isinstance(atom_site_label, Iterable) and not isinstance(atom_site_label, str):
                 indexes = np.array([self.scatterers.index(label) for label in atom_site_label])
                 return {hkl: f0js[indexes] for hkl, f0js in self.data.items()}
             else:
                 index = self.scatterers.index(atom_site_label)
                 return {hkl: f0js[index] for hkl, f0js in self.data.items()}
         except ValueError as exc:
-            if isinstance(atom_site_label, str):
-                unknown = [atom_site_label]
-            elif isinstance(atom_site_label, Iterable):
+            if isinstance(atom_site_label, Iterable) and not isinstance(atom_site_label, str):
                 unknown = [label for label in atom_site_label if label not in self.scatterers]
             else:
                 unknown = [atom_site_label]
@@ -293,9 +288,9 @@ class TSCBase(ABC):
         ):
             raise ValueError("CIF block does not contain required TSC entries.")
         self.scatterers = cif_block["_wfn_moiety.asu_atom_site_label"]
-        aff_loop = cif_block.get_loop("_aspheric_ff.index_h")
+        aff_loop = cif_block.get_loop("_aspheric_ff")
         if aff_loop is None:
-            raise ValueError("CIF block does not contain required TSC entries.")
+            raise ValueError("CIF block does not contain required TSC entries for the loop _aspheric_ff.")
         hkl_zip = zip(
             aff_loop["_aspheric_ff.index_h"], aff_loop["_aspheric_ff.index_k"], aff_loop["_aspheric_ff.index_l"]
         )
@@ -517,5 +512,5 @@ class TSCBFile(TSCBase):
         """
         cif_block = read_cif_as_unified(cif_path, 0)
         new_obj = cls()
-        new_obj.populate_from_cif_block(cif_block)
+        new_obj.populate_from_cif_block(cif_block) 
         return new_obj

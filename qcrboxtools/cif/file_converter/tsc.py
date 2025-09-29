@@ -97,7 +97,7 @@ def parse_tsc_data_line(line: str) -> Tuple[Tuple[int, int, int], np.ndarray]:
     tuple
         A tuple containing the indices h, k, l and the array of f0j values.
     """
-    
+
     h_str, k_str, l_str, *f0j_strs = line.split()
     parts = (val.split(",") for val in f0j_strs)
     f0js = np.array([float(real_val) + 1j * float(imag_val) for real_val, imag_val in parts])
@@ -379,9 +379,9 @@ class TSCFile(TSCBase):
 
         new_obj.header.update(parse_header(header_str))
 
-        parsed_iter = iter(parse_tsc_data_line(line) for line in data_str.strip().split("\n"))
+        parsed_data_lines = iter(parse_tsc_data_line(line) for line in data_str.strip().split("\n"))
 
-        new_obj.data = {hkl: f0js for hkl, f0js in parsed_iter}
+        new_obj.data = {hkl: f0js for hkl, f0js in parsed_data_lines}
 
         return new_obj
 
@@ -399,14 +399,12 @@ class TSCFile(TSCBase):
             The name of the file to write.
         """
         header_str = "\n".join(f"{key}: {value}" for key, value in self.header.items())
-        data_iter = iter(
-            (
-                f"{int(hkl[0])} {int(hkl[1])} {int(hkl[2])} "
-                + f"{' '.join(f'{np.real(val):.8e},{np.imag(val):.8e}' for val in values)}"
-            )
+        formatted_data_lines = (
+            f"{int(hkl[0])} {int(hkl[1])} {int(hkl[2])} "
+            + f"{' '.join(f'{np.real(val):.8e},{np.imag(val):.8e}' for val in values)}"
             for hkl, values in self.data.items()
         )
-        data_str = "\n".join(data_iter)
+        data_str = "\n".join(formatted_data_lines)
 
         with open(filename, "w") as fobj:
             fobj.write(f"{header_str}\nDATA:\n{data_str}\n")

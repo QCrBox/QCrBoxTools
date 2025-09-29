@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def cell_constants_to_matrix(a: float, b: float, c: float, alpha: float, beta: float, gamma: float) -> np.ndarray:
     """
     Convert cell constants to a 3x3 cell matrix.

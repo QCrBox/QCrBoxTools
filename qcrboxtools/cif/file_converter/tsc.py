@@ -512,5 +512,5 @@ class TSCBFile(TSCBase):
         """
         cif_block = read_cif_as_unified(cif_path, 0)
         new_obj = cls()
-        new_obj.populate_from_cif_block(cif_block) 
+        new_obj.populate_from_cif_block(cif_block)
         return new_obj

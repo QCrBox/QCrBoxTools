@@ -6,8 +6,6 @@ and conversion functionality.
 """
 
 import struct
-from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -48,11 +46,11 @@ that spans several lines"""
 def sample_tscb_file(tmp_path):
     """Create a sample TSCB file for testing."""
     tscb_path = tmp_path / "test.tscb"
-    
+
     # Create minimal TSCB file content
     header_str = "TITLE: Test TSCB\nSYMM: expanded"
     scatterers_str = "C1 C2 O1"
-    
+
     with open(tscb_path, "wb") as f:
         # Write header size and scatterers size
         f.write(struct.pack("2i", len(header_str), len(scatterers_str)))
@@ -61,23 +59,23 @@ def sample_tscb_file(tmp_path):
         f.write(scatterers_str.encode("ASCII"))
         # Write number of reflections
         f.write(struct.pack("i", 2))
-        
+
         # Write reflection data: hkl + form factors for 3 atoms
         # Reflection 1: (1,0,0)
         f.write(struct.pack("3i", 1, 0, 0))
-        f.write(np.array([1.0+0.0j, 2.0+1.0j, 3.0-1.0j], dtype=np.complex128).tobytes())
-        
-        # Reflection 2: (0,1,0)  
+        f.write(np.array([1.0 + 0.0j, 2.0 + 1.0j, 3.0 - 1.0j], dtype=np.complex128).tobytes())
+
+        # Reflection 2: (0,1,0)
         f.write(struct.pack("3i", 0, 1, 0))
-        f.write(np.array([4.0+0.5j, 5.0-0.5j, 6.0+0.25j], dtype=np.complex128).tobytes())
-    
+        f.write(np.array([4.0 + 0.5j, 5.0 - 0.5j, 6.0 + 0.25j], dtype=np.complex128).tobytes())
+
     return tscb_path
 
 
 def test_parse_header(sample_header_string):
     """Test header parsing functionality."""
     header = parse_header(sample_header_string)
-    
+
     assert header["TITLE"] == " Test Header"
     assert header["SYMM"] == " expanded"
     assert header["SCATTERERS"] == " C1 C2 O1"
@@ -94,7 +92,7 @@ def test_parse_tsc_data_line():
     """Test parsing of TSC data lines."""
     line = "1 0 0 1.23450000e+00,0.00000000e+00 2.34560000e+00,1.00000000e+00"
     hkl, f0js = parse_tsc_data_line(line)
-    
+
     assert hkl == (1, 0, 0)
     assert len(f0js) == 2
     assert np.isclose(f0js[0], 1.2345 + 0.0j)
@@ -105,7 +103,7 @@ def test_parse_tsc_data_line_negative_indices():
     """Test parsing TSC data line with negative Miller indices."""
     line = "-1 2 -3 1.00000000e+00,2.00000000e+00"
     hkl, f0js = parse_tsc_data_line(line)
-    
+
     assert hkl == (-1, 2, -3)
     assert len(f0js) == 1
     assert np.isclose(f0js[0], 1.0 + 2.0j)
@@ -115,9 +113,9 @@ def test_read_tsc_file_tsc_extension(tmp_path, sample_tsc_content):
     """Test reading a .tsc file."""
     tsc_path = tmp_path / "test.tsc"
     tsc_path.write_text(sample_tsc_content)
-    
+
     result = read_tsc_file(tsc_path)
-    
+
     assert isinstance(result, TSCFile)
     assert result.scatterers == ["C1", "C2", "O1"]
     assert (1, 0, 0) in result.data
@@ -127,7 +125,7 @@ def test_read_tsc_file_tsc_extension(tmp_path, sample_tsc_content):
 def test_read_tsc_file_tscb_extension(sample_tscb_file):
     """Test reading a .tscb file."""
     result = read_tsc_file(sample_tscb_file)
-    
+
     assert isinstance(result, TSCBFile)
     assert result.scatterers == ["C1", "C2", "O1"]
     assert (1, 0, 0) in result.data
@@ -138,7 +136,7 @@ def test_read_tsc_file_invalid_tsc(tmp_path):
     """Test reading invalid TSC file raises ValueError."""
     invalid_tsc = tmp_path / "invalid.tsc"
     invalid_tsc.write_text("This is not a valid TSC file")
-    
+
     with pytest.raises(ValueError, match="Cannot read AFF file"):
         read_tsc_file(invalid_tsc)
 
@@ -147,7 +145,7 @@ def test_read_tsc_file_invalid_tscb(tmp_path):
     """Test reading invalid TSCB file raises ValueError."""
     invalid_tscb = tmp_path / "invalid.tscb"
     invalid_tscb.write_bytes(b"This is not a valid TSCB file")
-    
+
     with pytest.raises(ValueError, match="Cannot read AFF file"):
         read_tsc_file(invalid_tscb)
 
@@ -156,7 +154,7 @@ def test_tsc_file_scatterers_property():
     """Test TSCFile scatterers property."""
     tsc = TSCFile()
     tsc.header["SCATTERERS"] = "C1 C2 O1 N1"
-    
+
     assert tsc.scatterers == ["C1", "C2", "O1", "N1"]
 
 
@@ -164,7 +162,7 @@ def test_tsc_file_scatterers_setter():
     """Test TSCFile scatterers setter."""
     tsc = TSCFile()
     tsc.scatterers = ["C1", "C2", "O1"]
-    
+
     assert tsc.header["SCATTERERS"] == "C1 C2 O1"
 
 
@@ -173,16 +171,13 @@ def test_tsc_file_getitem_single_atom():
     tsc = TSCFile()
     tsc.scatterers = ["C1", "C2", "O1"]
     tsc.data = {
-        (1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j, 3.0-1.0j]),
-        (0, 1, 0): np.array([4.0+0.5j, 5.0-0.5j, 6.0+0.25j])
+        (1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j, 3.0 - 1.0j]),
+        (0, 1, 0): np.array([4.0 + 0.5j, 5.0 - 0.5j, 6.0 + 0.25j]),
     }
-    
+
     result = tsc["C1"]
-    expected = {
-        (1, 0, 0): 1.0+0.0j,
-        (0, 1, 0): 4.0+0.5j
-    }
-    
+    expected = {(1, 0, 0): 1.0 + 0.0j, (0, 1, 0): 4.0 + 0.5j}
+
     assert len(result) == 2
     for hkl, value in expected.items():
         assert np.isclose(result[hkl], value)
@@ -193,12 +188,12 @@ def test_tsc_file_getitem_multiple_atoms():
     tsc = TSCFile()
     tsc.scatterers = ["C1", "C2", "O1"]
     tsc.data = {
-        (1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j, 3.0-1.0j]),
+        (1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j, 3.0 - 1.0j]),
     }
-    
+
     result = tsc[["C1", "O1"]]
-    expected_values = np.array([1.0+0.0j, 3.0-1.0j])
-    
+    expected_values = np.array([1.0 + 0.0j, 3.0 - 1.0j])
+
     assert len(result) == 1
     assert np.allclose(result[(1, 0, 0)], expected_values)
 
@@ -207,7 +202,7 @@ def test_tsc_file_getitem_unknown_atom():
     """Test TSCFile indexing with unknown atom raises ValueError."""
     tsc = TSCFile()
     tsc.scatterers = ["C1", "C2"]
-    
+
     with pytest.raises(ValueError, match="Unknown atom label.*O1"):
         tsc["O1"]
 
@@ -216,9 +211,9 @@ def test_tsc_file_from_file(tmp_path, sample_tsc_content):
     """Test TSCFile.from_file method."""
     tsc_path = tmp_path / "test.tsc"
     tsc_path.write_text(sample_tsc_content)
-    
+
     tsc = TSCFile.from_file(tsc_path)
-    
+
     assert tsc.header["TITLE"] == " Test TSC File"
     assert tsc.scatterers == ["C1", "C2", "O1"]
     assert len(tsc.data) == 2
@@ -228,11 +223,11 @@ def test_tsc_file_to_file(tmp_path):
     """Test TSCFile.to_file method."""
     tsc = TSCFile()
     tsc.header = {"TITLE": "Test", "SYMM": "expanded", "SCATTERERS": "C1 C2"}
-    tsc.data = {(1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j])}
-    
+    tsc.data = {(1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j])}
+
     output_path = tmp_path / "output.tsc"
     tsc.to_file(output_path)
-    
+
     # Verify file was written correctly
     content = output_path.read_text()
     assert "TITLE: Test" in content
@@ -243,7 +238,7 @@ def test_tsc_file_to_file(tmp_path):
 def test_tscb_file_from_file(sample_tscb_file):
     """Test TSCBFile.from_file method."""
     tscb = TSCBFile.from_file(sample_tscb_file)
-    
+
     assert tscb.scatterers == ["C1", "C2", "O1"]
     assert len(tscb.data) == 2
     assert (1, 0, 0) in tscb.data
@@ -254,15 +249,15 @@ def test_tscb_file_to_file(tmp_path):
     """Test TSCBFile.to_file method."""
     tscb = TSCBFile()
     tscb.header = {"TITLE": "Test", "SYMM": "expanded", "SCATTERERS": "C1 C2"}
-    tscb.data = {(1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j], dtype=np.complex128)}
-    
+    tscb.data = {(1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j], dtype=np.complex128)}
+
     output_path = tmp_path / "output.tscb"
     tscb.to_file(output_path)
-    
+
     # Verify file exists and has content
     assert output_path.exists()
     assert output_path.stat().st_size > 0
-    
+
     # Try to read it back
     tscb_read = TSCBFile.from_file(output_path)
     assert tscb_read.scatterers == ["C1", "C2"]
@@ -273,18 +268,19 @@ def test_tscb_file_empty_header(tmp_path):
     """Test TSCBFile with empty additional header."""
     tscb_path = tmp_path / "test_empty_header.tscb"
     scatterers_str = "C1"
-    
+
     with open(tscb_path, "wb") as f:
         # Write zero header size
         f.write(struct.pack("2i", 0, len(scatterers_str)))
         f.write(scatterers_str.encode("ASCII"))
         f.write(struct.pack("i", 1))  # One reflection
         f.write(struct.pack("3i", 1, 0, 0))
-        f.write(np.array([1.0+0.0j], dtype=np.complex128).tobytes())
-    
+        f.write(np.array([1.0 + 0.0j], dtype=np.complex128).tobytes())
+
     tscb = TSCBFile.from_file(tscb_path)
     assert tscb.scatterers == ["C1"]
     assert len(tscb.data) == 1
+
 
 @pytest.fixture
 def sample_structure_cif_content():
@@ -356,8 +352,9 @@ def structure_cif_block(tmp_path, sample_structure_cif_content):
     """Create a structure CIF file and return the first block."""
     cif_path = tmp_path / "structure.cif"
     cif_path.write_text(sample_structure_cif_content)
-    
+
     from qcrboxtools.cif.read import read_cif_as_unified
+
     return read_cif_as_unified(cif_path, 0)
 
 
@@ -366,8 +363,9 @@ def tsc_cif_block(tmp_path, sample_tsc_cif_content):
     """Create a TSC CIF file and return the first block."""
     cif_path = tmp_path / "tsc.cif"
     cif_path.write_text(sample_tsc_cif_content)
-    
+
     from qcrboxtools.cif.read import read_cif_as_unified
+
     return read_cif_as_unified(cif_path, 0)
 
 
@@ -377,33 +375,33 @@ def test_tsc_to_cif_conversion(structure_cif_block):
     tsc = TSCFile()
     tsc.scatterers = ["C1", "C2", "O1"]
     tsc.data = {
-        (1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j, 3.0-1.0j]),
-        (0, 1, 0): np.array([4.0+0.5j, 5.0-0.5j, 6.0+0.25j])
+        (1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j, 3.0 - 1.0j]),
+        (0, 1, 0): np.array([4.0 + 0.5j, 5.0 - 0.5j, 6.0 + 0.25j]),
     }
-    
+
     # Convert to CIF
     cif_block = tsc.to_cif(
         structure_cif_block,
         partitioning_source="test_source",
-        partitioning_name="test_partitioning", 
-        partitioning_software="test_software"
+        partitioning_name="test_partitioning",
+        partitioning_software="test_software",
     )
-    
+
     # Verify cell parameters are preserved
     assert cif_block["_cell.length_a"] == "10.000"
     assert cif_block["_cell.length_b"] == "12.000"
     assert cif_block["_cell.angle_beta"] == "95.0"
-    
+
     # Verify partitioning metadata
     assert cif_block["_aspheric_ffs.source"] == "test_source"
     assert cif_block["_aspheric_ffs_partitioning.name"] == "test_partitioning"
     assert cif_block["_aspheric_ffs_partitioning.software"] == "test_software"
-    
+
     # Verify moiety loop exists
     moiety_loop = cif_block.get_loop("_wfn_moiety")
     assert moiety_loop is not None
     assert len(moiety_loop["_wfn_moiety.atom_id"]) == 3
-    
+
     # Verify AFF loop exists
     aff_loop = cif_block.get_loop("_aspheric_ff")
     assert aff_loop is not None
@@ -414,29 +412,29 @@ def test_tsc_populate_from_cif_block(tsc_cif_block):
     """Test populating TSC from CIF block."""
     tsc = TSCFile()
     tsc.populate_from_cif_block(tsc_cif_block)
-    
+
     # Verify scatterers
     assert tsc.scatterers == ["C1", "C2", "O1"]
-    
+
     # Verify data was loaded correctly
     assert len(tsc.data) == 2
     assert (1, 0, 0) in tsc.data
     assert (0, 1, 0) in tsc.data
-    
+
     # Verify form factor values
     hkl_100_data = tsc.data[(1, 0, 0)]
-    assert np.isclose(hkl_100_data[0], 1.0+0.0j)
-    assert np.isclose(hkl_100_data[1], 2.0+1.0j)
-    assert np.isclose(hkl_100_data[2], 3.0-1.0j)
+    assert np.isclose(hkl_100_data[0], 1.0 + 0.0j)
+    assert np.isclose(hkl_100_data[1], 2.0 + 1.0j)
+    assert np.isclose(hkl_100_data[2], 3.0 - 1.0j)
 
 
 def test_tsc_from_cif_file(tmp_path, sample_tsc_cif_content):
     """Test creating TSC from CIF file."""
     cif_path = tmp_path / "test.cif"
     cif_path.write_text(sample_tsc_cif_content)
-    
+
     tsc = TSCFile.from_cif_file(cif_path)
-    
+
     assert tsc.scatterers == ["C1", "C2", "O1"]
     assert len(tsc.data) == 2
     assert (1, 0, 0) in tsc.data
@@ -446,9 +444,9 @@ def test_tscb_from_cif_file(tmp_path, sample_tsc_cif_content):
     """Test creating TSCB from CIF file."""
     cif_path = tmp_path / "test.cif"
     cif_path.write_text(sample_tsc_cif_content)
-    
+
     tscb = TSCBFile.from_cif_file(cif_path)
-    
+
     assert tscb.scatterers == ["C1", "C2", "O1"]
     assert len(tscb.data) == 2
     assert (1, 0, 0) in tscb.data
@@ -457,13 +455,13 @@ def test_tscb_from_cif_file(tmp_path, sample_tsc_cif_content):
 def test_populate_from_cif_block_missing_entries():
     """Test error handling when CIF block is missing required entries."""
     from iotbx.cif.model import block
-    
+
     # Create incomplete block missing required entries
     incomplete_block = block()
     incomplete_block.add_data_item("_cell.length_a", "10.0")
-    
+
     tsc = TSCFile()
-    
+
     with pytest.raises(ValueError, match="CIF block does not contain required TSC entries"):
         tsc.populate_from_cif_block(incomplete_block)
 
@@ -471,15 +469,15 @@ def test_populate_from_cif_block_missing_entries():
 def test_populate_from_cif_block_missing_aff_loop():
     """Test error handling when AFF loop is missing."""
     from iotbx.cif.model import block
-    
+
     # Create block with metadata but no AFF loop
     incomplete_block = block()
     incomplete_block.add_data_item("_aspheric_ffs.source", "test")
     incomplete_block.add_data_item("_aspheric_ffs_partitioning.name", "test")
     incomplete_block.add_data_item("_aspheric_ffs_partitioning.software", "test")
-    
+
     tsc = TSCFile()
-    
+
     with pytest.raises(KeyError):
         tsc.populate_from_cif_block(incomplete_block)
 
@@ -487,31 +485,29 @@ def test_populate_from_cif_block_missing_aff_loop():
 def test_populate_from_cif_mismatched_atom_count():
     """Test error when AFF values don't match atom count."""
     from iotbx.cif.model import block, loop
-    
+
     # Create block with mismatched data
     test_block = block()
     test_block.add_data_item("_aspheric_ffs.source", "test")
     test_block.add_data_item("_aspheric_ffs_partitioning.name", "test")
     test_block.add_data_item("_aspheric_ffs_partitioning.software", "test")
-    
+
     # Moiety loop with 2 atoms
-    moiety_data = {
-        "_wfn_moiety.asu_atom_site_label": ["C1", "C2"]
-    }
+    moiety_data = {"_wfn_moiety.asu_atom_site_label": ["C1", "C2"]}
     test_block.add_loop(loop(data=moiety_data))
-    
+
     # AFF loop with 3 values (mismatch)
     aff_data = {
         "_aspheric_ff.index_h": [1],
-        "_aspheric_ff.index_k": [0], 
+        "_aspheric_ff.index_k": [0],
         "_aspheric_ff.index_l": [0],
         "_aspheric_ff.form_factor_real": ["[1.0 2.0 3.0]"],  # 3 values
-        "_aspheric_ff.form_factor_imag": ["[0.0 1.0 -1.0]"]   # 3 values
+        "_aspheric_ff.form_factor_imag": ["[0.0 1.0 -1.0]"],  # 3 values
     }
     test_block.add_loop(loop(data=aff_data))
-    
+
     tsc = TSCFile()
-    
+
     with pytest.raises(ValueError, match="Number of AFF values is not a multiple of number of scatterers"):
         tsc.populate_from_cif_block(test_block)
 
@@ -520,12 +516,12 @@ def test_construct_aff_loop_formatting():
     """Test that AFF loop formats form factors correctly."""
     tsc = TSCFile()
     tsc.data = {
-        (1, 0, 0): np.array([1.23456789+0.0j, 2.345+1.0j]),
-        (-1, 2, -3): np.array([4.567-0.5j, 6.789+0.25j])
+        (1, 0, 0): np.array([1.23456789 + 0.0j, 2.345 + 1.0j]),
+        (-1, 2, -3): np.array([4.567 - 0.5j, 6.789 + 0.25j]),
     }
-    
+
     aff_loop = tsc._construct_aff_loop()
-    
+
     # Verify structure
     assert len(aff_loop["_aspheric_ff.index_h"]) == 2
     assert aff_loop["_aspheric_ff.index_h"][0] == "1"
@@ -545,31 +541,24 @@ def test_round_trip_tsc_cif_conversion(tmp_path, structure_cif_block):
     original_tsc = TSCFile()
     original_tsc.scatterers = ["C1", "C2", "O1"]
     original_tsc.data = {
-        (1, 0, 0): np.array([1.0+0.0j, 2.0+1.0j, 3.0-1.0j]),
-        (0, 1, 0): np.array([4.0+0.5j, 5.0-0.5j, 6.0+0.25j]),
-        (-1, -2, 3): np.array([7.0+2.0j, 8.0-2.0j, 9.0+0.1j])
+        (1, 0, 0): np.array([1.0 + 0.0j, 2.0 + 1.0j, 3.0 - 1.0j]),
+        (0, 1, 0): np.array([4.0 + 0.5j, 5.0 - 0.5j, 6.0 + 0.25j]),
+        (-1, -2, 3): np.array([7.0 + 2.0j, 8.0 - 2.0j, 9.0 + 0.1j]),
     }
-    
+
     # Convert to CIF
     cif_block = original_tsc.to_cif(
-        structure_cif_block,
-        partitioning_source="test",
-        partitioning_name="test",
-        partitioning_software="test"
+        structure_cif_block, partitioning_source="test", partitioning_name="test", partitioning_software="test"
     )
-    
+
     # Convert back to TSC
     reconstructed_tsc = TSCFile()
     reconstructed_tsc.populate_from_cif_block(cif_block)
-    
+
     # Verify data is preserved
     assert reconstructed_tsc.scatterers == original_tsc.scatterers
     assert len(reconstructed_tsc.data) == len(original_tsc.data)
-    
+
     for hkl in original_tsc.data:
         assert hkl in reconstructed_tsc.data
-        np.testing.assert_allclose(
-            reconstructed_tsc.data[hkl], 
-            original_tsc.data[hkl],
-            rtol=1e-6
-        )
+        np.testing.assert_allclose(reconstructed_tsc.data[hkl], original_tsc.data[hkl], rtol=1e-6)

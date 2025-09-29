@@ -64,7 +64,7 @@ def cifdata_str_or_index(model: cif.model.cif, dataset: Union[int, str]) -> Tupl
 
 def read_cif_as_unified(
     cif_path: Union[str, Path],
-    dataset: Optional[str] = None,
+    dataset: Optional[Union[str, int]] = None,
     convert_keywords: bool = True,
     custom_categories: Optional[List[str]] = None,
     split_sus: bool = True,

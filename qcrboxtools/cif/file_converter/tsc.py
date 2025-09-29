@@ -38,7 +38,7 @@ def read_tsc_file(path: Path):
             try:
                 return TSCFile.from_file(path)
             except Exception:
-                raise ValueError(f"Cannot read AFF file: {str(path)}") from exc
+                raise ValueError(f"Cannot read TSCB file: {str(path)}") from exc
     elif path.suffix == ".tsc":
         try:
             return TSCFile.from_file(path)
@@ -46,10 +46,25 @@ def read_tsc_file(path: Path):
             try:
                 return TSCBFile.from_file(path)
             except Exception:
-                raise ValueError(f"Cannot read AFF file: {str(path)}") from exc
+                raise ValueError(f"Cannot read TSC file: {str(path)}") from exc
 
 
 def parse_header(header_str):
+    """
+    Parses the header section of a TSC file.
+
+    Parameters
+    ----------
+    header_str : str
+        The header section of the TSC file as a string.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the parsed header information.
+    """
+    if not header_str.strip():
+        return {}
     header = {}
     header_split = iter(val.split(":") for val in header_str.strip().split("\n"))
 
@@ -60,8 +75,10 @@ def parse_header(header_str):
             header[header_key] = header_entry
         if len(line_split) == 2:
             header_key, header_entry = line_split
-        else:
+        elif len(line_split) == 1 and header_key is not None:
             header_entry += "\n" + line_split[0]
+        else:
+            raise ValueError(f"Malformed header line: {':'.join(line_split)}")
     header[header_key] = header_entry
     return header
 
@@ -80,8 +97,10 @@ def parse_tsc_data_line(line: str) -> Tuple[Tuple[int, int, int], np.ndarray]:
     tuple
         A tuple containing the indices h, k, l and the array of f0j values.
     """
+    
     h_str, k_str, l_str, *f0j_strs = line.split()
-    f0js = np.array([float(val.split(",")[0]) + 1j * float(val.split(",")[1]) for val in f0j_strs])
+    parts = (val.split(",") for val in f0j_strs)
+    f0js = np.array([float(real_val) + 1j * float(imag_val) for real_val, imag_val in parts])
     return (int(h_str), int(k_str), int(l_str)), f0js
 
 
@@ -308,7 +327,9 @@ class TSCBase(ABC):
         if len(all_affs) % n_atoms != 0:
             raise ValueError("Number of AFF values is not a multiple of number of scatterers.")
         all_affs = all_affs.reshape((-1, n_atoms))
-        self.data = {hkl: affs for hkl, affs in zip(hkl_tuples, all_affs, strict=False)}
+        if len(hkl_tuples) != len(all_affs):
+            raise ValueError("Number of Miller indices does not match number of AFF value sets.")
+        self.data = {hkl: affs for hkl, affs in zip(hkl_tuples, all_affs)}
 
 
 class TSCFile(TSCBase):

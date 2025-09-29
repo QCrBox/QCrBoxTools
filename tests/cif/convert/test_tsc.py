@@ -85,7 +85,7 @@ def test_parse_header(sample_header_string):
 def test_parse_header_empty():
     """Test header parsing with empty string."""
     header = parse_header("")
-    assert header == {None: "\n"}
+    assert header == {}
 
 
 def test_parse_tsc_data_line():
@@ -137,7 +137,7 @@ def test_read_tsc_file_invalid_tsc(tmp_path):
     invalid_tsc = tmp_path / "invalid.tsc"
     invalid_tsc.write_text("This is not a valid TSC file")
 
-    with pytest.raises(ValueError, match="Cannot read AFF file"):
+    with pytest.raises(ValueError, match="Cannot read TSC file"):
         read_tsc_file(invalid_tsc)
 
 
@@ -146,7 +146,7 @@ def test_read_tsc_file_invalid_tscb(tmp_path):
     invalid_tscb = tmp_path / "invalid.tscb"
     invalid_tscb.write_bytes(b"This is not a valid TSCB file")
 
-    with pytest.raises(ValueError, match="Cannot read AFF file"):
+    with pytest.raises(ValueError, match="Cannot read TSCB file"):
         read_tsc_file(invalid_tscb)
 
 

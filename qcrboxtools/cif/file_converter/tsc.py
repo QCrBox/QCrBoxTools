@@ -236,7 +236,7 @@ class TSCBase(ABC):
 
     def _construct_aff_loop(self):
         def create_aff_line_string(values):
-            converted = [f"{val:.6e}" for val in values]
+            converted = [f"{val:.8e}" for val in values]
             single_line = " ".join(converted)
             return "[" + "\n".join(wrap(single_line, width=2047)) + "]"
 

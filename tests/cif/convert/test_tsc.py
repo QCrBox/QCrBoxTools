@@ -532,7 +532,7 @@ def test_construct_aff_loop_formatting():
     real_line = aff_loop["_aspheric_ff.form_factor_real"][0]
     assert real_line.startswith("[")
     assert real_line.endswith("]")
-    assert "1.234568e+00" in real_line
+    assert "1.23456789e+00" in real_line
 
 
 def test_round_trip_tsc_cif_conversion(structure_cif_block):

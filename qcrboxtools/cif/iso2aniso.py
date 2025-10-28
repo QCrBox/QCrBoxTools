@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+from iotbx.cif.model import loop
 
 from .read import cifdata_str_or_index, read_cif_safe
 from .uncertainties import split_su_single
-from iotbx.cif.model import loop
 
 
 def cif_iso2aniso(
@@ -68,16 +68,20 @@ def cif_iso2aniso(
     select_names = list(set(select_names))
 
     if "_atom_site_aniso" not in block:
-        block.add_loop(loop(data={
-            "_atom_site_aniso.label": [],
-            "_atom_site_aniso.u_11": [],
-            "_atom_site_aniso.u_22": [],
-            "_atom_site_aniso.u_33": [],
-            "_atom_site_aniso.u_12": [],
-            "_atom_site_aniso.u_13": [],
-            "_atom_site_aniso.u_23": [],
-        }))
-    
+        block.add_loop(
+            loop(
+                data={
+                    "_atom_site_aniso.label": [],
+                    "_atom_site_aniso.u_11": [],
+                    "_atom_site_aniso.u_22": [],
+                    "_atom_site_aniso.u_33": [],
+                    "_atom_site_aniso.u_12": [],
+                    "_atom_site_aniso.u_13": [],
+                    "_atom_site_aniso.u_23": [],
+                }
+            )
+        )
+
     # if overwrite False remove preexistring
     existing = list(block["_atom_site_aniso.label"])
     if not overwrite:

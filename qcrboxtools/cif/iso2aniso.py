@@ -8,6 +8,7 @@ import numpy as np
 
 from .read import cifdata_str_or_index, read_cif_safe
 from .uncertainties import split_su_single
+from iotbx.cif.model import loop
 
 
 def cif_iso2aniso(
@@ -66,6 +67,17 @@ def cif_iso2aniso(
 
     select_names = list(set(select_names))
 
+    if "_atom_site_aniso" not in block:
+        block.add_loop(loop(data={
+            "_atom_site_aniso.label": [],
+            "_atom_site_aniso.u_11": [],
+            "_atom_site_aniso.u_22": [],
+            "_atom_site_aniso.u_33": [],
+            "_atom_site_aniso.u_12": [],
+            "_atom_site_aniso.u_13": [],
+            "_atom_site_aniso.u_23": [],
+        }))
+    
     # if overwrite False remove preexistring
     existing = list(block["_atom_site_aniso.label"])
     if not overwrite:
@@ -73,6 +85,7 @@ def cif_iso2aniso(
 
     # calculate values and set adp type
     new_values = {}
+    adp_type_column = block["_atom_site.adp_type"]
     for name in select_names:
         uiso_index = atom_site_labels.index(name)
         uiso = split_su_single(block["_atom_site.u_iso_or_equiv"][uiso_index])[0]
@@ -82,18 +95,18 @@ def cif_iso2aniso(
             split_su_single(block["_cell.angle_beta"])[0],
             split_su_single(block["_cell.angle_gamma"])[0],
         )
-        block["_atom_site.adp_type"][uiso_index] = "Uani"
+        adp_type_column[uiso_index] = "Uani"
+    block.loops["_atom_site"].update_column("_atom_site.adp_type", adp_type_column)
 
-    # build up new atom_site_aniso arrays
-    loop = block["_atom_site_aniso"]
+    aniso_loop = block["_atom_site_aniso"]
     new_aniso_labels = list(sorted(existing + select_names, key=atom_site_labels.index))
 
-    for _ in range(len(new_aniso_labels) - loop.n_rows()):
-        loop.add_row(["?"] * loop.n_columns())
-    loop.update_column("_atom_site_aniso.label", new_aniso_labels)
+    for _ in range(len(new_aniso_labels) - aniso_loop.n_rows()):
+        aniso_loop.add_row(["?"] * aniso_loop.n_columns())
+    aniso_loop.update_column("_atom_site_aniso.label", new_aniso_labels)
     for ij_index, ij in enumerate((11, 22, 33, 12, 13, 23)):
         aniso_key = f"_atom_site_aniso.u_{ij}"
-        loop.update_column(
+        aniso_loop.update_column(
             f"_atom_site_aniso.u_{ij}",
             [
                 f"{new_values[name][ij_index]:8.8f}" if name in select_names else block[aniso_key][existing.index(name)]

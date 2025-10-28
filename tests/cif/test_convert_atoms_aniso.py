@@ -59,6 +59,10 @@ def test_cif_iso2aniso_byname(tmp_path):
     # test H2a has been added
     uiso_matches_uaniso("H2a", block)
 
+    # test H2a is Uani
+    adp_type_index = list(block["_atom_site.label"]).index("H2a")
+    assert block["_atom_site.adp_type"][adp_type_index] == "Uani"
+
     # test H2b has not been added
     aniso_labels = list(block["_atom_site_aniso.label"])
     assert all(label not in aniso_labels for label in ("H2b", "H3a", "H3b"))

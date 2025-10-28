@@ -89,7 +89,6 @@ def cif_iso2aniso(
 
     # calculate values and set adp type
     new_values = {}
-    adp_type_column = block["_atom_site.adp_type"]
     for name in select_names:
         uiso_index = atom_site_labels.index(name)
         uiso = split_su_single(block["_atom_site.u_iso_or_equiv"][uiso_index])[0]
@@ -99,8 +98,7 @@ def cif_iso2aniso(
             split_su_single(block["_cell.angle_beta"])[0],
             split_su_single(block["_cell.angle_gamma"])[0],
         )
-        adp_type_column[uiso_index] = "Uani"
-    block.loops["_atom_site"].update_column("_atom_site.adp_type", adp_type_column)
+        block["_atom_site.adp_type"][uiso_index] = "Uani"
 
     aniso_loop = block["_atom_site_aniso"]
     new_aniso_labels = list(sorted(existing + select_names, key=atom_site_labels.index))

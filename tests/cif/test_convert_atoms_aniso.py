@@ -80,6 +80,11 @@ def test_cif_iso2aniso_byelement(tmp_path):
     for atom_name in ("H2a", "H2b", "H3a", "H3b"):
         uiso_matches_uaniso(atom_name, block)
 
+    # test atoms are Uani
+    for atom_name in ("H2a", "H2b", "H3a", "H3b"):
+        adp_type_index = list(block["_atom_site.label"]).index(atom_name)
+        assert block["_atom_site.adp_type"][adp_type_index] == "Uani"
+
 
 def test_cif_iso2aniso_byregex(tmp_path):
     input_cif_path = test_file_path / "iso2aniso.cif"
@@ -95,3 +100,8 @@ def test_cif_iso2aniso_byregex(tmp_path):
     # test H2a H3b have not been added
     aniso_labels = list(block["_atom_site_aniso.label"])
     assert all(label not in aniso_labels for label in ("H2a", "H3a"))
+
+    # test atoms are Uani
+    for atom_name in ("H2b", "H3b"):
+        adp_type_index = list(block["_atom_site.label"]).index(atom_name)
+        assert block["_atom_site.adp_type"][adp_type_index] == "Uani"

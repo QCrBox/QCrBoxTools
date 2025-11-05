@@ -104,6 +104,41 @@ def read_cif_as_unified(
         if split_sus:
             block = split_su_block(block)
         return block
+    else:
+        return cif_model_to_unified_su(
+            cif_model,
+            convert_keywords=convert_keywords,
+            custom_categories=custom_categories,
+            split_sus=split_sus,
+        )
+
+def cif_model_to_unified_su(
+    cif_model: cif.model.cif, 
+    convert_keywords: bool = True,
+    custom_categories: Optional[List[str]] = None,
+    split_sus: bool = True,
+) -> cif.model.cif:
+    """
+    Convert a CIF model to a unified representation with respect to standard uncertainties.
+
+    Parameters
+    ----------
+    cif_model : cif.model.cif
+        The CIF model to be converted.
+    convert_keywords : bool, default True
+        Whether to convert CIF data item names to a unified naming scheme.
+    custom_categories : Optional[List[str]], optional
+        User defined categories (e.g. 'iucr', 'olex2' or 'shelx') that can be taken
+        into account for entry name conversion, where an entry _category_example would
+        look up _category.example in a block of the provided cif. Only used if
+        `convert_keywords` is True.
+    split_sus : bool, default True
+        Whether to split values and their standard uncertainties (if present) into separate entries.
+    Returns
+    -------
+    cif.model.cif
+        The converted CIF model with unified keywords and standard uncertainties.
+    """
     if convert_keywords:
         cif_model = cif_to_unified_keywords(cif_model, custom_categories)
     if split_sus:

@@ -1,11 +1,17 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
+from pathlib import Path
 from textwrap import dedent
 
 import pytest
 from iotbx import cif
 
-from qcrboxtools.cif.read import cifdata_str_or_index, read_cif_as_unified
+from qcrboxtools.cif.read import (
+    cif_model_to_unified_su,
+    cifdata_str_or_index,
+    read_cif_as_unified,
+    read_cif_safe,
+)
 
 
 def test_cifdata_str_or_index_by_str():
@@ -129,3 +135,81 @@ def test_read_cif_as_unified(cif_path):
         assert "_test.value_with_su_su" in output
         assert output["_test.value_with_su"] == "1.23"
         assert output["_test.value_with_su_su"] == "0.04"
+
+
+def test_read_cif_safe_with_str(cif_path):
+    """Test read_cif_safe with string path."""
+    cif_model = read_cif_safe(str(cif_path))
+    assert "test" in cif_model.keys()
+    assert "_test_value_with_su" in cif_model["test"]
+
+
+def test_read_cif_safe_with_path(cif_path):
+    """Test read_cif_safe with pathlib.Path object."""
+    cif_model = read_cif_safe(Path(cif_path))
+    assert "test" in cif_model.keys()
+    assert "_test_value_with_su" in cif_model["test"]
+
+
+def test_cif_model_to_unified_su_no_processing():
+    """Test cif_model_to_unified_su without any processing."""
+    cif_content = dedent("""
+        data_block1
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    cif_model = cif.reader(input_string=cif_content).model()
+    
+    result = cif_model_to_unified_su(cif_model, convert_keywords=False, split_sus=False)
+    
+    assert "_test_value_with_su" in result["block1"]
+    assert result["block1"]["_test_value_with_su"] == "1.23(4)"
+
+
+def test_cif_model_to_unified_su_split_only():
+    """Test cif_model_to_unified_su with only SU splitting."""
+    cif_content = dedent("""
+        data_block1
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    cif_model = cif.reader(input_string=cif_content).model()
+    
+    result = cif_model_to_unified_su(cif_model, convert_keywords=False, split_sus=True)
+    
+    assert "_test_value_with_su" in result["block1"]
+    assert "_test_value_with_su_su" in result["block1"]
+    assert result["block1"]["_test_value_with_su"] == "1.23"
+    assert result["block1"]["_test_value_with_su_su"] == "0.04"
+
+
+def test_cif_model_to_unified_su_convert_only():
+    """Test cif_model_to_unified_su with only keyword conversion."""
+    cif_content = dedent("""
+        data_block1
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    cif_model = cif.reader(input_string=cif_content).model()
+    
+    result = cif_model_to_unified_su(cif_model, convert_keywords=True, split_sus=False, custom_categories=["test"])
+    
+    assert "_test.value_with_su" in result["block1"]
+    assert result["block1"]["_test.value_with_su"] == "1.23(4)"
+
+
+def test_cif_model_to_unified_su_full_processing():
+    """Test cif_model_to_unified_su with both keyword conversion and SU splitting."""
+    cif_content = dedent("""
+        data_block1
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    cif_model = cif.reader(input_string=cif_content).model()
+    
+    result = cif_model_to_unified_su(cif_model, convert_keywords=True, split_sus=True, custom_categories=["test"])
+    
+    assert "_test.value_with_su" in result["block1"]
+    assert "_test.value_with_su_su" in result["block1"]
+    assert result["block1"]["_test.value_with_su"] == "1.23"
+    assert result["block1"]["_test.value_with_su_su"] == "0.04"

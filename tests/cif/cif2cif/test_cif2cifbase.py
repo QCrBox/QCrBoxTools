@@ -1,8 +1,9 @@
 import re
 import subprocess
 from itertools import product
+from textwrap import dedent
 
-from qcrboxtools.cif.cif2cif import cif_file_to_specific, cif_file_to_unified
+from qcrboxtools.cif.cif2cif import cif_file_to_specific, cif_file_to_unified, cif_text_to_unified
 
 
 def test_cif_file_to_unified(test_cif_file_merged, tmp_path):
@@ -218,3 +219,79 @@ def test_cli_non_existent_command(test_cif_file_merged, tmp_path):
 
     # Check if the help message is in the output
     assert "usage:" in result.stderr
+
+
+def test_cif_text_to_unified_basic():
+    """Test cif_text_to_unified with basic CIF text input."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    
+    result = cif_text_to_unified(cif_text, convert_keywords=False, split_sus=False)
+    
+    assert "data_test" in result
+    assert "_test_value_with_su" in result
+    assert "1.23(4)" in result
+
+
+def test_cif_text_to_unified_with_split_sus():
+    """Test cif_text_to_unified with SU splitting enabled."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    
+    result = cif_text_to_unified(cif_text, convert_keywords=False, split_sus=True)
+    
+    assert "data_test" in result
+    assert "_test_value_with_su" in result
+    assert "_test_value_with_su_su" in result
+    # Check that the value is split
+    assert re.search(r"_test_value_with_su\s+1\.23", result)
+    assert re.search(r"_test_value_with_su_su\s+0\.04", result)
+
+
+def test_cif_text_to_unified_with_keyword_conversion():
+    """Test cif_text_to_unified with keyword conversion enabled."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    
+    result = cif_text_to_unified(
+        cif_text,
+        convert_keywords=True,
+        split_sus=False,
+        custom_categories=["test"]
+    )
+    
+    assert "data_test" in result
+    assert "_test.value_with_su" in result
+    assert re.search(r"_test\.value_with_su\s+1\.23\(4\)", result)
+
+
+def test_cif_text_to_unified_full_processing():
+    """Test cif_text_to_unified with both keyword conversion and SU splitting."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    
+    result = cif_text_to_unified(
+        cif_text,
+        convert_keywords=True,
+        split_sus=True,
+        custom_categories=["test"]
+    )
+    
+    assert "data_test" in result
+    assert "_test.value_with_su" in result
+    assert "_test.value_with_su_su" in result
+    # Check that both conversion and splitting occurred
+    assert re.search(r"_test\.value_with_su\s+1\.23", result)
+    assert re.search(r"_test\.value_with_su_su\s+0\.04", result)

@@ -4,10 +4,10 @@
 from pathlib import Path
 from typing import List, Optional, Union
 
-from iotbx.cif import model
+from iotbx.cif import model, reader
 
 from ..entries import cif_to_specific_keywords, cif_to_unified_keywords, entry_to_unified_keyword
-from ..read import read_cif_as_unified, read_cif_safe
+from ..read import read_cif_as_unified, read_cif_safe, cif_model_to_unified_su
 from ..uncertainties import merge_su_cif
 
 
@@ -50,6 +50,44 @@ def cif_file_to_unified(
 
     # Write the modified CIF model to the specified output file.
     Path(output_cif_path).write_text(str(cif_model), encoding="UTF-8")
+
+
+def cif_text_to_unified(
+    cif_text: str,
+    convert_keywords: bool = True,
+    custom_categories: Optional[List[str]] = None,
+    split_sus: bool = True,
+) -> str:
+    """
+    Processes CIF content from a string, applying optional keyword conversion and SU splitting.
+
+    Parameters
+    ----------
+    cif_text : str
+        The CIF content as a string.
+    convert_keywords : bool, optional
+        If True, converts keywords to a unified format.
+    custom_categories : Optional[List[str]], optional
+        Custom categories for keyword conversion, if applicable.
+    split_sus : bool, optional
+        If True, splits values from their SUs in the CIF content.
+
+    Returns
+    -------
+    str
+        The processed CIF content as a string.
+    """
+    cif_model = reader(input_string=cif_text).model()
+
+    if convert_keywords or split_sus:
+        cif_model = cif_model_to_unified_su(
+            cif_model,
+            convert_keywords=convert_keywords,
+            custom_categories=custom_categories,
+            split_sus=split_sus,
+        )
+
+    return str(cif_model)
 
 
 def cif_model_to_specific(

@@ -1,7 +1,7 @@
 # Copyright 2024 Paul Niklas Ruth.
 # SPDX-License-Identifier: MPL-2.0
 
-from .base import cif_file_to_specific, cif_file_to_unified, cif_text_to_unified
+from .base import bytes_to_unified_if_cif, cif_file_to_specific, cif_file_to_unified, cif_text_to_unified, is_text_cif
 from .yaml import (
     EmptyCommandError,
     EmptyParameterError,
@@ -31,6 +31,7 @@ from .yaml import (
 )
 
 __all__ = [
+    "bytes_to_unified_if_cif",
     "cif_file_to_unified",
     "cif_file_to_specific",
     "EmptyCommandError",
@@ -59,4 +60,5 @@ __all__ = [
     "resolve_special_entries",
     "yml_entries_resolve_special",
     "cif_text_to_unified",
+    "is_text_cif",
 ]

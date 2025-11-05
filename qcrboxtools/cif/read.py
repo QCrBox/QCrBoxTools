@@ -112,8 +112,9 @@ def read_cif_as_unified(
             split_sus=split_sus,
         )
 
+
 def cif_model_to_unified_su(
-    cif_model: cif.model.cif, 
+    cif_model: cif.model.cif,
     convert_keywords: bool = True,
     custom_categories: Optional[List[str]] = None,
     split_sus: bool = True,

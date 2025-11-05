@@ -7,7 +7,7 @@ from typing import List, Optional, Union
 from iotbx.cif import model, reader
 
 from ..entries import cif_to_specific_keywords, cif_to_unified_keywords, entry_to_unified_keyword
-from ..read import read_cif_as_unified, read_cif_safe, cif_model_to_unified_su
+from ..read import cif_model_to_unified_su, read_cif_as_unified, read_cif_safe
 from ..uncertainties import merge_su_cif
 
 
@@ -88,6 +88,71 @@ def cif_text_to_unified(
         )
 
     return str(cif_model)
+
+
+def is_text_cif(cif_text: str) -> bool:
+    """
+    Checks if the provided text is in CIF format.
+
+    Parameters
+    ----------
+    cif_text : str
+        The text to be checked.
+
+    Returns
+    -------
+    bool
+        True if the text is in CIF format, False otherwise.
+    """
+    for line in cif_text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("data_"):
+            return True
+        if len(stripped) > 0 and not stripped.startswith("#"):
+            # found non-empty non-comment line before any data_ line
+            return False
+    return False
+
+
+def bytes_to_unified_if_cif(
+    data: bytes,
+    convert_keywords: bool = True,
+    custom_categories: Optional[List[str]] = None,
+    split_sus: bool = True,
+) -> Optional[bytes]:
+    """
+    Converts bytes data to a unified CIF format if the data is valid CIF content.
+
+    Parameters
+    ----------
+    data : bytes
+        The CIF data as bytes.
+    convert_keywords : bool, optional
+        If True, converts keywords to a unified format.
+    custom_categories : Optional[List[str]], optional
+        Custom categories for keyword conversion, if applicable.
+    split_sus : bool, optional
+        If True, splits values from their SUs in the CIF content.
+
+    Returns
+    -------
+    Optional[bytes]
+        The processed CIF data as bytes, or None if the data is not valid CIF.
+    """
+    try:
+        cif_text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return data
+    if not is_text_cif(cif_text):
+        return data
+
+    processed_cif_text = cif_text_to_unified(
+        cif_text,
+        convert_keywords=convert_keywords,
+        custom_categories=custom_categories,
+        split_sus=split_sus,
+    )
+    return processed_cif_text.encode("utf-8")
 
 
 def cif_model_to_specific(

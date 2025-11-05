@@ -3,7 +3,13 @@ import subprocess
 from itertools import product
 from textwrap import dedent
 
-from qcrboxtools.cif.cif2cif import cif_file_to_specific, cif_file_to_unified, cif_text_to_unified
+from qcrboxtools.cif.cif2cif import (
+    bytes_to_unified_if_cif,
+    cif_file_to_specific,
+    cif_file_to_unified,
+    cif_text_to_unified,
+    is_text_cif,
+)
 
 
 def test_cif_file_to_unified(test_cif_file_merged, tmp_path):
@@ -228,9 +234,9 @@ def test_cif_text_to_unified_basic():
         _test_value_with_su 1.23(4)
         _test_value_without_su 5.67
         """)
-    
+
     result = cif_text_to_unified(cif_text, convert_keywords=False, split_sus=False)
-    
+
     assert "data_test" in result
     assert "_test_value_with_su" in result
     assert "1.23(4)" in result
@@ -243,9 +249,9 @@ def test_cif_text_to_unified_with_split_sus():
         _test_value_with_su 1.23(4)
         _test_value_without_su 5.67
         """)
-    
+
     result = cif_text_to_unified(cif_text, convert_keywords=False, split_sus=True)
-    
+
     assert "data_test" in result
     assert "_test_value_with_su" in result
     assert "_test_value_with_su_su" in result
@@ -261,14 +267,9 @@ def test_cif_text_to_unified_with_keyword_conversion():
         _test_value_with_su 1.23(4)
         _test_value_without_su 5.67
         """)
-    
-    result = cif_text_to_unified(
-        cif_text,
-        convert_keywords=True,
-        split_sus=False,
-        custom_categories=["test"]
-    )
-    
+
+    result = cif_text_to_unified(cif_text, convert_keywords=True, split_sus=False, custom_categories=["test"])
+
     assert "data_test" in result
     assert "_test.value_with_su" in result
     assert re.search(r"_test\.value_with_su\s+1\.23\(4\)", result)
@@ -281,17 +282,258 @@ def test_cif_text_to_unified_full_processing():
         _test_value_with_su 1.23(4)
         _test_value_without_su 5.67
         """)
-    
-    result = cif_text_to_unified(
-        cif_text,
-        convert_keywords=True,
-        split_sus=True,
-        custom_categories=["test"]
-    )
-    
+
+    result = cif_text_to_unified(cif_text, convert_keywords=True, split_sus=True, custom_categories=["test"])
+
     assert "data_test" in result
     assert "_test.value_with_su" in result
     assert "_test.value_with_su_su" in result
     # Check that both conversion and splitting occurred
     assert re.search(r"_test\.value_with_su\s+1\.23", result)
     assert re.search(r"_test\.value_with_su_su\s+0\.04", result)
+
+
+# Tests for is_text_cif function
+
+
+def test_is_text_cif_valid_cif():
+    """Test is_text_cif with a valid CIF text."""
+    cif_text = dedent("""
+        data_test
+        _cell_length_a 10.0
+        _cell_length_b 20.0
+        """)
+    assert is_text_cif(cif_text) is True
+
+
+def test_is_text_cif_data_block_with_leading_whitespace():
+    """Test is_text_cif with data_ preceded by whitespace."""
+    cif_text = "    data_test\n_cell_length_a 10.0"
+    assert is_text_cif(cif_text) is True
+
+
+def test_is_text_cif_with_comments_before_data():
+    """Test is_text_cif with comments before data_ block."""
+    cif_text = dedent("""
+        # This is a comment
+        # Another comment
+        data_test
+        _cell_length_a 10.0
+        """)
+    assert is_text_cif(cif_text) is True
+
+
+def test_is_text_cif_comment_with_data_keyword():
+    """Test is_text_cif with data_ appearing in a comment line."""
+    cif_text = dedent("""
+        # data_something
+        _cell_length_a 10.0
+        """)
+    # This should return False because the actual data_ line is missing
+    assert is_text_cif(cif_text) is False
+
+
+def test_is_text_cif_empty_string():
+    """Test is_text_cif with an empty string."""
+    assert is_text_cif("") is False
+
+
+def test_is_text_cif_only_whitespace():
+    """Test is_text_cif with only whitespace."""
+    cif_text = "   \n\n\t\n   "
+    assert is_text_cif(cif_text) is False
+
+
+def test_is_text_cif_only_comments():
+    """Test is_text_cif with only comment lines."""
+    cif_text = dedent("""
+        # Comment line 1
+        # Comment line 2
+        # Comment line 3
+        """)
+    assert is_text_cif(cif_text) is False
+
+
+def test_is_text_cif_non_cif_content():
+    """Test is_text_cif with non-CIF content."""
+    cif_text = dedent("""
+        This is not a CIF file
+        It has some random text
+        """)
+    assert is_text_cif(cif_text) is False
+
+
+def test_is_text_cif_content_before_data():
+    """Test is_text_cif with non-comment content before data_ block."""
+    cif_text = dedent("""
+        _cell_length_a 10.0
+        data_test
+        """)
+    # Should return False because non-comment content appears before data_
+    assert is_text_cif(cif_text) is False
+
+
+def test_is_text_cif_multiple_data_blocks():
+    """Test is_text_cif with multiple data blocks."""
+    cif_text = dedent("""
+        data_first
+        _cell_length_a 10.0
+        
+        data_second
+        _cell_length_b 20.0
+        """)
+    assert is_text_cif(cif_text) is True
+
+
+def test_is_text_cif_data_underscore_variations():
+    """Test is_text_cif with various data_ block names."""
+    assert is_text_cif("data_") is True
+    assert is_text_cif("data_test123") is True
+    assert is_text_cif("data_test_with_underscores") is True
+    assert is_text_cif("data_123") is True
+
+
+def test_is_text_cif_mixed_content():
+    """Test is_text_cif with whitespace, comments, then data block."""
+    cif_text = dedent("""
+        
+        
+        # Comment after blank lines
+        
+        data_test
+        _cell_length_a 10.0
+        """)
+    assert is_text_cif(cif_text) is True
+
+
+# Tests for bytes_to_unified_if_cif function
+
+
+def test_bytes_to_unified_if_cif_valid_cif():
+    """Test bytes_to_unified_if_cif with valid CIF bytes."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        _test_value_without_su 5.67
+        """)
+    cif_bytes = cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(cif_bytes, convert_keywords=False, split_sus=True)
+
+    assert result is not None
+    result_text = result.decode("utf-8")
+    assert "data_test" in result_text
+    assert "_test_value_with_su_su" in result_text
+
+
+def test_bytes_to_unified_if_cif_non_cif_bytes():
+    """Test bytes_to_unified_if_cif with non-CIF content."""
+    non_cif_text = "This is not a CIF file\nJust some random text"
+    non_cif_bytes = non_cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(non_cif_bytes)
+
+    # Should return original bytes unchanged
+    assert result == non_cif_bytes
+
+
+def test_bytes_to_unified_if_cif_invalid_utf8():
+    """Test bytes_to_unified_if_cif with invalid UTF-8 bytes."""
+    invalid_bytes = b"\x80\x81\x82\x83"  # Invalid UTF-8 sequence
+
+    result = bytes_to_unified_if_cif(invalid_bytes)
+
+    # Should return original bytes unchanged due to decode error
+    assert result == invalid_bytes
+
+
+def test_bytes_to_unified_if_cif_empty_bytes():
+    """Test bytes_to_unified_if_cif with empty bytes."""
+    empty_bytes = b""
+
+    result = bytes_to_unified_if_cif(empty_bytes)
+
+    # Should return original empty bytes
+    assert result == empty_bytes
+
+
+def test_bytes_to_unified_if_cif_with_keyword_conversion():
+    """Test bytes_to_unified_if_cif with keyword conversion enabled."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        """)
+    cif_bytes = cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(cif_bytes, convert_keywords=True, custom_categories=["test"], split_sus=True)
+
+    assert result is not None
+    result_text = result.decode("utf-8")
+    assert "_test.value_with_su" in result_text
+    assert "_test.value_with_su_su" in result_text
+
+
+def test_bytes_to_unified_if_cif_no_processing():
+    """Test bytes_to_unified_if_cif with all processing disabled."""
+    cif_text = dedent("""
+        data_test
+        _test_value_with_su 1.23(4)
+        """)
+    cif_bytes = cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(cif_bytes, convert_keywords=False, split_sus=False)
+
+    assert result is not None
+    result_text = result.decode("utf-8")
+    assert "data_test" in result_text
+    assert "1.23(4)" in result_text
+    # Should not have split SUs
+    assert "_test_value_with_su_su" not in result_text
+
+
+def test_bytes_to_unified_if_cif_comment_only():
+    """Test bytes_to_unified_if_cif with only comments (not a valid CIF)."""
+    comment_text = "# Just a comment\n# Another comment"
+    comment_bytes = comment_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(comment_bytes)
+
+    # Should return original bytes unchanged
+    assert result == comment_bytes
+
+
+def test_bytes_to_unified_if_cif_utf8_with_bom():
+    """Test bytes_to_unified_if_cif with UTF-8 BOM."""
+    cif_text = dedent("""
+        data_test
+        _cell_length_a 10.0
+        """)
+    # UTF-8 with BOM
+    cif_bytes = b"\xef\xbb\xbf" + cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(cif_bytes)
+
+    assert result is not None
+    result_text = result.decode("utf-8")
+    # BOM should be preserved in the decode/encode cycle
+    assert "data_test" in result_text
+
+
+def test_bytes_to_unified_if_cif_multiline_values():
+    """Test bytes_to_unified_if_cif with multiline CIF values."""
+    cif_text = dedent("""
+        data_test
+        _test_text
+        ;
+        This is a multiline value
+        in CIF format
+        ;
+        """)
+    cif_bytes = cif_text.encode("utf-8")
+
+    result = bytes_to_unified_if_cif(cif_bytes, convert_keywords=False, split_sus=False)
+
+    assert result is not None
+    result_text = result.decode("utf-8")
+    assert "data_test" in result_text
+    assert "multiline value" in result_text

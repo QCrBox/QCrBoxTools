@@ -452,18 +452,27 @@ def resolve_special_entries(
         The resolved entries.
     """
 
+    def is_known(key):
+        # Scalar CIF entries can be present but set to the CIF placeholder '?'
+        # (unknown); '.' (inapplicable) is a real, deliberate value. Loop
+        # columns are left as-is.
+        value = block[key]
+        return not isinstance(value, str) or value.strip() != "?"
+
     def resolve_single_entry(entry):
         if isinstance(entry, Mapping):
             for value in entry["one_of"]:
                 if isinstance(value, str):
-                    if value in block:
+                    if value in block and is_known(value):
                         return [value]
-                    if entry_to_unified_keyword(value, custom_categories) in block:
+                    unified = entry_to_unified_keyword(value, custom_categories)
+                    if unified in block and is_known(unified):
                         return [value]
                 elif isinstance(value, list):
-                    if all(v in block for v in value):
+                    if all(v in block for v in value) and all(is_known(v) for v in value):
                         return value
-                    if all(entry_to_unified_keyword(v, custom_categories) in block for v in value):
+                    unified_values = [entry_to_unified_keyword(v, custom_categories) for v in value]
+                    if all(u in block for u in unified_values) and all(is_known(u) for u in unified_values):
                         return value
             raise OneOfEntryNotResolvableError(
                 f"None of the values in one_of selection: {entry['one_of']} found in block"

@@ -390,7 +390,31 @@ def merge_cif_blocks(
     used_loops2 = []
     new_loops = {}
     entry2loop_name = {}
-    iter_product = product(block1.loops.items(), block2.loops.items(), possible_markers)
+
+    # Same-name loops are merged first, on their own, using whichever marker(s)
+    # uniquely resolve that pair. This is required for loops that are re-emitted
+    # by a later run of the same command (e.g. re-generating aspherical form
+    # factors onto a CIF that already has them): their key columns can
+    # legitimately match more than one marker (e.g. both `.id` and
+    # `.asu_atom_site_label` satisfy `.*\.id` and `.*.label_?\d*`), which would
+    # otherwise make them ambiguous candidates against unrelated loops in the
+    # other block during the cross-name pass below and trip NonUniqueBlockMerging.
+    shared_loop_names = [name for name in block1.loops if name in block2.loops]
+    for loop_name in shared_loop_names:
+        loop1 = block1.loops[loop_name]
+        loop2 = block2.loops[loop_name]
+        try:
+            merged_loop = merge_cif_loops(loop1, loop2, merge_on=possible_markers)
+        except (NonExistingMergeKey, NonMatchingMergeKeys):
+            continue
+        used_loops1.append(loop_name)
+        used_loops2.append(loop_name)
+        entry2loop_name.update({entry: merged_loop.name for entry in merged_loop.keys()})
+        new_loops[merged_loop.name] = merged_loop
+
+    remaining_loops1 = [(name, loop) for name, loop in block1.loops.items() if name not in used_loops1]
+    remaining_loops2 = [(name, loop) for name, loop in block2.loops.items() if name not in used_loops2]
+    iter_product = product(remaining_loops1, remaining_loops2, possible_markers)
     for (loop1_name, loop1), (loop2_name, loop2), marker in iter_product:
         try:
             merged_loop = merge_cif_loops(loop1, loop2, merge_on=marker)

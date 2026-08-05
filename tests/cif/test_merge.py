@@ -101,6 +101,45 @@ def test_merge_block_conflicts():
     )
 
 
+def test_merge_block_same_name_loop_ambiguous_markers():
+    """
+    Regression test: a loop present in both blocks under the same name whose
+    columns independently satisfy more than one default marker (e.g. both
+    `.id` and `.label`-like columns, as in `_wfn_moiety`) must not be treated
+    as ambiguous against unrelated loops and must not raise
+    NonUniqueBlockMerging. This mirrors re-running an aff-generating command
+    on a CIF that already carries a previous `_wfn_moiety`/aff result, where
+    block2 (the new output) is expected to overwrite block1 (the old data).
+    """
+    old_loop = cif.model.loop(
+        data={
+            "_wfn_moiety.id": ["1", "1"],
+            "_wfn_moiety.atom_id": ["1", "2"],
+            "_wfn_moiety.asu_atom_site_label": ["O1", "C2"],
+            "_wfn_moiety.aff_index": ["1", "2"],
+        }
+    )
+    new_loop = cif.model.loop(
+        data={
+            "_wfn_moiety.id": ["1", "1"],
+            "_wfn_moiety.atom_id": ["1", "2"],
+            "_wfn_moiety.asu_atom_site_label": ["O1", "C2"],
+            "_wfn_moiety.aff_index": ["99", "98"],
+        }
+    )
+
+    block_old = cif.model.block()
+    block_old.add_loop(old_loop)
+    block_new = cif.model.block()
+    block_new.add_loop(new_loop)
+
+    merged_block = merge_cif_blocks(block_old, block_new)
+
+    assert list(merged_block["_wfn_moiety.aff_index"]) == ["99", "98"], (
+        "New (block2) aff_index values should overwrite the old (block1) ones"
+    )
+
+
 def test_merge_block_string_marker(loop1, loop2):
     block1 = cif.model.block()
     block1.add_loop(loop1)
